@@ -167,6 +167,7 @@ COBJS-$(CONFIG_UPDATE_TFTP) += update.o
 COBJS-$(CONFIG_USB_KEYBOARD) += usb_kbd.o
 COBJS-$(CONFIG_BOOTSTAGE) += bootstage.o
 COBJS-$(CONFIG_CMD_GETTIME) += cmd_gettime.o
+COBJS-$(CONFIG_CMD_RAMCONFIG) += cmd_ramconfig.o
 
 
 COBJS	:= $(sort $(COBJS-y))
