@@ -232,9 +232,17 @@ static void setup_start_tag (bd_t *bd)
 	params->hdr.tag = ATAG_CORE;
 	params->hdr.size = tag_size (tag_core);
 
+#if defined (ATAG_CORE_FLAGS) && \
+    defined (ATAG_PAGE_SIZE) && \
+    defined (ATAG_CORE_RDEV)
+	params->u.core.flags = ATAG_CORE_FLAGS;
+	params->u.core.pagesize = ATAG_PAGE_SIZE;
+	params->u.core.rootdev = ATAG_CORE_RDEV;
+#else
 	params->u.core.flags = 0;
 	params->u.core.pagesize = 0;
 	params->u.core.rootdev = 0;
+#endif
 
 	params = tag_next (params);
 }
