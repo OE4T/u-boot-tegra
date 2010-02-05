@@ -1,4 +1,6 @@
 /*
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
+ *
  * (C) Copyright 2000
  * Paolo Scaffardi, AIRVENT SAM s.p.a - RIMINI(ITALY), arsenio@tin.it
  *
@@ -565,6 +567,7 @@ int console_init_r(void)
 {
 	char *stdinname, *stdoutname, *stderrname;
 	struct stdio_dev *inputdev = NULL, *outputdev = NULL, *errdev = NULL;
+	int overwrite_console_retval;
 #ifdef CONFIG_SYS_CONSOLE_ENV_OVERWRITE
 	int i;
 #endif /* CONFIG_SYS_CONSOLE_ENV_OVERWRITE */
@@ -580,12 +583,17 @@ int console_init_r(void)
 	gd->jt[XF_printf] = serial_printf;
 
 	/* stdin stdout and stderr are in environment */
-	/* scan for it */
+	/* call OVERWRITE_CONSOLE function before scanning
+	 * for stdio, stdout, stderr to get latest pointer
+	 * after update.
+	 * (getenv returns NULL if var not present)
+	 */
+	overwrite_console_retval = OVERWRITE_CONSOLE;
 	stdinname  = getenv("stdin");
 	stdoutname = getenv("stdout");
 	stderrname = getenv("stderr");
 
-	if (OVERWRITE_CONSOLE == 0) {	/* if not overwritten by config switch */
+	if (overwrite_console_retval == 0) {	/* if not overwritten by config switch */
 		inputdev  = search_device(DEV_FLAGS_INPUT,  stdinname);
 		outputdev = search_device(DEV_FLAGS_OUTPUT, stdoutname);
 		errdev    = search_device(DEV_FLAGS_OUTPUT, stderrname);
