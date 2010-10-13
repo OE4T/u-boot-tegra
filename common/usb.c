@@ -765,6 +765,18 @@ struct usb_device *usb_alloc_new_device(void)
 	return &usb_dev[dev_index - 1];
 }
 
+/*
+ * Free the newly created device node.
+ * Called in error cases where configuring a newly attached
+ * device fails for some reason.
+ */
+void usb_free_device(void)
+{
+	dev_index--;
+	USB_PRINTF("Freeing device node: %d \n", dev_index);
+	memset(&usb_dev[dev_index], 0, sizeof(struct usb_device));
+	usb_dev[dev_index].devnum = -1;
+}
 
 /*
  * By the time we get here, the device has gotten a new device ID
@@ -1250,6 +1262,8 @@ void usb_hub_port_connect_change(struct usb_device *dev, int port)
 	/* Run it through the hoops (find a driver, etc) */
 	if (usb_new_device(usb)) {
 		/* Woops, disable the port */
+		usb_free_device();
+		dev->children[port] = NULL;
 		USB_HUB_PRINTF("hub: disabling port %d\n", port + 1);
 		usb_clear_port_feature(dev, port + 1, USB_PORT_FEAT_ENABLE);
 	}
