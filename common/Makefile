@@ -27,7 +27,6 @@ LIB	= $(obj)libcommon.o
 
 # core
 COBJS-y += main.o
-COBJS-$(CONFIG_CHROMEOS) += chromeos_utility.o
 COBJS-y += console.o
 COBJS-y += command.o
 COBJS-y += dlmalloc.o
