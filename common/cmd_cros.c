@@ -41,8 +41,8 @@
 #include <part.h>
 #include <boot_device.h>
 
-#define USAGE(ret, cmdtp, fmt, args...) do { \
-	printf(fmt, args); \
+#define USAGE(ret, cmdtp, fmt, ...) do { \
+	printf(fmt, ##__VA_ARGS__); \
 	cmd_usage(cmdtp); \
 	return (ret); \
 } while (0);
@@ -114,7 +114,7 @@ int do_bootdev(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	else if (!strcmp(argv[1], "write"))
 		opcode = WRITE;
 	else
-		USAGE(1, cmdpt, "Unrecognized action: %s\n", argv[1]);
+		USAGE(1, cmdtp, "Unrecognized action: %s\n", argv[1]);
 
 	/* apply De Morgan's laws on
 	 * !((argc == 4 && opcode == SET) || argc == 5) */
