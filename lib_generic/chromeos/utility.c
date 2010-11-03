@@ -42,6 +42,7 @@
 #include <malloc.h>
 
 /* HACK: Get rid of U-Boots debug and assert macros */
+#undef error
 #undef debug
 #undef assert
 
