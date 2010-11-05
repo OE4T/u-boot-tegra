@@ -52,7 +52,7 @@
 /* Import interface of vboot's helper functions */
 #include <utility.h>
 
-/* Is it defined in lib_generic/string.c? */
+/* Is it defined in lib/string.c? */
 int memcmp(const void *cs, const void *ct, size_t count);
 
 void abort(void)
