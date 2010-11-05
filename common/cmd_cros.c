@@ -39,19 +39,21 @@
 #include <common.h>
 #include <command.h>
 #include <part.h>
+#include <chromeos/fmap.h>
 #include <boot_device.h>
 
 #define USAGE(ret, cmdtp, fmt, ...) do { \
 	printf(fmt, ##__VA_ARGS__); \
 	cmd_usage(cmdtp); \
 	return (ret); \
-} while (0);
+} while (0)
 
 block_dev_desc_t *get_bootdev(void);
 int set_bootdev(char *ifname, int dev, int part);
 
 int do_cros	(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);
 int do_bootdev	(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);
+int do_fmap	(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);
 int do_cros_help(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);
 
 U_BOOT_CMD(cros, CONFIG_SYS_MAXARGS, 1, do_cros,
@@ -69,6 +71,10 @@ cmd_tbl_t cmd_cros_sub[] = {
 			"set iface dev [part]\n    - set boot device\n"
 			"read addr block count\n    - read from boot device\n"
 			"write addr block count\n    - write to boot device"),
+	U_BOOT_CMD_MKENT(fmap, 2, 1, do_fmap,
+			"Find and print flash map",
+			"addr len\n    - Find and print flash map "
+			"in memory[addr, addr+len]\n"),
 	U_BOOT_CMD_MKENT(help, 1, 1, do_cros_help,
 			"show this message",
 			"[action]")
@@ -147,6 +153,65 @@ int do_bootdev(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	if (retcode)
 		USAGE(1, cmdtp, opcode == READ ?
 				"Read failed\n" : "Write failed\n");
+
+	return 0;
+}
+
+int do_fmap(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+{
+	static const struct {
+		uint16_t flag;
+		const char *str;
+	} flag2str[] = {
+		{ 1 << 0, "static" },
+		{ 1 << 1, "compressed" },
+		{ 0, NULL },
+	};
+
+	const uint8_t	*addr;
+	size_t		len;
+	off_t		offset;
+	struct fmap	*fmap;
+	int		i, j;
+	uint16_t	flags;
+
+	if (argc != 3)
+		USAGE(1, cmdtp, "Wrong number of arguments\n");
+
+	addr	= (const uint8_t *) simple_strtoul(argv[1], NULL, 16);
+	len	= (size_t) simple_strtoul(argv[2], NULL, 16);
+	offset	= fmap_find(addr, len);
+	if (offset < 0) {
+		printf("No map found in addr=0x%08x len=0x%08x\n", addr, len);
+		return 1;
+	}
+	fmap	= (struct fmap *) (addr + offset);
+
+	printf("fmap_signature: 0x%016llx\n",
+			(unsigned long long) fmap->signature);
+	printf("fmap_ver_major: %d\n", fmap->ver_major);
+	printf("fmap_ver_minor: %d\n", fmap->ver_minor);
+	printf("fmap_base: 0x%016llx\n", (unsigned long long) fmap->base);
+	printf("fmap_size: 0x%04x\n", fmap->size);
+	printf("fmap_name: \"%s\"\n", fmap->name);
+	printf("fmap_nareas: %d\n", fmap->nareas);
+
+	for (i = 0; i < fmap->nareas; i++) {
+		printf("area_offset: 0x%08x\n", fmap->areas[i].offset);
+		printf("area_size: 0x%08x\n", fmap->areas[i].size);
+		printf("area_name: \"%s\"\n", fmap->areas[i].name);
+		printf("area_flags_raw: 0x%02x\n", fmap->areas[i].flags);
+
+		flags = fmap->areas[i].flags;
+		if (!flags)
+			continue;
+
+		puts("area_flags:");
+		for (j = 0; flag2str[j].flag; j++)
+			if (flags & flag2str[j].flag)
+				printf(" %s", flag2str[j].str);
+		putc('\n');
+	}
 
 	return 0;
 }

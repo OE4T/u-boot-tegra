@@ -38,6 +38,7 @@ include $(TOPDIR)/config.mk
 LIB	= $(obj)libchromeos.a
 
 COBJS-$(CONFIG_CHROMEOS) += boot_device.o
+COBJS-$(CONFIG_CHROMEOS) += fmap.o
 COBJS-$(CONFIG_CHROMEOS) += utility.o
 
 COBJS	:= $(COBJS-y)
