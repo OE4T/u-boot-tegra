@@ -33,78 +33,26 @@
  * Software Foundation.
  */
 
-/* Implementation of helper functions/wrappers for memory allocations,
- * manipulation and comparison for vboot library.
- */
-
 #include <config.h>
 #include <common.h>
-#include <malloc.h>
+#include <tlcl_stub.h>
 
-/* HACK: Get rid of U-Boots debug and assert macros */
-#undef error
-#undef debug
-#undef assert
+/* A dummy TPM library implementation for now */
 
-/* HACK: We want to use malloc, free, memcmp, memcpy, memset */
-#define _STUB_IMPLEMENTATION_
-
-/* Import interface of vboot's helper functions */
-#include <utility.h>
-
-/* Is it defined in lib/string.c? */
-int memcmp(const void *cs, const void *ct, size_t count);
-
-/* Append underscore to prevent name conflict with abort() in
- * cpu/arm_cortexa9/tegra2/board.c (which is empty)
- */
-void _abort(void)
+void TlclStubInit(void)
 {
-	reset_cpu(0);
 }
 
-#define exit(retcode) _abort()
-
-void error(const char *format, ...)
+void TlclCloseDevice(void)
 {
-	va_list ap;
-	va_start(ap, format);
-	puts("ERROR: ");
-	vprintf(format, ap);
-	va_end(ap);
-	exit(1);
 }
 
-void debug(const char *format, ...)
+void TlclOpenDevice(void)
 {
-	va_list ap;
-	va_start(ap, format);
-	puts("DEBUG: ");
-	vprintf(format, ap);
-	va_end(ap);
 }
 
-void *Malloc(size_t size)
+uint32_t TlclStubSendReceive(const uint8_t* request, int request_length,
+		uint8_t* response, int max_length)
 {
-	void *p = malloc(size);
-	if (!p) {
-		/* Fatal Error. We must abort. */
-		_abort();
-	}
-	return p;
-}
-
-void Free(void *p)
-{
-	free(p);
-}
-
-int Memcmp(const void *src1, const void *src2, size_t n)
-{
-	return memcmp(src1, src2, n);
-}
-
-void *Memcpy(void *dest, const void *src, uint64_t n)
-{
-	return memcpy(dest, src, (size_t) n);
+	return TPM_E_NON_FATAL;
 }
