@@ -52,6 +52,16 @@ block_dev_desc_t *get_bootdev(void)
 	return bootdev_config.dev_desc;
 }
 
+ulong get_offset(void)
+{
+	return bootdev_config.offset;
+}
+
+ulong get_limit(void)
+{
+	return bootdev_config.limit;
+}
+
 int set_bootdev(char *ifname, int dev, int part)
 {
 	disk_partition_t part_info;

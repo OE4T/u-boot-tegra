@@ -49,6 +49,8 @@
 } while (0)
 
 block_dev_desc_t *get_bootdev(void);
+ulong get_offset(void);
+ulong get_limit(void);
 int set_bootdev(char *ifname, int dev, int part);
 
 int do_cros	(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
@@ -108,8 +110,11 @@ int do_bootdev(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	if (argc < 2) { /* show boot device information */
 		if ((dev_desc = get_bootdev()) == NULL)
 			puts("No boot device set\n");
-		else
+		else {
+			printf("offset=0x%lx limit=0x%lx\n", get_offset(),
+					get_limit());
 			dev_print(dev_desc);
+		}
 		return 0;
 	}
 
@@ -129,9 +134,10 @@ int do_bootdev(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	if (opcode == SET) {
 		dev = (int) simple_strtoul(argv[3], NULL, 16);
-		part = (argc == 5) ?
+		part = (argc < 5) ?
 			0 : (int) simple_strtoul(argv[4], NULL, 16);
 
+		printf("Set boot device to %s %d %d\n", argv[2], dev, part);
 		if (set_bootdev(argv[2], dev, part)) {
 			puts("Set bootdev failed\n");
 			return 1;
