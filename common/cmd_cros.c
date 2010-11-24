@@ -51,10 +51,10 @@
 block_dev_desc_t *get_bootdev(void);
 int set_bootdev(char *ifname, int dev, int part);
 
-int do_cros	(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);
-int do_bootdev	(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);
-int do_fmap	(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);
-int do_cros_help(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);
+int do_cros	(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
+int do_bootdev	(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
+int do_fmap	(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
+int do_cros_help(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 
 U_BOOT_CMD(cros, CONFIG_SYS_MAXARGS, 1, do_cros,
 	"perform action (try \"cros help\")",
@@ -80,7 +80,7 @@ cmd_tbl_t cmd_cros_sub[] = {
 			"[action]")
 };
 
-int do_cros(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+int do_cros(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	cmd_tbl_t *c;
 
@@ -94,7 +94,7 @@ int do_cros(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	return c->cmd(c, flag, argc - 1, argv + 1);
 }
 
-int do_bootdev(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+int do_bootdev(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	enum {
 		SET, READ, WRITE
@@ -157,7 +157,7 @@ int do_bootdev(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	return 0;
 }
 
-int do_fmap(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+int do_fmap(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	static const struct {
 		uint16_t flag;
@@ -182,7 +182,8 @@ int do_fmap(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	len	= (size_t) simple_strtoul(argv[2], NULL, 16);
 	offset	= fmap_find(addr, len);
 	if (offset < 0) {
-		printf("No map found in addr=0x%08x len=0x%08x\n", addr, len);
+		printf("No map found in addr=0x%08x len=0x%08x\n",
+				(unsigned) addr, len);
 		return 1;
 	}
 	fmap	= (struct fmap *) (addr + offset);
@@ -216,7 +217,7 @@ int do_fmap(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	return 0;
 }
 
-int do_cros_help(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+int do_cros_help(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	cmd_tbl_t *c;
 
