@@ -1,0 +1,70 @@
+/*
+ * Copyright 2010, Google Inc.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
+ *
+ * * Redistributions of source code must retain the above copyright
+ * notice, this list of conditions and the following disclaimer.
+ * * Redistributions in binary form must reproduce the above
+ * copyright notice, this list of conditions and the following disclaimer
+ * in the documentation and/or other materials provided with the
+ * distribution.
+ * * Neither the name of Google Inc. nor the names of its
+ * contributors may be used to endorse or promote products derived from
+ * this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Alternatively, this software may be distributed under the terms of the
+ * GNU General Public License ("GPL") version 2 as published by the Free
+ * Software Foundation.
+ */
+
+/*
+ * The firmware_storage provides a interface for GetFirmware to interact with
+ * board-specific firmware storage device.
+ */
+
+#ifndef __FIRMWARE_STORAGE_H__
+#define __FIRMWARE_STORAGE_H__
+
+#include <chromeos/fmap.h>
+
+/* Recommended size of kernel_sign_key_blob in bytes */
+#define LOAD_FIRMWARE_KEY_BLOB_REC_SIZE 2104
+
+struct firmware_storage_s {
+	struct fmap	*fmap;
+	void		*context;
+	ssize_t (*read)(struct firmware_storage_s *s, int area, void *buf,
+			size_t count);
+};
+
+typedef struct firmware_storage_s	firmware_storage_t;
+
+/* Internal data for caller of LoadFirmware() to talk to GetFirmwareBody() */
+struct caller_internal_s {
+	int	index;
+	void	*cached_image;
+	size_t	size;
+	firmware_storage_t firmware_storage;
+};
+
+typedef struct caller_internal_s	caller_internal_t;
+
+int lookup_area(struct fmap *fmap, const char *name);
+
+#endif /* __FIRMWARE_STORAGE_H_ */
