@@ -38,9 +38,12 @@
  */
 #include <common.h>
 #include <command.h>
+#include <malloc.h>
 #include <part.h>
-#include <chromeos/fmap.h>
+#include <chromeos/firmware_storage.h>
 #include <boot_device.h>
+#include <gbb_header.h>
+#include <load_firmware_fw.h>
 
 #define USAGE(ret, cmdtp, fmt, ...) do { \
 	printf(fmt, ##__VA_ARGS__); \
@@ -56,6 +59,7 @@ int set_bootdev(char *ifname, int dev, int part);
 int do_cros	(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 int do_bootdev	(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 int do_fmap	(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
+int do_load_fw	(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 int do_cros_help(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 
 U_BOOT_CMD(cros, CONFIG_SYS_MAXARGS, 1, do_cros,
@@ -77,6 +81,9 @@ cmd_tbl_t cmd_cros_sub[] = {
 			"Find and print flash map",
 			"addr len\n    - Find and print flash map "
 			"in memory[addr, addr+len]\n"),
+	U_BOOT_CMD_MKENT(load_fw, 2, 1, do_load_fw,
+			"Load firmware from memory",
+			"addr len\n    - Load fw from [addr, addr+len]\n"),
 	U_BOOT_CMD_MKENT(help, 1, 1, do_cros_help,
 			"show this message",
 			"[action]")
@@ -163,7 +170,7 @@ int do_bootdev(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	return 0;
 }
 
-int do_fmap(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+static void _print_fmap(struct fmap *fmap)
 {
 	static const struct {
 		uint16_t flag;
@@ -174,25 +181,8 @@ int do_fmap(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		{ 0, NULL },
 	};
 
-	const uint8_t	*addr;
-	size_t		len;
-	off_t		offset;
-	struct fmap	*fmap;
-	int		i, j;
-	uint16_t	flags;
-
-	if (argc != 3)
-		USAGE(1, cmdtp, "Wrong number of arguments\n");
-
-	addr	= (const uint8_t *) simple_strtoul(argv[1], NULL, 16);
-	len	= (size_t) simple_strtoul(argv[2], NULL, 16);
-	offset	= fmap_find(addr, len);
-	if (offset < 0) {
-		printf("No map found in addr=0x%08x len=0x%08x\n",
-				(unsigned) addr, len);
-		return 1;
-	}
-	fmap	= (struct fmap *) (addr + offset);
+	int i, j;
+	uint16_t flags;
 
 	printf("fmap_signature: 0x%016llx\n",
 			(unsigned long long) fmap->signature);
@@ -219,7 +209,157 @@ int do_fmap(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 				printf(" %s", flag2str[j].str);
 		putc('\n');
 	}
+}
 
+int do_fmap(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+{
+	const uint8_t	*addr;
+	size_t		len;
+	off_t		offset;
+	struct fmap	*fmap;
+
+	if (argc != 3)
+		USAGE(1, cmdtp, "Wrong number of arguments\n");
+
+	addr	= (const uint8_t *) simple_strtoul(argv[1], NULL, 16);
+	len	= (size_t) simple_strtoul(argv[2], NULL, 16);
+	offset	= fmap_find(addr, len);
+	if (offset < 0) {
+		printf("No map found in addr=0x%08lx len=0x%08x\n",
+				(unsigned long) addr, len);
+		return 1;
+	}
+	fmap	= (struct fmap *) (addr + offset);
+
+	_print_fmap(fmap);
+
+	return 0;
+}
+
+struct context {
+	void	*base;
+	size_t	size;
+	/* For testing purpose, we assume no more than 32 areas */
+	uint32_t offsets[32];
+};
+
+ssize_t mem_read(firmware_storage_t *s, int area, void *buf, size_t count)
+{
+	struct context	*cxt	= (struct context *) s->context;
+	struct fmap	*fmap	= s->fmap;
+	void		*b	= cxt->base + fmap->areas[area].offset;
+
+	if (count > fmap->areas[area].size - cxt->offsets[area])
+		count = fmap->areas[area].size - cxt->offsets[area];
+
+	if (count == 0)
+		return 0;
+
+	memcpy(buf, b + cxt->offsets[area], count);
+	cxt->offsets[area] += count;
+	return count;
+}
+
+int do_load_fw(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+{
+	const uint8_t	*base;
+	size_t		size;
+	off_t		offset;
+	struct fmap	*fmap;
+
+	LoadFirmwareParams	params;
+	caller_internal_t	ci;
+	struct context		cxt;
+	void			*gbb;
+	GoogleBinaryBlockHeader	*gbbh;
+
+	int status;
+	int i;
+
+	if (argc != 3)
+		USAGE(1, cmdtp, "Wrong number of arguments\n");
+
+	base	= (const uint8_t *) simple_strtoul(argv[1], NULL, 16);
+	size	= (size_t) simple_strtoul(argv[2], NULL, 16);
+	offset	= fmap_find(base, size);
+	if (offset < 0) {
+		printf("No map found in base=0x%08lx size=0x%08x\n",
+				(unsigned long) base, size);
+		return 1;
+	}
+	fmap	= (struct fmap *) (base + offset);
+
+	_print_fmap(fmap);
+
+	if ((i = lookup_area(fmap, "GBB Area")) < 0) {
+		printf("Can't find GBB Area\n");
+		return 1;
+	}
+	/* gbb	= (void *) (fmap->base + fmap->areas[i].offset); */
+	gbb	= (void *) (base + fmap->areas[i].offset);
+	gbbh	= (GoogleBinaryBlockHeader *) gbb;
+	params.firmware_root_key_blob = gbb + gbbh->rootkey_offset;
+
+	if ((i = lookup_area(fmap, "Firmware A Key")) < 0) {
+		printf("Can't find Firmware A Key\n");
+		return 1;
+	}
+	/* params.verification_block_0 = fmap->base + fmap->areas[i].offset; */
+	params.verification_block_0 = (void *) base + fmap->areas[i].offset;
+	params.verification_size_0 = fmap->areas[i].size;
+
+	if ((i = lookup_area(fmap, "Firmware B Key")) < 0) {
+		printf("Can't find Firmware B Key\n");
+		return 1;
+	}
+	/* params.verification_block_1 = fmap->base + fmap->areas[i].offset; */
+	params.verification_block_1 = (void *) base + fmap->areas[i].offset;
+	params.verification_size_1 = fmap->areas[i].size;
+
+	/* From now on we malloc stuff, and must free them before return! */
+
+	params.kernel_sign_key_blob = malloc(LOAD_FIRMWARE_KEY_BLOB_REC_SIZE);
+	params.kernel_sign_key_size = LOAD_FIRMWARE_KEY_BLOB_REC_SIZE;
+
+	params.boot_flags = 0; /* alternative is BOOT_FLAG_DEVELOPER */
+
+	cxt.base = (void *) base;
+	cxt.size = size;
+	memset(cxt.offsets, 0x00, sizeof(cxt.offsets));
+	ci.index = -1;
+	ci.cached_image = NULL;
+	ci.size = 0;
+	ci.firmware_storage.fmap	= fmap;
+	ci.firmware_storage.context	= (void *) &cxt;
+	ci.firmware_storage.read	= mem_read;
+	params.caller_internal = (void *) &ci;
+
+	status = LoadFirmware(&params);
+
+	puts("LoadFirmware returns: ");
+	switch (status) {
+		case LOAD_FIRMWARE_SUCCESS:
+			puts("LOAD_FIRMWARE_SUCCESS\n");
+			printf("firmware_index: %d\n",
+					(int) params.firmware_index);
+			break;
+		case LOAD_FIRMWARE_RECOVERY:
+			puts("LOAD_FIRMWARE_RECOVERY\n");
+			break;
+		case LOAD_FIRMWARE_REBOOT:
+			puts("LOAD_FIRMWARE_REBOOT\n");
+			break;
+		case LOAD_FIRMWARE_RECOVERY_TPM:
+			puts("LOAD_FIRMWARE_RECOVERY_TPM\n");
+			break;
+		default:
+			printf("%d (unknown value!)\n", status);
+			break;
+	}
+
+	free(params.kernel_sign_key_blob);
+	if (ci.cached_image)
+		free(ci.cached_image);
 	return 0;
 }
 
