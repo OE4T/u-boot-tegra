@@ -36,12 +36,6 @@
 #ifndef BIOSINCLUDES_H
 #define BIOSINCLUDES_H
 
-/*
- * This file is a placeholder for the includes supplied by the BIOS
- * compilation environment.  This file is included if and only if
- * CHROMEOS_ENVIRONMENT is not defined at compilation time.
- *
- * Currently nothing goes here.
- */
+#define UINT64_C(v) ((uint64_t) v)
 
 #endif /* BIOSINCLUDES_H */

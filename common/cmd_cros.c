@@ -44,6 +44,7 @@
 #include <boot_device.h>
 #include <gbb_header.h>
 #include <load_firmware_fw.h>
+#include <load_kernel_fw.h>
 
 #define USAGE(ret, cmdtp, fmt, ...) do { \
 	printf(fmt, ##__VA_ARGS__); \
@@ -60,7 +61,10 @@ int do_cros	(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 int do_bootdev	(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 int do_fmap	(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 int do_load_fw	(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
+int do_load_k	(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 int do_cros_help(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
+
+static uint8_t kernel_sign_key_blob[LOAD_FIRMWARE_KEY_BLOB_REC_SIZE];
 
 U_BOOT_CMD(cros, CONFIG_SYS_MAXARGS, 1, do_cros,
 	"perform action (try \"cros help\")",
@@ -84,6 +88,9 @@ cmd_tbl_t cmd_cros_sub[] = {
 	U_BOOT_CMD_MKENT(load_fw, 2, 1, do_load_fw,
 			"Load firmware from memory",
 			"addr len\n    - Load fw from [addr, addr+len]\n"),
+	U_BOOT_CMD_MKENT(load_k, 2, 1, do_load_k,
+			"Load kernel from the boot device",
+			"addr len\n    - Load kernel to [addr, addr+len]\n"),
 	U_BOOT_CMD_MKENT(help, 1, 1, do_cros_help,
 			"show this message",
 			"[action]")
@@ -316,10 +323,8 @@ int do_load_fw(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	params.verification_block_1 = (void *) base + fmap->areas[i].offset;
 	params.verification_size_1 = fmap->areas[i].size;
 
-	/* From now on we malloc stuff, and must free them before return! */
-
-	params.kernel_sign_key_blob = malloc(LOAD_FIRMWARE_KEY_BLOB_REC_SIZE);
-	params.kernel_sign_key_size = LOAD_FIRMWARE_KEY_BLOB_REC_SIZE;
+	params.kernel_sign_key_blob = kernel_sign_key_blob;
+	params.kernel_sign_key_size = sizeof(kernel_sign_key_blob);
 
 	params.boot_flags = 0; /* alternative is BOOT_FLAG_DEVELOPER */
 
@@ -357,9 +362,62 @@ int do_load_fw(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			break;
 	}
 
-	free(params.kernel_sign_key_blob);
 	if (ci.cached_image)
 		free(ci.cached_image);
+	return 0;
+}
+
+int do_load_k(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+{
+	LoadKernelParams par;
+	block_dev_desc_t *dev_desc;
+	int i, status;
+
+	if (argc != 3)
+		USAGE(1, cmdtp, "Wrong number of arguments\n");
+
+	if ((dev_desc = get_bootdev()) == NULL)
+		USAGE(1, cmdtp, "No boot device set yet\n");
+
+	par.header_sign_key_blob = kernel_sign_key_blob;
+	par.bytes_per_lba = (uint64_t) dev_desc->blksz;
+	par.ending_lba = (uint64_t) get_limit() - 1;
+	par.kernel_buffer = (void *) simple_strtoul(argv[1], NULL, 16);
+	par.kernel_buffer_size = (uint64_t) simple_strtoul(argv[2], NULL, 16);
+	par.boot_flags = BOOT_FLAG_DEVELOPER | BOOT_FLAG_SKIP_ADDR_CHECK;
+
+	status = LoadKernel(&par);
+	switch (status) {
+		case LOAD_KERNEL_SUCCESS:
+			puts("Success; good kernel found on device\n");
+			printf("partition_number: %lld\n",
+					par.partition_number);
+			printf("bootloader_address: 0x%llx",
+					par.bootloader_address);
+			printf("bootloader_size: 0x%llx", par.bootloader_size);
+			puts("partition_guid:");
+			for (i = 0; i < 16; i++)
+				printf(" %02x", par.partition_guid[i]);
+			putc('\n');
+			break;
+		case LOAD_KERNEL_NOT_FOUND:
+			puts("No kernel found on device\n");
+			break;
+		case LOAD_KERNEL_INVALID:
+			puts("Only invalid kernels found on device\n");
+			break;
+		case LOAD_KERNEL_RECOVERY:
+			puts("Internal error; reboot to recovery mode\n");
+			break;
+		case LOAD_KERNEL_REBOOT:
+			puts("Internal error; reboot to current mode\n");
+			break;
+		default:
+			printf("Unexpected return status from LoadKernel: %d\n",
+					status);
+			return 1;
+	}
+
 	return 0;
 }
 

@@ -69,9 +69,9 @@ int set_bootdev(char *ifname, int dev, int part)
 	if ((bootdev_config.dev_desc = get_dev(ifname, dev)) == NULL)
 		goto cleanup; /* block device not supported */
 
-	/* largest address not available in block_dev_desc_t */
 	if (part == 0) {
-		bootdev_config.limit = ~0;
+		bootdev_config.offset = 0;
+		bootdev_config.limit = bootdev_config.dev_desc->lba;
 		return 0;
 	}
 
