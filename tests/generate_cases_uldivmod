@@ -1,0 +1,109 @@
+#!/usr/bin/python2.6
+#
+# Copyright 2010, Google Inc.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+# met:
+#
+# * Redistributions of source code must retain the above copyright
+# notice, this list of conditions and the following disclaimer.
+# * Redistributions in binary form must reproduce the above
+# copyright notice, this list of conditions and the following disclaimer
+# in the documentation and/or other materials provided with the
+# distribution.
+# * Neither the name of Google Inc. nor the names of its
+# contributors may be used to endorse or promote products derived from
+# this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+# Alternatively, this software may be distributed under the terms of the
+# GNU General Public License ("GPL") version 2 as published by the Free
+# Software Foundation.
+#
+
+import sys
+from random import seed, randint
+
+if len(sys.argv) < 2:
+    print '%s f' % sys.argv[0]
+
+# Set a specific seed value so that every time we get the same test data
+seed(17)
+
+max_uint64 = 0xffffffffffffffff
+max_uint32 = 0xffffffff
+n_case = 1000
+fmt = '%016x %016x %016x %016x'
+
+with open(sys.argv[1], 'w') as f:
+    # Generate corner cases
+    corners = (0, 1,
+               max_uint32 - 1, max_uint32, max_uint32 + 1,
+               max_uint64 - 1, max_uint64)
+    for a in corners:
+        for b in corners:
+            if b == 0:
+                print >>f, fmt % (a, b, 0, 0)
+            else:
+                print >>f, fmt % (a, b, a / b, a % b)
+
+    # Generate pow2 by pow2 divisions
+    for i in xrange(64):
+        for j in xrange(64):
+            a = 2 ** i
+            b = 2 ** j
+            print >>f, fmt % (a, b, a / b, a % b)
+
+    # Some numbers that are gurarnteed not power of 2
+    a_ = a = 17
+    b_ = b = 11
+    print >>f, fmt % (a_, b_, a_ / b_, a_ % b_)
+    a_ = (a << 32) + a
+    print >>f, fmt % (a_, b_, a_ / b_, a_ % b_)
+    b_ = (b << 32) + b
+    print >>f, fmt % (a_, b_, a_ / b_, a_ % b_)
+    a_ = (a << 32) + a
+    b_ = (b << 32) + b
+    print >>f, fmt % (a_, b_, a_ / b_, a_ % b_)
+
+    # Generate 64 by pow2 divisions
+    for i in xrange(64):
+        b = 2 ** i
+        for _ in xrange(n_case):
+            a = randint(0, max_uint64)
+            print >>f, fmt % (a, b, a / b, a % b)
+
+    # Generate random divisions w/ and w/o sign-bits
+    for range_a in ((0, max_uint32), (max_uint32 + 1, max_uint64)):
+        for range_b in ((1, max_uint32), (max_uint32 + 1, max_uint64)):
+            for _ in xrange(n_case):
+                a = randint(*range_a)
+                b = randint(*range_b)
+                print >>f, fmt % (a, b, a / b, a % b)
+
+                # Set sign-bit
+                a_ = a | (1 << 31)
+                b_ = b | (1 << 31)
+                print >>f, fmt % (a_, b_, a_ / b_, a_ % b_)
+                a_ = a | (1 << 63)
+                b_ = b | (1 << 31)
+                print >>f, fmt % (a_, b_, a_ / b_, a_ % b_)
+                a_ = a | (1 << 31)
+                b_ = b | (1 << 63)
+                print >>f, fmt % (a_, b_, a_ / b_, a_ % b_)
+                a_ = a | (1 << 63)
+                b_ = b | (1 << 63)
+                print >>f, fmt % (a_, b_, a_ / b_, a_ % b_)
