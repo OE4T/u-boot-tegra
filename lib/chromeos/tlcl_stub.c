@@ -39,16 +39,19 @@
 
 /* A dummy TPM library implementation for now */
 
-void TlclStubInit(void)
+uint32_t TlclStubInit(void)
 {
+	return 0;
 }
 
-void TlclCloseDevice(void)
+uint32_t TlclCloseDevice(void)
 {
+	return 0;
 }
 
-void TlclOpenDevice(void)
+uint32_t TlclOpenDevice(void)
 {
+	return 0;
 }
 
 uint32_t TlclStubSendReceive(const uint8_t* request, int request_length,
