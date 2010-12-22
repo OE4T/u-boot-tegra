@@ -33,14 +33,15 @@
  * Software Foundation.
  */
 
-/*
- * Support Chrome OS Verify Boot
- */
+/* Debug commands for Chrome OS Verify Boot */
+
 #include <common.h>
 #include <command.h>
 #include <malloc.h>
-#include <part.h>
 #include <chromeos/firmware_storage.h>
+#include <chromeos/boot_device_impl.h>
+
+/* Verify Boot interface */
 #include <boot_device.h>
 #include <gbb_header.h>
 #include <load_firmware_fw.h>
@@ -51,11 +52,6 @@
 	cmd_usage(cmdtp); \
 	return (ret); \
 } while (0)
-
-block_dev_desc_t *get_bootdev(void);
-ulong get_offset(void);
-ulong get_limit(void);
-int set_bootdev(char *ifname, int dev, int part);
 
 int do_cros	(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 int do_bootdev	(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);

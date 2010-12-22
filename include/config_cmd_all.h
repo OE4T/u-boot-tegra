@@ -24,7 +24,8 @@
 #define CONFIG_CMD_CACHE	/* icache, dcache		*/
 #define CONFIG_CMD_CDP		/* Cisco Discovery Protocol	*/
 #define CONFIG_CMD_CONSOLE	/* coninfo			*/
-#define CONFIG_CMD_CROS		/* Chrome OS verify boot support*/
+#define CONFIG_CMD_CROS		/* Chrome OS verify boot (debug)*/
+#define CONFIG_CMD_CROS_ROFW	/* Chrome OS verify boot (read-only part) */
 #define CONFIG_CMD_DATE		/* support for RTC, date/time...*/
 #define CONFIG_CMD_DHCP		/* DHCP Support			*/
 #define CONFIG_CMD_DIAG		/* Diagnostics			*/
