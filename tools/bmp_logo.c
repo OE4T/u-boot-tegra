@@ -7,6 +7,7 @@ typedef struct bitmap_s {		/* bitmap description */
 	uint8_t	*data;
 } bitmap_t;
 
+#define BI_RGB			0	/* compression type: none	*/
 #define DEFAULT_CMAP_SIZE	16	/* size of default color map	*/
 
 /*
@@ -41,11 +42,11 @@ int error (char * msg, FILE *fp)
 
 int main (int argc, char *argv[])
 {
-	int	i, x;
+	long	i, x;
 	FILE	*fp;
 	bitmap_t bmp;
 	bitmap_t *b = &bmp;
-	uint16_t data_offset, n_colors;
+	uint16_t data_offset, compression, n_colors;
 
 	if (argc < 2) {
 		fprintf (stderr, "Usage: %s file\n", argv[0]);
@@ -73,7 +74,10 @@ int main (int argc, char *argv[])
 	skip_bytes (fp, 2);
 	if (fread (&b->height,  sizeof (uint16_t), 1, fp) != 1)
 		error ("Couldn't read bitmap height", fp);
-	skip_bytes (fp, 22);
+	skip_bytes (fp, 6);
+	if (fread (&compression,  sizeof (uint16_t), 1, fp) != 1)
+		error ("Couldn't read bitmap compression", fp);
+	skip_bytes (fp, 14);
 	if (fread (&n_colors, sizeof (uint16_t), 1, fp) != 1)
 		error ("Couldn't read bitmap colors", fp);
 	skip_bytes (fp, 6);
@@ -84,7 +88,12 @@ int main (int argc, char *argv[])
 	data_offset = le_short(data_offset);
 	b->width = le_short(b->width);
 	b->height = le_short(b->height);
+	compression = le_short(compression);
 	n_colors = le_short(n_colors);
+
+	/* we only support no compression RGB format */
+	if (compression != BI_RGB)
+		error ("Only support no compression RGB format", fp);
 
 	/* assume we are working with an 8-bit file */
 	if ((n_colors == 0) || (n_colors > 256 - DEFAULT_CMAP_SIZE)) {
@@ -140,7 +149,7 @@ int main (int argc, char *argv[])
 	printf ("unsigned char bmp_logo_bitmap[] = {\n");
 	for (i=(b->height-1)*b->width; i>=0; i-=b->width) {
 		for (x = 0; x < b->width; x++) {
-			b->data[(uint16_t) i + x] = (uint8_t) fgetc (fp) \
+			b->data[i + x] = (uint8_t) fgetc (fp) \
 						+ DEFAULT_CMAP_SIZE;
 		}
 	}
