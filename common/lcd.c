@@ -822,6 +822,38 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 #define BMP_RLE8_EOBMP		1
 #define BMP_RLE8_DELTA		2
 
+static void draw_unencoded_bitmap(ushort **fbp, uchar *bmap, ushort *cmap,
+				  int cnt)
+{
+	while (cnt > 0) {
+		*(*fbp)++ = cmap[*bmap++];
+		cnt--;
+	}
+}
+
+static void draw_encoded_bitmap(ushort **fbp, ushort c, int cnt)
+{
+	ushort *fb = *fbp;
+	int cnt_8copy = cnt >> 3;
+	cnt -= cnt_8copy << 3;
+	while (cnt_8copy > 0) {
+		*fb++ = c;
+		*fb++ = c;
+		*fb++ = c;
+		*fb++ = c;
+		*fb++ = c;
+		*fb++ = c;
+		*fb++ = c;
+		*fb++ = c;
+		cnt_8copy--;
+	}
+	while (cnt > 0) {
+		*fb++ = c;
+		cnt--;
+	}
+	(*fbp) = fb;
+}
+
 /* Do not call this function directly, must be called from
  * lcd_display_bitmap.
  */
@@ -830,7 +862,7 @@ static int lcd_display_rle8_bitmap(bmp_image_t *bmp, ushort *cmap, uchar *fb,
 {
 	uchar *bmap;
 	ulong width, height;
-	ushort i, cnt, runlen;
+	ulong cnt, runlen;
 	int x, y;
 	int decode = 1;
 
@@ -875,12 +907,9 @@ static int lcd_display_rle8_bitmap(bmp_image_t *bmp, ushort *cmap, uchar *fb,
 							cnt = width - x;
 						else
 							cnt = runlen;
-						for (i = 0; i < cnt; i++) {
-							*(ushort *)fb =
-								cmap[bmap[i]];
-							/* move 2-byte */
-							fb += 2;
-						}
+						draw_unencoded_bitmap(
+							(ushort **)&fb,
+							bmap, cmap, cnt);
 					}
 					x += runlen;
 				}
@@ -893,15 +922,19 @@ static int lcd_display_rle8_bitmap(bmp_image_t *bmp, ushort *cmap, uchar *fb,
 			if (y < height) {
 				runlen = bmap[0];
 				if (x < width) {
+					/* aggregate the same code */
+					while (bmap[0] == 0xff &&
+					       bmap[2] != BMP_RLE8_ESCAPE &&
+					       bmap[1] == bmap[3]) {
+						runlen += bmap[2];
+						bmap += 2;
+					}
 					if (x + runlen > width)
 						cnt = width - x;
 					else
 						cnt = runlen;
-					for (i = 0; i < cnt; i++) {
-						*(ushort *)fb = cmap[bmap[1]];
-						/* move 2-byte */
-						fb += 2;
-					}
+					draw_encoded_bitmap((ushort **)&fb,
+						cmap[bmap[1]], cnt);
 				}
 				x += runlen;
 			}
