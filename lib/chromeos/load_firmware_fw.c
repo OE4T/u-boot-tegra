@@ -1,5 +1,5 @@
 /*
- * Copyright 2010, Google Inc.
+ * Copyright 2011, Google Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,59 +36,68 @@
 #include <config.h>
 #include <common.h>
 #include <malloc.h>
+#include <vboot_struct.h>
 #include <chromeos/firmware_storage.h>
+
 #include <load_firmware_fw.h>
 
-#define BUF_SIZE	256
-
-int lookup_area(struct fmap *fmap, const char *name)
-{
-	size_t len = strlen(name);
-	int i;
-	for (i = 0; i < fmap->nareas; i++)
-		if (!strncmp((const char *) fmap->areas[i].name, name, len))
-			return i;
-	return -1;
-}
+#define BUF_SIZE 256
+#define PREFIX "GetFirmwareBody: "
 
 int GetFirmwareBody(LoadFirmwareParams *params, uint64_t index)
 {
-	caller_internal_t	*ci;
-	firmware_storage_t	*f;
-	const char		*name;
-	int			i;
-	struct fmap_area	*area;
-	uint8_t			buf[BUF_SIZE];
-	ssize_t			count;
-	size_t			size;
+	caller_internal_t *ci;
+	void *block;
+	VbKeyBlockHeader *kbh;
+	VbFirmwarePreambleHeader *fph;
+	off_t data_offset;
+	int64_t leftover;
+	ssize_t n;
+	uint8_t buf[BUF_SIZE];
+
+	debug(PREFIX "firmware index: %d\n", index);
 
 	/* index = 0: firmware A; 1: firmware B; anything else: invalid */
-	if (index != 0 && index != 1)
+	if (index != 0 && index != 1) {
+		debug(PREFIX "incorrect index: %d\n", index);
 		return 1;
+	}
 
 	ci = (caller_internal_t *) params->caller_internal;
-	f = &ci->firmware_storage;
 
-	/* TODO(clchiou): Consider look up by special flags? */
-	name = (index == 0) ? "Firmware A Data" : "Firmware B Data";
-	if ((i = lookup_area(f->fmap, name)) < 0)
+	if (index == 0) {
+		block = params->verification_block_0;
+		data_offset = CONFIG_OFFSET_FW_A_DATA;
+	} else {
+		block = params->verification_block_1;
+		data_offset = CONFIG_OFFSET_FW_B_DATA;
+	}
+
+	kbh = (VbKeyBlockHeader *) block;
+	fph = (VbFirmwarePreambleHeader *) (block + kbh->key_block_size);
+
+	debug(PREFIX "key block address: %p\n", kbh);
+	debug(PREFIX "preamble address: %p\n", fph);
+	debug(PREFIX "firmware body offset: %08lx\n", data_offset);
+
+	if (ci->seek(ci->context, data_offset, SEEK_SET) < 0) {
+		debug(PREFIX "seek to firmware data failed\n");
 		return 1;
-	area = f->fmap->areas + i;
+	}
 
-	if (ci->cached_image == NULL) {
-		ci->cached_image = malloc(area->size);
-	} else if (ci->size < area->size) {
-		free(ci->cached_image);
-		ci->cached_image = malloc(area->size);
-	} /* else: reuse allocated space */
-	ci->index = index;
-	ci->size = area->size;
+	debug(PREFIX "body size: %08llx\n", fph->body_signature.data_size);
 
-	for (size = 0; size < area->size; size += count) {
-		if ((count = f->read(f, i, buf, sizeof(buf))) <= 0)
+	for (leftover = fph->body_signature.data_size;
+			leftover > 0; leftover -= n) {
+		n = sizeof(buf) < leftover ? sizeof(buf) : leftover;
+		n = ci->read(ci->context, buf, n);
+		if (n <= 0) {
+			debug(PREFIX "an error has occured "
+					"while reading firmware: %d\n", n);
 			return 1;
-		UpdateFirmwareBodyHash(params, buf, count);
-		memcpy(ci->cached_image + size, buf, count);
+		}
+
+		UpdateFirmwareBodyHash(params, buf, n);
 	}
 
 	return 0;

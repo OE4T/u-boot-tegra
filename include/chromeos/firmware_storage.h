@@ -41,30 +41,15 @@
 #ifndef __FIRMWARE_STORAGE_H__
 #define __FIRMWARE_STORAGE_H__
 
-#include <chromeos/fmap.h>
-
-/* Recommended size of kernel_sign_key_blob in bytes */
-#define LOAD_FIRMWARE_KEY_BLOB_REC_SIZE 2104
-
-struct firmware_storage_s {
-	struct fmap	*fmap;
-	void		*context;
-	ssize_t (*read)(struct firmware_storage_s *s, int area, void *buf,
-			size_t count);
-};
-
-typedef struct firmware_storage_s	firmware_storage_t;
+enum whence_t { SEEK_SET, SEEK_CUR, SEEK_END };
 
 /* Internal data for caller of LoadFirmware() to talk to GetFirmwareBody() */
 struct caller_internal_s {
-	int	index;
-	void	*cached_image;
-	size_t	size;
-	firmware_storage_t firmware_storage;
+	off_t (*seek)(void *context, off_t offset, enum whence_t whence);
+	ssize_t (*read)(void *context, void *buf, size_t count);
+	void *context;
 };
 
-typedef struct caller_internal_s	caller_internal_t;
-
-int lookup_area(struct fmap *fmap, const char *name);
+typedef struct caller_internal_s caller_internal_t;
 
 #endif /* __FIRMWARE_STORAGE_H_ */

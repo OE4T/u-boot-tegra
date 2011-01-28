@@ -1,5 +1,5 @@
 /*
- * Copyright 2010, Google Inc.
+ * Copyright 2011, Google Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,13 +33,16 @@
  * Software Foundation.
  */
 
-/* Debug commands for Chrome OS Verify Boot */
+/* Debug commands for Chrome OS Verify Boot.  Probably not useful to you if
+ * you are not developing firmware stuff. */
 
 #include <common.h>
 #include <command.h>
 #include <malloc.h>
-#include <chromeos/firmware_storage.h>
+#include <vboot_struct.h>
 #include <chromeos/boot_device_impl.h>
+#include <chromeos/firmware_storage.h>
+#include <chromeos/fmap.h>
 
 /* Verify Boot interface */
 #include <boot_device.h>
@@ -60,8 +63,6 @@ int do_load_fw	(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 int do_load_k	(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 int do_cros_help(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 
-static uint8_t kernel_sign_key_blob[LOAD_FIRMWARE_KEY_BLOB_REC_SIZE];
-
 U_BOOT_CMD(cros, CONFIG_SYS_MAXARGS, 1, do_cros,
 	"perform action (try \"cros help\")",
 	"[action [args...]]\n    - perform action with arguments"
@@ -81,12 +82,15 @@ cmd_tbl_t cmd_cros_sub[] = {
 			"Find and print flash map",
 			"addr len\n    - Find and print flash map "
 			"in memory[addr, addr+len]\n"),
-	U_BOOT_CMD_MKENT(load_fw, 2, 1, do_load_fw,
-			"Load firmware from memory",
-			"addr len\n    - Load fw from [addr, addr+len]\n"),
-	U_BOOT_CMD_MKENT(load_k, 2, 1, do_load_k,
+	U_BOOT_CMD_MKENT(load_fw, 3, 1, do_load_fw,
+			"Load firmware from memory "
+			"(you have to download the image before running this)",
+			"addr len kkey\n    - Wrapper of LoadFirmware."
+			"Load firmware from [addr, addr+len] and "
+			"store loaded kernel key at kkey\n"),
+	U_BOOT_CMD_MKENT(load_k, 3, 1, do_load_k,
 			"Load kernel from the boot device",
-			"addr len\n    - Load kernel to [addr, addr+len]\n"),
+			"addr len kkey\n    - Load kernel to [addr, addr+len]\n"),
 	U_BOOT_CMD_MKENT(help, 1, 1, do_cros_help,
 			"show this message",
 			"[action]")
@@ -239,101 +243,125 @@ int do_fmap(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	return 0;
 }
 
-struct context {
-	void	*base;
-	size_t	size;
-	/* For testing purpose, we assume no more than 32 areas */
-	uint32_t offsets[32];
+struct context_t {
+	void *begin, *cur, *end;
 };
 
-ssize_t mem_read(firmware_storage_t *s, int area, void *buf, size_t count)
+static off_t mem_seek(void *context, off_t offset, enum whence_t whence)
 {
-	struct context	*cxt	= (struct context *) s->context;
-	struct fmap	*fmap	= s->fmap;
-	void		*b	= cxt->base + fmap->areas[area].offset;
+	void *begin, *cur, *end;
 
-	if (count > fmap->areas[area].size - cxt->offsets[area])
-		count = fmap->areas[area].size - cxt->offsets[area];
+	begin = ((struct context_t *) context)->begin;
+	cur = ((struct context_t *) context)->cur;
+	end = ((struct context_t *) context)->end;
+
+	if (whence == SEEK_SET)
+		cur = begin + offset;
+	else if (whence == SEEK_CUR)
+		cur = cur + offset;
+	else if (whence == SEEK_END)
+		cur = end + offset;
+	else {
+		debug("mem_seek: unknown whence value: %d\n", whence);
+		return -1;
+	}
+
+	if (cur < begin) {
+		debug("mem_seek: offset underflow: %p < %p\n", cur, begin);
+		return -1;
+	}
+
+	if (cur >= end) {
+		debug("mem_seek: offset exceeds size: %p >= %p\n", cur, end);
+		return -1;
+	}
+
+	((struct context_t *) context)->cur = cur;
+	return cur - begin;
+}
+
+static ssize_t mem_read(void *context, void *buf, size_t count)
+{
+	void *begin, *cur, *end;
 
 	if (count == 0)
 		return 0;
 
-	memcpy(buf, b + cxt->offsets[area], count);
-	cxt->offsets[area] += count;
+	begin = ((struct context_t *) context)->begin;
+	cur = ((struct context_t *) context)->cur;
+	end = ((struct context_t *) context)->end;
+
+	if (count > end - cur)
+		count = end - cur;
+
+	memcpy(buf, cur, count);
+	((struct context_t *) context)->cur += count;
+
 	return count;
 }
 
 int do_load_fw(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
-	const uint8_t	*base;
-	size_t		size;
-	off_t		offset;
-	struct fmap	*fmap;
+	LoadFirmwareParams params;
+	struct context_t context;
+	void *gbb, *block[2];
+	GoogleBinaryBlockHeader *gbbh;
+	uint64_t *psize[2];
+	VbKeyBlockHeader *kbh;
+	VbFirmwarePreambleHeader *fph;
+	int i, status;
+	caller_internal_t ci = {
+		.seek = mem_seek,
+		.read = mem_read,
+		.context = (void *) &context
+	};
 
-	LoadFirmwareParams	params;
-	caller_internal_t	ci;
-	struct context		cxt;
-	void			*gbb;
-	GoogleBinaryBlockHeader	*gbbh;
-
-	int status;
-	int i;
-
-	if (argc != 3)
+	if (argc != 4)
 		USAGE(1, cmdtp, "Wrong number of arguments\n");
 
-	base	= (const uint8_t *) simple_strtoul(argv[1], NULL, 16);
-	size	= (size_t) simple_strtoul(argv[2], NULL, 16);
-	offset	= fmap_find(base, size);
-	if (offset < 0) {
-		printf("No map found in base=0x%08lx size=0x%08x\n",
-				(unsigned long) base, size);
-		return 1;
-	}
-	fmap	= (struct fmap *) (base + offset);
+	context.begin = (void *) simple_strtoul(argv[1], NULL, 16);
+	context.cur = context.begin;
+	context.end = context.begin + simple_strtoul(argv[2], NULL, 16);
 
-	_print_fmap(fmap);
-
-	if ((i = lookup_area(fmap, "GBB Area")) < 0) {
-		printf("Can't find GBB Area\n");
-		return 1;
-	}
-	/* gbb	= (void *) (fmap->base + fmap->areas[i].offset); */
-	gbb	= (void *) (base + fmap->areas[i].offset);
-	gbbh	= (GoogleBinaryBlockHeader *) gbb;
+	gbb = context.begin + CONFIG_OFFSET_GBB;
+	gbbh = (GoogleBinaryBlockHeader *) gbb;
 	params.firmware_root_key_blob = gbb + gbbh->rootkey_offset;
 
-	if ((i = lookup_area(fmap, "Firmware A Key")) < 0) {
-		printf("Can't find Firmware A Key\n");
-		return 1;
+	debug("do_load_fw: params.firmware_root_key_blob:\t%p\n",
+			params.firmware_root_key_blob);
+
+	params.verification_block_0 = context.begin + CONFIG_OFFSET_FW_A_KEY;
+	params.verification_block_1 = context.begin + CONFIG_OFFSET_FW_B_KEY;
+
+	block[0] = params.verification_block_0;
+	block[1] = params.verification_block_1;
+	psize[0] =  &params.verification_size_0;
+	psize[1] =  &params.verification_size_1;
+	for (i = 0; i < 2; i++) {
+		kbh = (VbKeyBlockHeader *) block[i];
+		fph = (VbFirmwarePreambleHeader *)
+			(block[i] + kbh->key_block_size);
+
+		*psize[i] = kbh->key_block_size + fph->preamble_size;
+
+		debug("do_load_fw: params.verification_block_%d:\t%p\n",
+				i, block[i]);
+		debug("do_load_fw: params.verification_size_%d:\t%08llx\n",
+				i, *psize[i]);
 	}
-	/* params.verification_block_0 = fmap->base + fmap->areas[i].offset; */
-	params.verification_block_0 = (void *) base + fmap->areas[i].offset;
-	params.verification_size_0 = fmap->areas[i].size;
 
-	if ((i = lookup_area(fmap, "Firmware B Key")) < 0) {
-		printf("Can't find Firmware B Key\n");
-		return 1;
-	}
-	/* params.verification_block_1 = fmap->base + fmap->areas[i].offset; */
-	params.verification_block_1 = (void *) base + fmap->areas[i].offset;
-	params.verification_size_1 = fmap->areas[i].size;
+	params.kernel_sign_key_blob =
+		(uint8_t *) simple_strtoul(argv[3], NULL, 16);
+	params.kernel_sign_key_size = LOAD_FIRMWARE_KEY_BLOB_REC_SIZE;
 
-	params.kernel_sign_key_blob = kernel_sign_key_blob;
-	params.kernel_sign_key_size = sizeof(kernel_sign_key_blob);
+	debug("do_load_fw: params.kernel_sign_key_blob:\t%p\n",
+			params.kernel_sign_key_blob);
+	debug("do_load_fw: params.kernel_sign_key_size:\t%08llx\n",
+			params.kernel_sign_key_size);
 
-	params.boot_flags = 0; /* alternative is BOOT_FLAG_DEVELOPER */
+	params.caller_internal = &ci;
 
-	cxt.base = (void *) base;
-	cxt.size = size;
-	memset(cxt.offsets, 0x00, sizeof(cxt.offsets));
-	ci.index = -1;
-	ci.cached_image = NULL;
-	ci.size = 0;
-	ci.firmware_storage.fmap	= fmap;
-	ci.firmware_storage.context	= (void *) &cxt;
-	ci.firmware_storage.read	= mem_read;
-	params.caller_internal = (void *) &ci;
+	params.boot_flags = 0;
 
 	status = LoadFirmware(&params);
 
@@ -358,8 +386,6 @@ int do_load_fw(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			break;
 	}
 
-	if (ci.cached_image)
-		free(ci.cached_image);
 	return 0;
 }
 
@@ -369,13 +395,14 @@ int do_load_k(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	block_dev_desc_t *dev_desc;
 	int i, status;
 
-	if (argc != 3)
+	if (argc != 4)
 		USAGE(1, cmdtp, "Wrong number of arguments\n");
 
 	if ((dev_desc = get_bootdev()) == NULL)
 		USAGE(1, cmdtp, "No boot device set yet\n");
 
-	par.header_sign_key_blob = kernel_sign_key_blob;
+	par.header_sign_key_blob =
+		(uint8_t *) simple_strtoul(argv[3], NULL, 16);
 	par.bytes_per_lba = (uint64_t) dev_desc->blksz;
 	par.ending_lba = (uint64_t) get_limit() - 1;
 	par.kernel_buffer = (void *) simple_strtoul(argv[1], NULL, 16);
