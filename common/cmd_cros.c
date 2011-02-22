@@ -43,6 +43,7 @@
 #include <chromeos/boot_device_impl.h>
 #include <chromeos/hardware_interface.h>
 #include <chromeos/fmap.h>
+#include <chromeos/gbb_bmpblk.h>
 
 /* Verify Boot interface */
 #include <boot_device.h>
@@ -59,6 +60,9 @@
 int do_cros	(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 int do_test_gpio(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 int do_bootdev	(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
+#ifdef CONFIG_CHROMEOS_BMPBLK
+int do_bmpblk	(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
+#endif /* CONFIG_CHROMEOS_BMPBLK */
 int do_fmap	(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 int do_load_fw	(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 int do_load_k	(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
@@ -74,30 +78,36 @@ cmd_tbl_t cmd_cros_sub[] = {
 			"test Chrome OS verified boot GPIOs",
 			""),
 	U_BOOT_CMD_MKENT(bootdev, 4, 1, do_bootdev,
-			"show/set/read/write boot device",
-			"[sub-action args...]\n    - perform sub-action\n"
-			"\n"
-			"Subactions:\n"
-			"    - show boot device (when no sub-action)\n"
-			"set iface dev [part]\n    - set boot device\n"
-			"read addr block count\n    - read from boot device\n"
-			"write addr block count\n    - write to boot device"),
+		"show/set/read/write boot device",
+		"[sub-action args...]\n    - perform sub-action\n"
+		"\n"
+		"Subactions:\n"
+		"    - show boot device (when no sub-action)\n"
+		"set iface dev [part]\n    - set boot device\n"
+		"read addr block count\n    - read from boot device\n"
+		"write addr block count\n    - write to boot device"),
+#ifdef CONFIG_CHROMEOS_BMPBLK
+	U_BOOT_CMD_MKENT(bmpblk, 3, 1, do_bmpblk,
+	        "Manipulate GBB BMP block",
+	        "display <gbbaddr> <screen#> - display the screen\n"
+	        "bmpblk info <gbbaddr> <screen#>    - print the screen info\n"),
+#endif /* CONFIG_CHROMEOS_BMPBLK */
 	U_BOOT_CMD_MKENT(fmap, 2, 1, do_fmap,
-			"Find and print flash map",
-			"addr len\n    - Find and print flash map "
-			"in memory[addr, addr+len]\n"),
+		"Find and print flash map",
+		"addr len\n    - Find and print flash map "
+		"in memory[addr, addr+len]\n"),
 	U_BOOT_CMD_MKENT(load_fw, 3, 1, do_load_fw,
-			"Load firmware from memory "
-			"(you have to download the image before running this)",
-			"addr len kkey\n    - Wrapper of LoadFirmware."
-			"Load firmware from [addr, addr+len] and "
-			"store loaded kernel key at kkey\n"),
+		"Load firmware from memory "
+		"(you have to download the image before running this)",
+		"addr len kkey\n    - Wrapper of LoadFirmware."
+		"Load firmware from [addr, addr+len] and "
+		"store loaded kernel key at kkey\n"),
 	U_BOOT_CMD_MKENT(load_k, 3, 1, do_load_k,
-			"Load kernel from the boot device",
-			"addr len kkey\n    - Load kernel to [addr, addr+len]\n"),
+		"Load kernel from the boot device",
+		"addr len kkey\n    - Load kernel to [addr, addr+len]\n"),
 	U_BOOT_CMD_MKENT(help, 1, 1, do_cros_help,
-			"show this message",
-			"[action]")
+		"show this message",
+		"[action]")
 };
 
 int do_cros(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
@@ -234,6 +244,44 @@ int do_bootdev(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	return 0;
 }
+
+#ifdef CONFIG_CHROMEOS_BMPBLK
+int do_bmpblk(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+{
+        uint8_t *addr;
+        int index;
+	int ret;
+
+        if (argc == 4) {
+                addr = (uint8_t *)simple_strtoul(argv[2], NULL, 16);
+                index = (int)simple_strtoul(argv[3], NULL, 10);
+		if (!strcmp(argv[1], "info")) {
+			return print_screen_info_in_bmpblk(addr, index);
+		} else if (!strcmp(argv[1], "display")) {
+			ret = display_screen_in_bmpblk(addr, index);
+			switch (ret) {
+			case BMPBLK_OK:
+				return 0;
+			case BMPBLK_UNSUPPORTED_COMPRESSION:
+				printf("Error: Compression not supported.\n");
+				break;
+			case BMPBLK_LZMA_DECOMPRESS_FAILED:
+				printf("Error: LZMA decompress failed.\n");
+				break;
+			case BMPBLK_BMP_DISPLAY_FAILED:
+				printf("Error: BMP display failed.\n");
+				break;
+			default:
+				printf("Unknown failure: %d.\n", ret);
+			}
+		} else {
+			return cmd_usage(cmdtp);
+		}
+        } else {
+                return cmd_usage(cmdtp);
+        }
+}
+#endif /* CONFIG_CHROMEOS_BMPBLK */
 
 static void _print_fmap(struct fmap *fmap)
 {
@@ -425,23 +473,23 @@ int do_load_fw(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	puts("LoadFirmware returns: ");
 	switch (status) {
-		case LOAD_FIRMWARE_SUCCESS:
-			puts("LOAD_FIRMWARE_SUCCESS\n");
-			printf("firmware_index: %d\n",
-					(int) params.firmware_index);
-			break;
-		case LOAD_FIRMWARE_RECOVERY:
-			puts("LOAD_FIRMWARE_RECOVERY\n");
-			break;
-		case LOAD_FIRMWARE_REBOOT:
-			puts("LOAD_FIRMWARE_REBOOT\n");
-			break;
-		case LOAD_FIRMWARE_RECOVERY_TPM:
-			puts("LOAD_FIRMWARE_RECOVERY_TPM\n");
-			break;
-		default:
-			printf("%d (unknown value!)\n", status);
-			break;
+	case LOAD_FIRMWARE_SUCCESS:
+		puts("LOAD_FIRMWARE_SUCCESS\n");
+		printf("firmware_index: %d\n",
+				(int) params.firmware_index);
+		break;
+	case LOAD_FIRMWARE_RECOVERY:
+		puts("LOAD_FIRMWARE_RECOVERY\n");
+		break;
+	case LOAD_FIRMWARE_REBOOT:
+		puts("LOAD_FIRMWARE_REBOOT\n");
+		break;
+	case LOAD_FIRMWARE_RECOVERY_TPM:
+		puts("LOAD_FIRMWARE_RECOVERY_TPM\n");
+		break;
+	default:
+		printf("%d (unknown value!)\n", status);
+		break;
 	}
 
 	return 0;
@@ -469,34 +517,34 @@ int do_load_k(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	status = LoadKernel(&par);
 	switch (status) {
-		case LOAD_KERNEL_SUCCESS:
-			puts("Success; good kernel found on device\n");
-			printf("partition_number: %lld\n",
-					par.partition_number);
-			printf("bootloader_address: 0x%llx",
-					par.bootloader_address);
-			printf("bootloader_size: 0x%llx", par.bootloader_size);
-			puts("partition_guid:");
-			for (i = 0; i < 16; i++)
-				printf(" %02x", par.partition_guid[i]);
-			putc('\n');
-			break;
-		case LOAD_KERNEL_NOT_FOUND:
-			puts("No kernel found on device\n");
-			break;
-		case LOAD_KERNEL_INVALID:
-			puts("Only invalid kernels found on device\n");
-			break;
-		case LOAD_KERNEL_RECOVERY:
-			puts("Internal error; reboot to recovery mode\n");
-			break;
-		case LOAD_KERNEL_REBOOT:
-			puts("Internal error; reboot to current mode\n");
-			break;
-		default:
-			printf("Unexpected return status from LoadKernel: %d\n",
-					status);
-			return 1;
+	case LOAD_KERNEL_SUCCESS:
+		puts("Success; good kernel found on device\n");
+		printf("partition_number: %lld\n",
+				par.partition_number);
+		printf("bootloader_address: 0x%llx",
+				par.bootloader_address);
+		printf("bootloader_size: 0x%llx", par.bootloader_size);
+		puts("partition_guid:");
+		for (i = 0; i < 16; i++)
+			printf(" %02x", par.partition_guid[i]);
+		putc('\n');
+		break;
+	case LOAD_KERNEL_NOT_FOUND:
+		puts("No kernel found on device\n");
+		break;
+	case LOAD_KERNEL_INVALID:
+		puts("Only invalid kernels found on device\n");
+		break;
+	case LOAD_KERNEL_RECOVERY:
+		puts("Internal error; reboot to recovery mode\n");
+		break;
+	case LOAD_KERNEL_REBOOT:
+		puts("Internal error; reboot to current mode\n");
+		break;
+	default:
+		printf("Unexpected return status from LoadKernel: %d\n",
+				status);
+		return 1;
 	}
 
 	return 0;

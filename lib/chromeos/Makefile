@@ -42,6 +42,7 @@ COBJS-$(CONFIG_CHROMEOS) += fmap.o
 COBJS-$(CONFIG_CHROMEOS) += load_firmware_fw.o
 COBJS-$(CONFIG_CHROMEOS) += tlcl_stub.o
 COBJS-$(CONFIG_CHROMEOS) += utility.o
+COBJS-$(CONFIG_CHROMEOS_BMPBLK) += gbb_bmpblk.o
 
 COBJS	:= $(COBJS-y)
 OBJS	:= $(addprefix $(obj),$(COBJS))
