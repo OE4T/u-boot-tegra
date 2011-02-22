@@ -37,7 +37,7 @@
 #include <command.h>
 #include <part.h>
 
-int do_read (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+int do_read (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	char *ep;
 	block_dev_desc_t *dev_desc = NULL;
@@ -104,4 +104,3 @@ U_BOOT_CMD(
 	"Load binary data from a partition",
 	"<interface> <dev[:part]> addr blk# cnt"
 );
-
