@@ -1,5 +1,5 @@
 /*
- * Copyright 2010, Google Inc.
+ * Copyright 2011, Google Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,14 +37,11 @@
 
 #include <common.h>
 #include <command.h>
-#include <chromeos/firmware_storage.h>
-#include <chromeos/boot_device_impl.h>
+#include <chromeos/hardware_interface.h>
 
 /* Verify Boot interface */
-#include <boot_device.h>
 #include <gbb_header.h>
 #include <load_firmware_fw.h>
-#include <load_kernel_fw.h>
 
 #ifdef VBOOT_DEBUG
 #define WARN_ON_FAILURE(action) do { \
@@ -56,23 +53,6 @@
 #else
 #define WARN_ON_FAILURE(action) action
 #endif
-
-/* TODO: Replace dummy functions below with real implementation. */
-
-/* Returns 0 if false, nonzero if true */
-static int is_firmware_write_protect_gpio_asserted(void) { return 0; }
-static int is_recovery_mode_gpio_asserted(void) { return 0; }
-static int is_s3_resume(void) { return 0; }
-static int is_debug_reset_mode_field_containing_cookie(void) { return 0; }
-static int is_recovery_mode_field_containing_cookie(void) { return 0; }
-static int is_try_firmware_b_field_containing_cookie(void) { return 0; }
-static int is_developer_mode_gpio_asserted(void) { return 0; }
-
-/* Returns 0 if success, nonzero if error. */
-static int lock_down_eeprom(void) { return 0; }
-static int initialize_tpm(void) { return 0; }
-static int lock_tpm(void) { return 0; }
-static int lock_tpm_rewritable_firmware_index(void) { return 0; }
 
 #define FIRMWARE_RECOVERY	0
 #define FIRMWARE_A		1

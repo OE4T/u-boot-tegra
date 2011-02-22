@@ -1,5 +1,5 @@
 /*
- * Copyright 2010, Google Inc.
+ * Copyright 2011, Google Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,25 +33,12 @@
  * Software Foundation.
  */
 
-/*
- * The firmware_storage provides a interface for GetFirmware to interact with
- * board-specific firmware storage device.
- */
+#include <common.h>
 
-#ifndef __FIRMWARE_STORAGE_H__
-#define __FIRMWARE_STORAGE_H__
+#include <chromeos/hardware_interface.h>
 
-#include <linux/types.h>
+int is_debug_reset_mode_field_containing_cookie(void) { return 0; }
 
-enum whence_t { SEEK_SET, SEEK_CUR, SEEK_END };
+int is_recovery_mode_field_containing_cookie(void) { return 0; }
 
-/* Internal data for caller of LoadFirmware() to talk to GetFirmwareBody() */
-struct caller_internal_s {
-	off_t (*seek)(void *context, off_t offset, enum whence_t whence);
-	ssize_t (*read)(void *context, void *buf, size_t count);
-	void *context;
-};
-
-typedef struct caller_internal_s caller_internal_t;
-
-#endif /* __FIRMWARE_STORAGE_H_ */
+int is_try_firmware_b_field_containing_cookie(void) { return 0; }

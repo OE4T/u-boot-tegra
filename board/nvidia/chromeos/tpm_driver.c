@@ -1,5 +1,5 @@
 /*
- * Copyright 2010, Google Inc.
+ * Copyright 2011, Google Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,25 +33,13 @@
  * Software Foundation.
  */
 
-/*
- * The firmware_storage provides a interface for GetFirmware to interact with
- * board-specific firmware storage device.
- */
+/* Implementation of per-board TPM driver functions */
 
-#ifndef __FIRMWARE_STORAGE_H__
-#define __FIRMWARE_STORAGE_H__
+#include <chromeos/hardware_interface.h>
 
-#include <linux/types.h>
+/* TODO Replace dummy functions below with real implementation. */
 
-enum whence_t { SEEK_SET, SEEK_CUR, SEEK_END };
-
-/* Internal data for caller of LoadFirmware() to talk to GetFirmwareBody() */
-struct caller_internal_s {
-	off_t (*seek)(void *context, off_t offset, enum whence_t whence);
-	ssize_t (*read)(void *context, void *buf, size_t count);
-	void *context;
-};
-
-typedef struct caller_internal_s caller_internal_t;
-
-#endif /* __FIRMWARE_STORAGE_H_ */
+/* Returns 0 if success, nonzero if error. */
+int initialize_tpm(void) { return 0; }
+int lock_tpm(void) { return 0; }
+int lock_tpm_rewritable_firmware_index(void) { return 0; }

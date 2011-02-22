@@ -1,5 +1,5 @@
 /*
- * Copyright 2010, Google Inc.
+ * Copyright 2011, Google Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,24 +34,37 @@
  */
 
 /*
- * The firmware_storage provides a interface for GetFirmware to interact with
- * board-specific firmware storage device.
+ * The minimal hardware interface for Chrome OS verified boot
  */
 
-#ifndef __FIRMWARE_STORAGE_H__
-#define __FIRMWARE_STORAGE_H__
+#ifndef __HARDWARE_INTERFACE_H__
+#define __HARDWARE_INTERFACE_H__
 
-#include <linux/types.h>
+int is_s3_resume(void);
 
-enum whence_t { SEEK_SET, SEEK_CUR, SEEK_END };
+/* Accessor to non-volatile storage: returns 0 if false, nonzero if true */
+int is_debug_reset_mode_field_containing_cookie(void);
+int is_recovery_mode_field_containing_cookie(void);
+int is_try_firmware_b_field_containing_cookie(void);
 
-/* Internal data for caller of LoadFirmware() to talk to GetFirmwareBody() */
-struct caller_internal_s {
-	off_t (*seek)(void *context, off_t offset, enum whence_t whence);
-	ssize_t (*read)(void *context, void *buf, size_t count);
-	void *context;
-};
+/* GPIO accessor functions: returns 0 if false, nonzero if true */
+int is_firmware_write_protect_gpio_asserted(void);
+int is_recovery_mode_gpio_asserted(void);
+int is_developer_mode_gpio_asserted(void);
 
-typedef struct caller_internal_s caller_internal_t;
+/* Returns 0 if success, nonzero if error. */
+int lock_down_eeprom(void);
 
-#endif /* __FIRMWARE_STORAGE_H_ */
+/* TPM driver functions: returns 0 if success, nonzero if error. */
+int initialize_tpm(void);
+int lock_tpm(void);
+int lock_tpm_rewritable_firmware_index(void);
+
+/* Interface for access firmware */
+#include <chromeos/firmware_storage.h>
+
+/* Returns 0 if success, nonzero if error. */
+int init_caller_internal(caller_internal_t *ci);
+int release_caller_internal(caller_internal_t *ci);
+
+#endif /* __HARDWARE_INTERFACE_H__ */
