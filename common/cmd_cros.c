@@ -41,7 +41,7 @@
 #include <malloc.h>
 #include <vboot_struct.h>
 #include <chromeos/boot_device_impl.h>
-#include <chromeos/firmware_storage.h>
+#include <chromeos/hardware_interface.h>
 #include <chromeos/fmap.h>
 
 /* Verify Boot interface */
@@ -57,6 +57,7 @@
 } while (0)
 
 int do_cros	(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
+int do_test_gpio(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 int do_bootdev	(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 int do_fmap	(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 int do_load_fw	(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
@@ -69,6 +70,9 @@ U_BOOT_CMD(cros, CONFIG_SYS_MAXARGS, 1, do_cros,
 );
 
 cmd_tbl_t cmd_cros_sub[] = {
+	U_BOOT_CMD_MKENT(test_gpio, 0, 1, do_test_gpio,
+			"test Chrome OS verified boot GPIOs",
+			""),
 	U_BOOT_CMD_MKENT(bootdev, 4, 1, do_bootdev,
 			"show/set/read/write boot device",
 			"[sub-action args...]\n    - perform sub-action\n"
@@ -108,6 +112,60 @@ int do_cros(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		USAGE(1, cmdtp, "Unrecognized action: %s\n", argv[1]);
 
 	return c->cmd(c, flag, argc - 1, argv + 1);
+}
+
+static void sleep(int second)
+{
+	const ulong start = get_timer(0);
+	const ulong delay = second * CONFIG_SYS_HZ;
+
+	while (!ctrlc() && get_timer(start) < delay)
+		udelay(100);
+}
+
+int do_test_gpio(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+{
+	enum { WAIT = 2 }; /* 2 seconds */
+
+	struct {
+		const char *gpio_name;
+		int (*accessor)(void);
+	} testcase[3] = {
+		{
+			.gpio_name = "write protect",
+			.accessor = is_firmware_write_protect_gpio_asserted
+		},
+		{
+			.gpio_name = "recovery mode",
+			.accessor = is_recovery_mode_gpio_asserted
+		},
+		{
+			.gpio_name = "developer mode",
+			.accessor = is_developer_mode_gpio_asserted
+		},
+	};
+	const char *gpio_name;
+	int i;
+
+	for (i = 0; i < sizeof(testcase) / sizeof(testcase[0]); i ++) {
+		gpio_name = testcase[i].gpio_name;
+
+		printf("Please enable %s...\n", gpio_name);
+		sleep(WAIT);
+		if (testcase[i].accessor())
+			printf("TEST PASS: %s is enabled\n", gpio_name);
+		else
+			printf("TEST FAIL: %s is not enabled\n", gpio_name);
+		printf("\n");
+
+		printf("Please disable %s...\n", gpio_name);
+		sleep(WAIT);
+		if (!testcase[i].accessor())
+			printf("TEST PASS: %s is disabled\n", gpio_name);
+		else
+			printf("TEST FAIL: %s is not disabled\n", gpio_name);
+		printf("\n");
+	}
 }
 
 int do_bootdev(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])

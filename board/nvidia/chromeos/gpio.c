@@ -36,11 +36,30 @@
 /* Implementation of per-board GPIO accessor functions */
 
 #include <common.h>
+#include "../../common/lcd/gpinit/gpinit.h"
 
 #include <chromeos/hardware_interface.h>
 
-int is_firmware_write_protect_gpio_asserted(void) { return 0; }
+#define GPIO_ACTIVE_HIGH	0
+#define GPIO_ACTIVE_LOW		1
 
-int is_recovery_mode_gpio_asserted(void) { return 0; }
+#define GPIO_ACCESSOR(gpio_number, polarity) \
+	tg2_gpio_direction_input(TEGRA_GPIO_PORT(gpio_number), \
+			TEGRA_GPIO_BIT(gpio_number)); \
+	return (polarity) ^ tg2_gpio_get_value(TEGRA_GPIO_PORT(gpio_number), \
+			TEGRA_GPIO_BIT(gpio_number));
 
-int is_developer_mode_gpio_asserted(void) { return 0; }
+int is_firmware_write_protect_gpio_asserted(void)
+{
+	GPIO_ACCESSOR(TEGRA_GPIO_PH3, GPIO_ACTIVE_LOW)
+}
+
+int is_recovery_mode_gpio_asserted(void)
+{
+	GPIO_ACCESSOR(TEGRA_GPIO_PH0, GPIO_ACTIVE_LOW)
+}
+
+int is_developer_mode_gpio_asserted(void)
+{
+	GPIO_ACCESSOR(TEGRA_GPIO_PV0, GPIO_ACTIVE_HIGH)
+}
