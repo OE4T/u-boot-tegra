@@ -176,6 +176,8 @@ int do_test_gpio(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			printf("TEST FAIL: %s is not disabled\n", gpio_name);
 		printf("\n");
 	}
+
+	return 0;
 }
 
 int do_bootdev(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
@@ -252,14 +254,18 @@ int do_bmpblk(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
         int index;
 	int ret;
 
-        if (argc == 4) {
-                addr = (uint8_t *)simple_strtoul(argv[2], NULL, 16);
-                index = (int)simple_strtoul(argv[3], NULL, 10);
-		if (!strcmp(argv[1], "info")) {
-			return print_screen_info_in_bmpblk(addr, index);
-		} else if (!strcmp(argv[1], "display")) {
-			ret = display_screen_in_bmpblk(addr, index);
-			switch (ret) {
+	if (argc != 4)
+		return cmd_usage(cmdtp);
+
+	addr = (uint8_t *)simple_strtoul(argv[2], NULL, 16);
+	index = (int)simple_strtoul(argv[3], NULL, 10);
+
+	if (!strcmp(argv[1], "info"))
+		return print_screen_info_in_bmpblk(addr, index);
+
+	if (!strcmp(argv[1], "display")) {
+		ret = display_screen_in_bmpblk(addr, index);
+		switch (ret) {
 			case BMPBLK_OK:
 				return 0;
 			case BMPBLK_UNSUPPORTED_COMPRESSION:
@@ -273,13 +279,13 @@ int do_bmpblk(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 				break;
 			default:
 				printf("Unknown failure: %d.\n", ret);
-			}
-		} else {
-			return cmd_usage(cmdtp);
+				break;
 		}
-        } else {
-                return cmd_usage(cmdtp);
+
+		return 1;
         }
+
+	return cmd_usage(cmdtp);
 }
 #endif /* CONFIG_CHROMEOS_BMPBLK */
 
