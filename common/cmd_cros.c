@@ -490,9 +490,6 @@ int do_load_fw(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	case LOAD_FIRMWARE_REBOOT:
 		puts("LOAD_FIRMWARE_REBOOT\n");
 		break;
-	case LOAD_FIRMWARE_RECOVERY_TPM:
-		puts("LOAD_FIRMWARE_RECOVERY_TPM\n");
-		break;
 	default:
 		printf("%d (unknown value!)\n", status);
 		break;
