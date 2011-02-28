@@ -415,6 +415,7 @@ static ssize_t mem_read(void *context, void *buf, size_t count)
 int do_load_fw(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	LoadFirmwareParams params;
+        VbNvContext vnc;
 	struct context_t context;
 	void *gbb, *block[2];
 	GoogleBinaryBlockHeader *gbbh;
@@ -475,7 +476,14 @@ int do_load_fw(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	params.boot_flags = 0;
 
+        /* TODO: load vnc.raw from NV storage */
+        params.nv_context = &vnc;
+
 	status = LoadFirmware(&params);
+
+	if (vnc.raw_changed) {
+		/* TODO: save vnc.raw to NV storage */
+        }
 
 	puts("LoadFirmware returns: ");
 	switch (status) {
@@ -501,6 +509,7 @@ int do_load_fw(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 int do_load_k(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	LoadKernelParams par;
+        VbNvContext vnc;
 	block_dev_desc_t *dev_desc;
 	int i, status;
 
@@ -518,7 +527,15 @@ int do_load_k(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	par.kernel_buffer_size = (uint64_t) simple_strtoul(argv[2], NULL, 16);
 	par.boot_flags = BOOT_FLAG_DEVELOPER | BOOT_FLAG_SKIP_ADDR_CHECK;
 
+        /* TODO: load vnc.raw from NV storage */
+        par.nv_context = &vnc;
+
 	status = LoadKernel(&par);
+
+        if (vnc.raw_changed) {
+		/* TODO: save vnc.raw to NV storage */
+        }
+
 	switch (status) {
 	case LOAD_KERNEL_SUCCESS:
 		puts("Success; good kernel found on device\n");
