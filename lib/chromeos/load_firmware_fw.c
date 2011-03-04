@@ -19,6 +19,10 @@
 #define BUF_SIZE 256
 #define PREFIX "GetFirmwareBody: "
 
+/*
+ * See vboot_reference/firmware/include/load_firmware_fw.h for documentation of
+ * this function.
+ */
 int GetFirmwareBody(LoadFirmwareParams *params, uint64_t index)
 {
 	caller_internal_t *ci;
@@ -42,11 +46,10 @@ int GetFirmwareBody(LoadFirmwareParams *params, uint64_t index)
 
 	if (index == 0) {
 		block = params->verification_block_0;
-		data_offset = CONFIG_OFFSET_FW_A_DATA;
 	} else {
 		block = params->verification_block_1;
-		data_offset = CONFIG_OFFSET_FW_B_DATA;
 	}
+	data_offset = ci->firmware_data_offset[index];
 
 	kbh = (VbKeyBlockHeader *) block;
 	fph = (VbFirmwarePreambleHeader *) (block + kbh->key_block_size);
@@ -62,6 +65,10 @@ int GetFirmwareBody(LoadFirmwareParams *params, uint64_t index)
 
 	debug(PREFIX "body size: %08llx\n", fph->body_signature.data_size);
 
+	/*
+	 * This loop feeds firmware body into UpdateFirmwareBodyHash.
+	 * Variable <leftover> book-keeps the remaining number of bytes
+	 */
 	for (leftover = fph->body_signature.data_size;
 			leftover > 0; leftover -= n) {
 		n = sizeof(buf) < leftover ? sizeof(buf) : leftover;
@@ -72,6 +79,10 @@ int GetFirmwareBody(LoadFirmwareParams *params, uint64_t index)
 			return 1;
 		}
 
+		/*
+		 * See vboot_reference/firmware/include/load_firmware_fw.h for
+		 * documentation of this function.
+		 */
 		UpdateFirmwareBodyHash(params, buf, n);
 	}
 

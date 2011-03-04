@@ -20,13 +20,37 @@
 
 enum whence_t { SEEK_SET, SEEK_CUR, SEEK_END };
 
-/* Internal data for caller of LoadFirmware() to talk to GetFirmwareBody() */
-struct caller_internal_s {
+/*
+ * This struct is the interface for accessing firmware storage.
+ * It is also used as the internal data for caller of LoadFirmware() to talk to
+ * GetFirmwareBody().
+ */
+typedef struct {
+	/*
+	 * The semantic (argument and return value) is similar with system
+	 * call lseek(2) and read(2), except that file description is replaced
+	 * by <context>.
+	 *
+	 * <context> stores current status of the storage device and
+	 * local states of the driver.
+	 *
+	 * A storage device driver that implements this interface must provide
+	 * methods to initialize <context> to caller of LoadFirmware().
+	 *
+	 * For example, common/cmd_cros.c implements a driver of RAM.
+	 */
 	off_t (*seek)(void *context, off_t offset, enum whence_t whence);
 	ssize_t (*read)(void *context, void *buf, size_t count);
 	void *context;
-};
 
-typedef struct caller_internal_s caller_internal_t;
+	/*
+	 * This field is offset of firmware data sections, from the beginning
+	 * of firmware storage device.
+	 *
+	 * This field is only used by GetFirmwareBody(). Caller of
+	 * LoadFirmware() must initialize this field.
+	 */
+	off_t firmware_data_offset[2];
+} caller_internal_t;
 
 #endif /* __FIRMWARE_STORAGE_H_ */

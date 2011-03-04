@@ -14,7 +14,6 @@
 #include <common.h>
 #include <command.h>
 #include <malloc.h>
-#include <vboot_struct.h>
 #include <chromeos/boot_device_impl.h>
 #include <chromeos/hardware_interface.h>
 #include <chromeos/fmap.h>
@@ -25,6 +24,7 @@
 #include <gbb_header.h>
 #include <load_firmware_fw.h>
 #include <load_kernel_fw.h>
+#include <vboot_struct.h>
 
 #define USAGE(ret, cmdtp, fmt, ...) do { \
 	printf(fmt, ##__VA_ARGS__); \
@@ -336,53 +336,47 @@ struct context_t {
 
 static off_t mem_seek(void *context, off_t offset, enum whence_t whence)
 {
-	void *begin, *cur, *end;
-
-	begin = ((struct context_t *) context)->begin;
-	cur = ((struct context_t *) context)->cur;
-	end = ((struct context_t *) context)->end;
+	struct context_t *cxt = (struct context_t *) context;
+	void *cur;
 
 	if (whence == SEEK_SET)
-		cur = begin + offset;
+		cur = cxt->begin + offset;
 	else if (whence == SEEK_CUR)
-		cur = cur + offset;
+		cur = cxt->cur + offset;
 	else if (whence == SEEK_END)
-		cur = end + offset;
+		cur = cxt->end + offset;
 	else {
 		debug("mem_seek: unknown whence value: %d\n", whence);
 		return -1;
 	}
 
-	if (cur < begin) {
-		debug("mem_seek: offset underflow: %p < %p\n", cur, begin);
+	if (cur < cxt->begin) {
+		debug("mem_seek: offset underflow: %p < %p\n", cur, cxt->begin);
 		return -1;
 	}
 
-	if (cur >= end) {
-		debug("mem_seek: offset exceeds size: %p >= %p\n", cur, end);
+	if (cur >= cxt->end) {
+		debug("mem_seek: offset exceeds size: %p >= %p\n", cur,
+				cxt->end);
 		return -1;
 	}
 
-	((struct context_t *) context)->cur = cur;
-	return cur - begin;
+	cxt->cur = cur;
+	return cur - cxt->begin;
 }
 
 static ssize_t mem_read(void *context, void *buf, size_t count)
 {
-	void *begin, *cur, *end;
+	struct context_t *cxt = (struct context_t *) context;
 
 	if (count == 0)
 		return 0;
 
-	begin = ((struct context_t *) context)->begin;
-	cur = ((struct context_t *) context)->cur;
-	end = ((struct context_t *) context)->end;
+	if (count > cxt->end - cxt->cur)
+		count = cxt->end - cxt->cur;
 
-	if (count > end - cur)
-		count = end - cur;
-
-	memcpy(buf, cur, count);
-	((struct context_t *) context)->cur += count;
+	memcpy(buf, cxt->cur, count);
+	cxt->cur += count;
 
 	return count;
 }
@@ -401,7 +395,11 @@ int do_load_fw(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	caller_internal_t ci = {
 		.seek = mem_seek,
 		.read = mem_read,
-		.context = (void *) &context
+		.context = (void *) &context,
+		.firmware_data_offset = {
+			CONFIG_OFFSET_FW_A_DATA,
+			CONFIG_OFFSET_FW_B_DATA
+		}
 	};
 
 	if (argc != 4)
