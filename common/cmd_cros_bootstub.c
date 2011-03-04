@@ -8,7 +8,7 @@
  * Software Foundation.
  */
 
-/* Implementation of read-only part of Chrome OS Verify Boot firmware */
+/* Implementation of boot stub of Chrome OS Verify Boot firmware */
 
 #include <common.h>
 #include <command.h>
@@ -18,11 +18,13 @@
 #include <gbb_header.h>
 #include <load_firmware_fw.h>
 
-#ifdef VBOOT_DEBUG
+#define PREFIX "cros_bootstub: "
+
+#ifdef DEBUG
 #define WARN_ON_FAILURE(action) do { \
 	int return_code = (action); \
 	if (return_code != 0) \
-		debug("Boot Stub: %s failed, returning %d\n", \
+		debug(PREFIX "%s failed, returning %d\n", \
 				#action, return_code); \
 } while (0)
 #else
@@ -33,7 +35,7 @@
 #define FIRMWARE_A		1
 #define FIRMWARE_B		2
 
-int do_cros_rofw(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	int firmware_index, primary_firmware;
 
@@ -64,7 +66,7 @@ int do_cros_rofw(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		/* TODO call LoadFirmware */
 	}
 
-	debug("Boot Stub: Load firmware of index %d\n", firmware_index);
+	debug(PREFIX "load firmware of index %d\n", firmware_index);
 
 	WARN_ON_FAILURE(lock_tpm_rewritable_firmware_index());
 
@@ -83,4 +85,4 @@ int do_cros_rofw(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	return 0;
 }
 
-U_BOOT_CMD(cros_rofw, 0, 1, do_cros_rofw, NULL, NULL);
+U_BOOT_CMD(cros_bootstub, 1, 1, do_cros_bootstub, NULL, NULL);
