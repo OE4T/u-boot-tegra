@@ -43,14 +43,33 @@ typedef struct {
 	ssize_t (*read)(void *context, void *buf, size_t count);
 	void *context;
 
+
+	/*
+	 * The two fields below (<firmware_data_offset> and <firmware_body>) are
+	 * used for communicating with GetFirmwareBody.
+	 *
+	 * Caller of LoadFirmware() must initialize and dispose them by
+	 * prepare_for_GetFirmwareBody() and dispose_firmware_data() below.
+	 */
+
 	/*
 	 * This field is offset of firmware data sections, from the beginning
 	 * of firmware storage device.
-	 *
-	 * This field is only used by GetFirmwareBody(). Caller of
-	 * LoadFirmware() must initialize this field.
 	 */
 	off_t firmware_data_offset[2];
+
+	/*
+	 * These pointers will point to firmware data loaded by
+	 * GetFirmwareBody().
+	 */
+	uint8_t *firmware_body[2];
 } caller_internal_t;
+
+/* Initialize fields for talking to GetFirmwareBody(). */
+void GetFirmwareBody_setup(caller_internal_t *ci,
+		off_t firmware_data_offset_0, off_t firmware_data_offset_1);
+
+/* Dispose fields that are used for communicating with GetFirmwareBody(). */
+void GetFirmwareBody_dispose(caller_internal_t *ci);
 
 #endif /* __FIRMWARE_STORAGE_H_ */

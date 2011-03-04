@@ -13,7 +13,6 @@
 
 #include <common.h>
 #include <command.h>
-#include <malloc.h>
 #include <chromeos/boot_device_impl.h>
 #include <chromeos/hardware_interface.h>
 #include <chromeos/fmap.h>
@@ -395,11 +394,7 @@ int do_load_fw(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	caller_internal_t ci = {
 		.seek = mem_seek,
 		.read = mem_read,
-		.context = (void *) &context,
-		.firmware_data_offset = {
-			CONFIG_OFFSET_FW_A_DATA,
-			CONFIG_OFFSET_FW_B_DATA
-		}
+		.context = (void *) &context
 	};
 
 	if (argc != 4)
@@ -408,6 +403,9 @@ int do_load_fw(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	context.begin = (void *) simple_strtoul(argv[1], NULL, 16);
 	context.cur = context.begin;
 	context.end = context.begin + simple_strtoul(argv[2], NULL, 16);
+
+	GetFirmwareBody_setup(&ci, CONFIG_OFFSET_FW_A_DATA,
+			CONFIG_OFFSET_FW_B_DATA);
 
 	gbb = context.begin + CONFIG_OFFSET_GBB;
 	gbbh = (GoogleBinaryBlockHeader *) gbb;
@@ -475,6 +473,8 @@ int do_load_fw(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		printf("%d (unknown value!)\n", status);
 		break;
 	}
+
+	GetFirmwareBody_dispose(&ci);
 
 	return 0;
 }

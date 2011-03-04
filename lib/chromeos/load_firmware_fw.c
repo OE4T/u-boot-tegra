@@ -16,8 +16,26 @@
 
 #include <load_firmware_fw.h>
 
-#define BUF_SIZE 256
+/* Amount of bytes we read each time we call read() */
+#define BLOCK_SIZE 512
 #define PREFIX "GetFirmwareBody: "
+
+void GetFirmwareBody_setup(caller_internal_t *ci,
+		off_t firmware_data_offset_0, off_t firmware_data_offset_1)
+{
+	ci->firmware_data_offset[0] = firmware_data_offset_0;
+	ci->firmware_data_offset[1] = firmware_data_offset_1;
+	ci->firmware_body[0] = NULL;
+	ci->firmware_body[1] = NULL;
+}
+
+void GetFirmwareBody_dispose(caller_internal_t *ci)
+{
+	int i;
+	for (i = 0; i < 2; i ++)
+		if (ci->firmware_body[i])
+			free(ci->firmware_body[i]);
+}
 
 /*
  * See vboot_reference/firmware/include/load_firmware_fw.h for documentation of
@@ -32,7 +50,7 @@ int GetFirmwareBody(LoadFirmwareParams *params, uint64_t index)
 	off_t data_offset;
 	int64_t leftover;
 	ssize_t n;
-	uint8_t buf[BUF_SIZE];
+	uint8_t *firmware_body;
 
 	debug(PREFIX "firmware index: %d\n", index);
 
@@ -50,6 +68,8 @@ int GetFirmwareBody(LoadFirmwareParams *params, uint64_t index)
 		block = params->verification_block_1;
 	}
 	data_offset = ci->firmware_data_offset[index];
+	ci->firmware_body[index] = malloc(MAX(CONFIG_LENGTH_FW_A_DATA,
+				CONFIG_LENGTH_FW_B_DATA));
 
 	kbh = (VbKeyBlockHeader *) block;
 	fph = (VbFirmwarePreambleHeader *) (block + kbh->key_block_size);
@@ -69,10 +89,11 @@ int GetFirmwareBody(LoadFirmwareParams *params, uint64_t index)
 	 * This loop feeds firmware body into UpdateFirmwareBodyHash.
 	 * Variable <leftover> book-keeps the remaining number of bytes
 	 */
+	firmware_body = ci->firmware_body[index];
 	for (leftover = fph->body_signature.data_size;
 			leftover > 0; leftover -= n) {
-		n = sizeof(buf) < leftover ? sizeof(buf) : leftover;
-		n = ci->read(ci->context, buf, n);
+		n = BLOCK_SIZE < leftover ? BLOCK_SIZE : leftover;
+		n = ci->read(ci->context, firmware_body, n);
 		if (n <= 0) {
 			debug(PREFIX "an error has occured "
 					"while reading firmware: %d\n", n);
@@ -83,7 +104,8 @@ int GetFirmwareBody(LoadFirmwareParams *params, uint64_t index)
 		 * See vboot_reference/firmware/include/load_firmware_fw.h for
 		 * documentation of this function.
 		 */
-		UpdateFirmwareBodyHash(params, buf, n);
+		UpdateFirmwareBodyHash(params, firmware_body, n);
+		firmware_body += n;
 	}
 
 	return 0;
