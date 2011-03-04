@@ -35,11 +35,56 @@
 #define FIRMWARE_A		1
 #define FIRMWARE_B		2
 
+/*
+ * verified_firmware_t is used for storing returned data of LoadFirmware() and
+ * GetFirmwareBody().
+ */
+typedef struct {
+	/*
+	 * This field is output of LoadFirmware(). See
+	 * vboot_reference/firmware/include/load_firmware_fw.h for
+	 * documentation.
+	 */
+	int firmware_index;
+
+	/* Rewritable firmware data loaded by GetFirmwareBody(). */
+	uint8_t *firmware_body[2];
+} verified_firmware_t;
+
+/*
+ * Load and verify rewritable firmware. A wrapper of LoadFirmware() function.
+ *
+ * Returns what is returned by LoadFirmware().
+ *
+ * For documentation of return values of LoadFirmware(), <primary_firmware>, and
+ * <boot_flags>, please refer to
+ * vboot_reference/firmware/include/load_firmware_fw.h
+ *
+ * The kernel key found in firmware image is stored in <kernel_sign_key_blob>
+ * and <kernel_sign_key_size>.
+ *
+ * Output of LoadFirmware() and GetFirmwareBody() is stored in
+ * struct pointed by <verified_firmware>.
+ */
+int load_firmware(int primary_firmware, int boot_flags,
+		void *kernel_sign_key_blob, uint64_t kernel_sign_key_size,
+		verified_firmware_t *verified_firmware)
+{
+	return LOAD_FIRMWARE_RECOVERY;
+}
+
+void jump_to_firmware(void (*rwfw_entry_point)(void))
+{
+	debug(PREFIX "jump to firmware %p\n", rwfw_entry_point);
+}
+
 int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
-	int firmware_index, primary_firmware;
-
-	/* Boot Stub ******************************************************** */
+	int status = LOAD_FIRMWARE_RECOVERY;
+	int primary_firmware, boot_flags = 0;
+	verified_firmware_t vf;
+	uint8_t *kernel_sign_key_blob = (uint8_t *) CONFIG_KERNEL_SIGN_KEY_BLOB;
+	uint64_t kernel_sign_key_size = CONFIG_KERNEL_SIGN_KEY_SIZE;
 
 	/* TODO Start initializing chipset */
 
@@ -56,33 +101,39 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	if (is_recovery_mode_gpio_asserted() ||
 	    is_recovery_mode_field_containing_cookie()) {
-		firmware_index = FIRMWARE_RECOVERY;
+		debug(PREFIX "boot recovery firmware\n");
 	} else {
 		if (is_try_firmware_b_field_containing_cookie())
 			primary_firmware = FIRMWARE_B;
 		else
 			primary_firmware = FIRMWARE_A;
 
-		/* TODO call LoadFirmware */
-	}
+		if (is_developer_mode_gpio_asserted())
+			boot_flags |= BOOT_FLAG_DEVELOPER;
 
-	debug(PREFIX "load firmware of index %d\n", firmware_index);
+		status = load_firmware(primary_firmware, boot_flags,
+				kernel_sign_key_blob, kernel_sign_key_size,
+				&vf);
+	}
 
 	WARN_ON_FAILURE(lock_tpm_rewritable_firmware_index());
 
-	if (firmware_index == FIRMWARE_A) {
-		/* TODO Jump to firmware A and should never return */
+	if (status == LOAD_FIRMWARE_SUCCESS) {
+		debug(PREFIX "jump to rewritable firmware %d "
+				"and never return\n",
+				vf.firmware_index);
+		jump_to_firmware((void (*)(void))
+				vf.firmware_body[vf.firmware_index]);
+
+		debug(PREFIX "error: should never reach here! "
+				"jump to recovery firmware\n");
 	}
 
-	if (firmware_index == FIRMWARE_B) {
-		/* TODO Jump to firmware B and should never return */
-	}
+	/* TODO Jump to recovery firmware and never return */
 
-	/* assert(firmware_index == FIRMWARE_RECOVERY); */
-
-	/* Recovery Firmware ************************************************ */
-
-	return 0;
+	debug(PREFIX "error: should never reach here!\n");
+	return 1;
 }
 
-U_BOOT_CMD(cros_bootstub, 1, 1, do_cros_bootstub, NULL, NULL);
+U_BOOT_CMD(cros_bootstub, 1, 1, do_cros_bootstub, "verified boot stub firmware",
+		NULL);
