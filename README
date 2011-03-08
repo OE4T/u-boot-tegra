@@ -448,6 +448,11 @@ The following options need to be configured:
 		Note: If a "bootargs" environment is defined, it will overwride
 		the defaults discussed just above.
 
+- Cache Configuration:
+		CONFIG_SYS_NO_ICACHE - Do not enable instruction cache in U-Boot
+		CONFIG_SYS_NO_DCACHE - Do not enable data cache in U-Boot
+		CONFIG_SYS_NO_L2CACHE- Do not enable L2 cache in U-Boot
+
 - Serial Ports:
 		CONFIG_PL010_SERIAL
 
