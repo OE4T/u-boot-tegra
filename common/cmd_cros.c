@@ -73,12 +73,13 @@ cmd_tbl_t cmd_cros_sub[] = {
 	U_BOOT_CMD_MKENT(load_fw, 3, 1, do_load_fw,
 		"Load firmware from memory "
 		"(you have to download the image before running this)",
-		"addr len kkey\n    - Wrapper of LoadFirmware."
+		"addr len shdata\n    - Wrapper of LoadFirmware."
 		"Load firmware from [addr, addr+len] and "
-		"store loaded kernel key at kkey\n"),
+		"store shared data at shdata\n"),
 	U_BOOT_CMD_MKENT(load_k, 3, 1, do_load_k,
 		"Load kernel from the boot device",
-		"addr len kkey\n    - Load kernel to [addr, addr+len]\n"),
+		"addr len shdata\n    - Load kernel to [addr, addr+len] and\n"
+		"modify shared data at shdata\n"),
 	U_BOOT_CMD_MKENT(help, 1, 1, do_cros_help,
 		"show this message",
 		"[action]")
@@ -385,8 +386,7 @@ int do_load_fw(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	LoadFirmwareParams params;
         VbNvContext vnc;
 	struct context_t context;
-	void *gbb, *block[2];
-	GoogleBinaryBlockHeader *gbbh;
+	void *block[2];
 	uint64_t *psize[2];
 	VbKeyBlockHeader *kbh;
 	VbFirmwarePreambleHeader *fph;
@@ -407,9 +407,8 @@ int do_load_fw(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	GetFirmwareBody_setup(&f, CONFIG_OFFSET_FW_A_DATA,
 			CONFIG_OFFSET_FW_B_DATA);
 
-	gbb = context.begin + CONFIG_OFFSET_GBB;
-	gbbh = (GoogleBinaryBlockHeader *) gbb;
-	params.firmware_root_key_blob = gbb + gbbh->rootkey_offset;
+	params.gbb_data = context.begin + CONFIG_OFFSET_GBB;
+	params.gbb_size = CONFIG_LENGTH_GBB;
 
 	debug("do_load_fw: params.firmware_root_key_blob:\t%p\n",
 			params.firmware_root_key_blob);
@@ -434,14 +433,14 @@ int do_load_fw(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 				i, *psize[i]);
 	}
 
-	params.kernel_sign_key_blob =
+	params.shared_data_blob =
 		(uint8_t *) simple_strtoul(argv[3], NULL, 16);
-	params.kernel_sign_key_size = LOAD_FIRMWARE_KEY_BLOB_REC_SIZE;
+	params.shared_data_size = VB_SHARED_DATA_REC_SIZE;
 
-	debug("do_load_fw: params.kernel_sign_key_blob:\t%p\n",
-			params.kernel_sign_key_blob);
-	debug("do_load_fw: params.kernel_sign_key_size:\t%08llx\n",
-			params.kernel_sign_key_size);
+	debug("do_load_fw: params.shared_data_blob:\t%p\n",
+			params.shared_data_blob);
+	debug("do_load_fw: params.shared_data_size:\t%08llx\n",
+			params.shared_data_size);
 
 	params.caller_internal = &f;
 
@@ -492,13 +491,19 @@ int do_load_k(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	if ((dev_desc = get_bootdev()) == NULL)
 		USAGE(1, cmdtp, "No boot device set yet\n");
 
-	par.header_sign_key_blob =
+	par.shared_data_blob =
 		(uint8_t *) simple_strtoul(argv[3], NULL, 16);
+	par.shared_data_size = VB_SHARED_DATA_REC_SIZE;
+
 	par.bytes_per_lba = (uint64_t) dev_desc->blksz;
 	par.ending_lba = (uint64_t) get_limit() - 1;
 	par.kernel_buffer = (void *) simple_strtoul(argv[1], NULL, 16);
 	par.kernel_buffer_size = (uint64_t) simple_strtoul(argv[2], NULL, 16);
 	par.boot_flags = BOOT_FLAG_DEVELOPER | BOOT_FLAG_SKIP_ADDR_CHECK;
+
+	/* TODO: load GBB; see do_load_fw() */
+	par.gbb_data = NULL;
+	par.gbb_size = 0;
 
         /* TODO: load vnc.raw from NV storage */
         par.nv_context = &vnc;

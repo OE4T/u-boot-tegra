@@ -128,29 +128,21 @@ int read_verification_block(firmware_storage_t *file, off_t vblock_offset,
  */
 int init_params(LoadFirmwareParams *params, firmware_storage_t *file,
 		const off_t vblock_offset[], int boot_flags,
-		void *kernel_sign_key_blob, uint64_t kernel_sign_key_size)
+		void *vb_shared_data_blob, uint64_t vb_shared_data_size)
 {
-	GoogleBinaryBlockHeader gbbh;
-
 	memset(params, '\0', sizeof(*params));
 
-	/* read gbb header */
-	if (read_firmware_device(file, CONFIG_OFFSET_GBB, &gbbh,
-				sizeof(gbbh))) {
-		debug(PREFIX "read gbb header fail\n");
+	/* read gbb */
+	params->gbb_size = CONFIG_LENGTH_GBB;
+	params->gbb_data = malloc(CONFIG_LENGTH_GBB);
+	if (!params->gbb_data) {
+		debug(PREFIX "cannot malloc gbb\n");
 		return -1;
 	}
-
-	/* read root key from gbb */
-	params->firmware_root_key_blob = malloc(gbbh.rootkey_size);
-	if (!params->firmware_root_key_blob) {
-		debug(PREFIX "cannot malloc firmware_root_key_blob\n");
-		return -1;
-	}
-	if (read_firmware_device(file, CONFIG_OFFSET_GBB + gbbh.rootkey_offset,
-				params->firmware_root_key_blob,
-				gbbh.rootkey_size)) {
-		debug(PREFIX "read root key fail\n");
+	if (read_firmware_device(file, CONFIG_OFFSET_GBB,
+				params->gbb_data,
+				params->gbb_size)) {
+		debug(PREFIX "read gbb fail\n");
 		return -1;
 	}
 
@@ -170,8 +162,8 @@ int init_params(LoadFirmwareParams *params, firmware_storage_t *file,
 
 	params->boot_flags = boot_flags;
 	params->caller_internal = file;
-	params->kernel_sign_key_blob = kernel_sign_key_blob;
-	params->kernel_sign_key_size = kernel_sign_key_size;
+	params->shared_data_blob = vb_shared_data_blob;
+	params->shared_data_size = vb_shared_data_size;
 
 	return 0;
 }
@@ -185,14 +177,14 @@ int init_params(LoadFirmwareParams *params, firmware_storage_t *file,
  * <boot_flags>, please refer to
  * vboot_reference/firmware/include/load_firmware_fw.h
  *
- * The kernel key found in firmware image is stored in <kernel_sign_key_blob>
- * and <kernel_sign_key_size>.
+ * The shared data blob for the firmware image is stored in
+ * <vb_shared_data_blob> and <vb_shared_data_size>.
  *
  * Pointer to loaded firmware is stored in <firmware_data_ptr>.
  */
 int load_firmware(uint8_t **firmware_data_ptr,
 		int primary_firmware, int boot_flags,
-		void *kernel_sign_key_blob, uint64_t kernel_sign_key_size)
+		void *vb_shared_data_blob, uint64_t vb_shared_data_size)
 {
 	/*
 	 * Offsets of verification blocks are
@@ -221,8 +213,8 @@ int load_firmware(uint8_t **firmware_data_ptr,
 			data_offset[primary_firmware][1]);
 
 	if (init_params(&params, &file, vblock_offset[primary_firmware],
-				boot_flags, kernel_sign_key_blob,
-				kernel_sign_key_size)) {
+				boot_flags, vb_shared_data_blob,
+				vb_shared_data_size)) {
 		debug(PREFIX "init LoadFirmware parameters fail\n");
 	} else
 		status = LoadFirmware(&params);
@@ -239,8 +231,8 @@ int load_firmware(uint8_t **firmware_data_ptr,
 	release_firmware_storage(&file);
 	GetFirmwareBody_dispose(&file);
 
-	if (params.firmware_root_key_blob)
-		free(params.firmware_root_key_blob);
+	if (params.gbb_data)
+		free(params.gbb_data);
 	if (params.verification_block_0)
 		free(params.verification_block_0);
 	if (params.verification_block_1)
@@ -320,8 +312,8 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	int status = LOAD_FIRMWARE_RECOVERY;
 	int primary_firmware, boot_flags = 0;
 	uint8_t *firmware_data;
-	uint8_t *kernel_sign_key_blob = (uint8_t *) CONFIG_KERNEL_SIGN_KEY_BLOB;
-	uint64_t kernel_sign_key_size = CONFIG_KERNEL_SIGN_KEY_SIZE;
+	uint8_t *vb_shared_data_blob = (uint8_t *) CONFIG_VB_SHARED_DATA_BLOB;
+	uint64_t vb_shared_data_size = CONFIG_VB_SHARED_DATA_SIZE;
 
 	/* TODO Start initializing chipset */
 
@@ -350,7 +342,7 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 		status = load_firmware(&firmware_data,
 				primary_firmware, boot_flags,
-				kernel_sign_key_blob, kernel_sign_key_size);
+				vb_shared_data_blob, vb_shared_data_size);
 	}
 
 	WARN_ON_FAILURE(lock_tpm_rewritable_firmware_index());
