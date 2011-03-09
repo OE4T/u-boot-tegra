@@ -12,6 +12,7 @@
 
 #include <common.h>
 #include <command.h>
+#include <malloc.h>
 #include <chromeos/hardware_interface.h>
 
 /* Verify Boot interface */
@@ -73,9 +74,24 @@ int load_firmware(int primary_firmware, int boot_flags,
 	return LOAD_FIRMWARE_RECOVERY;
 }
 
-void jump_to_firmware(void (*rwfw_entry_point)(void))
+int load_recovery_firmware(uint8_t *recovery_firmware_buffer)
 {
-	debug(PREFIX "jump to firmware %p\n", rwfw_entry_point);
+	return 1;
+}
+
+void jump_to_firmware(void (*firmware_entry_point)(void))
+{
+	debug(PREFIX "jump to firmware %p\n", firmware_entry_point);
+
+	cleanup_before_linux();
+
+	/* should never return! */
+	firmware_entry_point();
+
+	enable_interrupts();
+	debug(PREFIX "error: firmware returns\n");
+
+	while (1);
 }
 
 int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
@@ -83,6 +99,7 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	int status = LOAD_FIRMWARE_RECOVERY;
 	int primary_firmware, boot_flags = 0;
 	verified_firmware_t vf;
+	uint8_t *recovery_firmware;
 	uint8_t *kernel_sign_key_blob = (uint8_t *) CONFIG_KERNEL_SIGN_KEY_BLOB;
 	uint64_t kernel_sign_key_size = CONFIG_KERNEL_SIGN_KEY_SIZE;
 
@@ -129,7 +146,11 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 				"jump to recovery firmware\n");
 	}
 
-	/* TODO Jump to recovery firmware and never return */
+	debug(PREFIX "jump to recovery firmware and never return\n");
+
+	recovery_firmware = malloc(CONFIG_LENGTH_RECOVERY);
+	WARN_ON_FAILURE(load_recovery_firmware(recovery_firmware));
+	jump_to_firmware((void (*)(void)) recovery_firmware);
 
 	debug(PREFIX "error: should never reach here!\n");
 	return 1;
