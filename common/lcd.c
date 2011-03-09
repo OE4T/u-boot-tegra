@@ -77,6 +77,10 @@ static inline void lcd_puts_xy (ushort x, ushort y, uchar *s);
 static inline void lcd_putc_xy (ushort x, ushort y, uchar  c);
 
 static int lcd_init (void *lcdbase);
+static int do_lcd_clear(cmd_tbl_t *cmdtp, int flag, int argc,
+			char *const argv[]);
+static void *lcd_logo(void);
+int lcd_display_bitmap_24(ulong bmp_image, int x, int y);
 
 static int lcd_getbgcolor(void);
 static void lcd_setfgcolor(int color);
@@ -357,7 +361,7 @@ int drv_lcd_init (void)
 }
 
 /*----------------------------------------------------------------------*/
-static int lcd_clear (cmd_tbl_t * cmdtp, int flag, int argc, char * const argv[])
+int lcd_clear (cmd_tbl_t * cmdtp, int flag, int argc, char * const argv[])
 {
 #if LCD_BPP == LCD_MONOCHROME
 	/* Setting the palette */
@@ -402,8 +406,14 @@ static int lcd_clear (cmd_tbl_t * cmdtp, int flag, int argc, char * const argv[]
 	return (0);
 }
 
+static int do_lcd_clear(cmd_tbl_t *cmdtp, int flag, int argc,
+			char *const argv[])
+{
+	return lcd_clear();
+}
+
 U_BOOT_CMD(
-	cls,	1,	1,	lcd_clear,
+	cls,	1,	1,	do_lcd_clear,
 	"clear screen",
 	""
 );
