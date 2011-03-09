@@ -26,6 +26,8 @@
 #define CONFIG_CMD_CONSOLE	/* coninfo			*/
 #define CONFIG_CMD_CROS		/* Chrome OS verify boot (debug)*/
 #define CONFIG_CMD_CROS_BOOTSTUB/* Chrome OS verify boot stub	*/
+#define CONFIG_CMD_CROS_NORMAL_FIRMWARE
+				/* Chrome OS verify boot normal firmware */
 #define CONFIG_CMD_DATE		/* support for RTC, date/time...*/
 #define CONFIG_CMD_DHCP		/* DHCP Support			*/
 #define CONFIG_CMD_DIAG		/* Diagnostics			*/

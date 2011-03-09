@@ -76,6 +76,7 @@ COBJS-$(CONFIG_CMD_CONSOLE) += cmd_console.o
 COBJS-$(CONFIG_CMD_CPLBINFO) += cmd_cplbinfo.o
 COBJS-$(CONFIG_CMD_CROS) += cmd_cros.o
 COBJS-$(CONFIG_CMD_CROS_BOOTSTUB) += cmd_cros_bootstub.o
+COBJS-$(CONFIG_CMD_CROS_NORMAL_FIRMWARE) += cmd_cros_normal_firmware.o
 COBJS-$(CONFIG_CMD_CROS_TPM) += cmd_vboot.o
 COBJS-$(CONFIG_DATAFLASH_MMC_SELECT) += cmd_dataflash_mmc_mux.o
 COBJS-$(CONFIG_CMD_DATE) += cmd_date.o
