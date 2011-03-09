@@ -18,6 +18,7 @@
 /* Verify Boot interface */
 #include <gbb_header.h>
 #include <load_firmware_fw.h>
+#include <vboot_struct.h>
 
 #define PREFIX "cros_bootstub: "
 
@@ -33,39 +34,24 @@
 #define FIRMWARE_B		2
 
 /*
- * verified_firmware_t is used for storing returned data of LoadFirmware() and
- * GetFirmwareBody().
- */
-typedef struct {
-	/*
-	 * This field is output of LoadFirmware(). See
-	 * vboot_reference/firmware/include/load_firmware_fw.h for
-	 * documentation.
-	 */
-	int firmware_index;
-
-	/* Rewritable firmware data loaded by GetFirmwareBody(). */
-	uint8_t *firmware_body[2];
-} verified_firmware_t;
-
-/*
- * Read <count> bytes, starting from <offset>, from firmware storage device <f>
- * into buffer <buf>.
+ * Read <count> bytes, starting from <offset>, from firmware storage
+ * device <file> into buffer <buf>.
  *
  * Return 0 on success, non-zero on error.
  */
-int read_firmware_device(firmware_storage_t *f, off_t offset, void *buf,
+int read_firmware_device(firmware_storage_t *file, off_t offset, void *buf,
 		size_t count)
 {
 	ssize_t size;
 
-	if (f->seek(f->context, offset, SEEK_SET) < 0) {
+	if (file->seek(file->context, offset, SEEK_SET) < 0) {
 		debug(PREFIX "seek to address 0x%08x fail\n", offset);
 		return -1;
 	}
 
 	size = 0;
-	while (count > 0 && (size = f->read(f->context, buf, count)) > 0) {
+	while (count > 0 &&
+			(size = file->read(file->context, buf, count)) > 0) {
 		count -= size;
 		buf += size;
 	}
@@ -84,6 +70,113 @@ int read_firmware_device(firmware_storage_t *f, off_t offset, void *buf,
 }
 
 /*
+ * Read verification block on <vblock_offset> from <file>.
+ *
+ * The pointer to verification block is stored in <vblock_ptr>, and the size of
+ * the block is stored in <vblock_size_ptr>.
+ *
+ * On success, the space for storing verification block is malloc()'ed, and has
+ * to be free()'ed by the caller.
+ *
+ * Return 0 if success, non-zero if fail.
+ */
+int read_verification_block(firmware_storage_t *file, off_t vblock_offset,
+		void **vblock_ptr, uint64_t *vblock_size_ptr)
+{
+	VbKeyBlockHeader kbh;
+	VbFirmwarePreambleHeader fph;
+	uint64_t key_block_size, vblock_size;
+	void *vblock;
+
+	/* read key block header */
+	if (read_firmware_device(file, vblock_offset, &kbh, sizeof(kbh))) {
+		debug(PREFIX "read key block fail\n");
+		return -1;
+	}
+	key_block_size = kbh.key_block_size;
+
+	/* read firmware preamble header */
+	if (read_firmware_device(file, vblock_offset + key_block_size, &fph,
+				sizeof(fph))) {
+		debug(PREFIX "read preamble fail\n");
+		return -1;
+	}
+	vblock_size = key_block_size + fph.preamble_size;
+
+	vblock = malloc(vblock_size);
+	if (!vblock) {
+		debug(PREFIX "malloc verification block fail\n");
+		return -1;
+	}
+
+	if (read_firmware_device(file, vblock_offset, vblock, vblock_size)) {
+		debug(PREFIX "read verification block %d fail\n");
+		free(vblock);
+		return -1;
+	}
+
+	*vblock_ptr = vblock;
+	*vblock_size_ptr = vblock_size;
+
+	return 0;
+}
+
+/*
+ * Initialize <params> for LoadFirmware().
+ *
+ * Return 0 if success, non-zero if error.
+ */
+int init_params(LoadFirmwareParams *params, firmware_storage_t *file,
+		const off_t vblock_offset[], int boot_flags,
+		void *kernel_sign_key_blob, uint64_t kernel_sign_key_size)
+{
+	GoogleBinaryBlockHeader gbbh;
+
+	memset(params, '\0', sizeof(*params));
+
+	/* read gbb header */
+	if (read_firmware_device(file, CONFIG_OFFSET_GBB, &gbbh,
+				sizeof(gbbh))) {
+		debug(PREFIX "read gbb header fail\n");
+		return -1;
+	}
+
+	/* read root key from gbb */
+	params->firmware_root_key_blob = malloc(gbbh.rootkey_size);
+	if (!params->firmware_root_key_blob) {
+		debug(PREFIX "cannot malloc firmware_root_key_blob\n");
+		return -1;
+	}
+	if (read_firmware_device(file, CONFIG_OFFSET_GBB + gbbh.rootkey_offset,
+				params->firmware_root_key_blob,
+				gbbh.rootkey_size)) {
+		debug(PREFIX "read root key fail\n");
+		return -1;
+	}
+
+	/* read verification block 0 and 1 */
+	if (read_verification_block(file, vblock_offset[0],
+				&params->verification_block_0,
+				&params->verification_size_0)) {
+		debug(PREFIX "read verification block 0 fail\n");
+		return -1;
+	}
+	if (read_verification_block(file, vblock_offset[1],
+				&params->verification_block_1,
+				&params->verification_size_1)) {
+		debug(PREFIX "read verification block 1 fail\n");
+		return -1;
+	}
+
+	params->boot_flags = boot_flags;
+	params->caller_internal = file;
+	params->kernel_sign_key_blob = kernel_sign_key_blob;
+	params->kernel_sign_key_size = kernel_sign_key_size;
+
+	return 0;
+}
+
+/*
  * Load and verify rewritable firmware. A wrapper of LoadFirmware() function.
  *
  * Returns what is returned by LoadFirmware().
@@ -95,14 +188,90 @@ int read_firmware_device(firmware_storage_t *f, off_t offset, void *buf,
  * The kernel key found in firmware image is stored in <kernel_sign_key_blob>
  * and <kernel_sign_key_size>.
  *
- * Output of LoadFirmware() and GetFirmwareBody() is stored in
- * struct pointed by <verified_firmware>.
+ * Pointer to loaded firmware is stored in <firmware_data_ptr>.
  */
-int load_firmware(int primary_firmware, int boot_flags,
-		void *kernel_sign_key_blob, uint64_t kernel_sign_key_size,
-		verified_firmware_t *verified_firmware)
+int load_firmware(uint8_t **firmware_data_ptr,
+		int primary_firmware, int boot_flags,
+		void *kernel_sign_key_blob, uint64_t kernel_sign_key_size)
 {
-	return LOAD_FIRMWARE_RECOVERY;
+	/*
+	 * Offsets of verification blocks are
+	 * vblock_offset[primary_firmware][verification_block_index].
+	 *
+	 * Offsets of firmware data are
+	 * data_offset[primary_firmware][firmware_data_index].
+	 */
+	const off_t vblock_offset[2][2] = {
+		{ CONFIG_OFFSET_FW_A_KEY, CONFIG_OFFSET_FW_B_KEY },
+		{ CONFIG_OFFSET_FW_B_KEY, CONFIG_OFFSET_FW_A_KEY },
+	};
+	const off_t data_offset[2][2] = {
+		{ CONFIG_OFFSET_FW_A_DATA, CONFIG_OFFSET_FW_B_DATA },
+		{ CONFIG_OFFSET_FW_B_DATA, CONFIG_OFFSET_FW_A_DATA },
+	};
+	int status = LOAD_FIRMWARE_RECOVERY;
+	LoadFirmwareParams params;
+	firmware_storage_t file;
+
+	if (init_firmware_storage(&file)) {
+		debug(PREFIX "init_firmware_storage fail\n");
+		return FIRMWARE_RECOVERY;
+	}
+	GetFirmwareBody_setup(&file, data_offset[primary_firmware][0],
+			data_offset[primary_firmware][1]);
+
+	if (init_params(&params, &file, vblock_offset[primary_firmware],
+				boot_flags, kernel_sign_key_blob,
+				kernel_sign_key_size)) {
+		debug(PREFIX "init LoadFirmware parameters fail\n");
+	} else
+		status = LoadFirmware(&params);
+
+	if (status == LOAD_FIRMWARE_SUCCESS) {
+		debug(PREFIX "will jump to rewritable firmware %d\n",
+				(int) params.firmware_index);
+		*firmware_data_ptr = file.firmware_body[params.firmware_index];
+
+		/* set to null so that *firmware_data_ptr is not disposed */
+		file.firmware_body[params.firmware_index] = NULL;
+	}
+
+	release_firmware_storage(&file);
+	GetFirmwareBody_dispose(&file);
+
+	if (params.firmware_root_key_blob)
+		free(params.firmware_root_key_blob);
+	if (params.verification_block_0)
+		free(params.verification_block_0);
+	if (params.verification_block_1)
+		free(params.verification_block_1);
+
+	return status;
+}
+
+/*
+ * Read recovery firmware into <firmware_data_buffer>.
+ *
+ * Return 0 on success, non-zero on error.
+ */
+int load_firmware_data(uint8_t *firmware_data_buffer)
+{
+	firmware_storage_t file;
+	int retval;
+
+	if (init_firmware_storage(&file)) {
+		debug(PREFIX "init_firmware_storage fail\n");
+		return -1;
+	}
+
+	retval = read_firmware_device(&file, CONFIG_OFFSET_RECOVERY,
+			firmware_data_buffer, CONFIG_LENGTH_RECOVERY);
+	if (retval) {
+		debug(PREFIX "cannot load recovery firmware\n");
+	}
+
+	release_firmware_storage(&file);
+	return retval;
 }
 
 /*
@@ -150,8 +319,7 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	int status = LOAD_FIRMWARE_RECOVERY;
 	int primary_firmware, boot_flags = 0;
-	verified_firmware_t vf;
-	uint8_t *recovery_firmware;
+	uint8_t *firmware_data;
 	uint8_t *kernel_sign_key_blob = (uint8_t *) CONFIG_KERNEL_SIGN_KEY_BLOB;
 	uint64_t kernel_sign_key_size = CONFIG_KERNEL_SIGN_KEY_SIZE;
 
@@ -180,19 +348,15 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		if (is_developer_mode_gpio_asserted())
 			boot_flags |= BOOT_FLAG_DEVELOPER;
 
-		status = load_firmware(primary_firmware, boot_flags,
-				kernel_sign_key_blob, kernel_sign_key_size,
-				&vf);
+		status = load_firmware(&firmware_data,
+				primary_firmware, boot_flags,
+				kernel_sign_key_blob, kernel_sign_key_size);
 	}
 
 	WARN_ON_FAILURE(lock_tpm_rewritable_firmware_index());
 
 	if (status == LOAD_FIRMWARE_SUCCESS) {
-		debug(PREFIX "jump to rewritable firmware %d "
-				"and never return\n",
-				vf.firmware_index);
-		jump_to_firmware((void (*)(void))
-				vf.firmware_body[vf.firmware_index]);
+		jump_to_firmware((void (*)(void)) firmware_data);
 
 		debug(PREFIX "error: should never reach here! "
 				"jump to recovery firmware\n");
@@ -200,9 +364,9 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	debug(PREFIX "jump to recovery firmware and never return\n");
 
-	recovery_firmware = malloc(CONFIG_LENGTH_RECOVERY);
-	WARN_ON_FAILURE(load_recovery_firmware(recovery_firmware));
-	jump_to_firmware((void (*)(void)) recovery_firmware);
+	firmware_data = malloc(CONFIG_LENGTH_RECOVERY);
+	WARN_ON_FAILURE(load_firmware_data(firmware_data));
+	jump_to_firmware((void (*)(void)) firmware_data);
 
 	debug(PREFIX "error: should never reach here!\n");
 	return 1;
