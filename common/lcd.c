@@ -361,7 +361,7 @@ int drv_lcd_init (void)
 }
 
 /*----------------------------------------------------------------------*/
-int lcd_clear (cmd_tbl_t * cmdtp, int flag, int argc, char * const argv[])
+int lcd_clear (void)
 {
 #if LCD_BPP == LCD_MONOCHROME
 	/* Setting the palette */

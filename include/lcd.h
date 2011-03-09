@@ -210,7 +210,7 @@ void	lcd_disable	(void);
 void	lcd_putc	(const char c);
 void	lcd_puts	(const char *s);
 void	lcd_printf	(const char *fmt, ...);
-int	lcd_clear	();
+int	lcd_clear	(void);
 
 /* Allow boards to customize the information displayed */
 void lcd_show_board_info(void);
