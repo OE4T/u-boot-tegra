@@ -21,16 +21,12 @@
 
 #define PREFIX "cros_bootstub: "
 
-#ifdef DEBUG
 #define WARN_ON_FAILURE(action) do { \
 	int return_code = (action); \
 	if (return_code != 0) \
-		debug(PREFIX "%s failed, returning %d\n", \
+		printf(PREFIX "%s failed, returning %d\n", \
 				#action, return_code); \
 } while (0)
-#else
-#define WARN_ON_FAILURE(action) action
-#endif
 
 #define FIRMWARE_RECOVERY	0
 #define FIRMWARE_A		1
@@ -51,6 +47,41 @@ typedef struct {
 	/* Rewritable firmware data loaded by GetFirmwareBody(). */
 	uint8_t *firmware_body[2];
 } verified_firmware_t;
+
+/*
+ * Read <count> bytes, starting from <offset>, from firmware storage device <f>
+ * into buffer <buf>.
+ *
+ * Return 0 on success, non-zero on error.
+ */
+int read_firmware_device(firmware_storage_t *f, off_t offset, void *buf,
+		size_t count)
+{
+	ssize_t size;
+
+	if (f->seek(f->context, offset, SEEK_SET) < 0) {
+		debug(PREFIX "seek to address 0x%08x fail\n", offset);
+		return -1;
+	}
+
+	size = 0;
+	while (count > 0 && (size = f->read(f->context, buf, count)) > 0) {
+		count -= size;
+		buf += size;
+	}
+
+	if (size < 0) {
+		debug(PREFIX "an error occur when read firmware: %d\n", size);
+		return -1;
+	}
+
+	if (count > 0) {
+		debug(PREFIX "cannot read all data: %d\n", count);
+		return -1;
+	}
+
+	return 0;
+}
 
 /*
  * Load and verify rewritable firmware. A wrapper of LoadFirmware() function.
@@ -74,9 +105,29 @@ int load_firmware(int primary_firmware, int boot_flags,
 	return LOAD_FIRMWARE_RECOVERY;
 }
 
+/*
+ * Read recovery firmware into <recovery_firmware_buffer>.
+ *
+ * Return 0 on success, non-zero on error.
+ */
 int load_recovery_firmware(uint8_t *recovery_firmware_buffer)
 {
-	return 1;
+	firmware_storage_t f;
+	int retval;
+
+	if (init_firmware_storage(&f)) {
+		debug(PREFIX "init_firmware_storage fail\n");
+		return -1;
+	}
+
+	retval = read_firmware_device(&f, CONFIG_OFFSET_RECOVERY,
+			recovery_firmware_buffer, CONFIG_LENGTH_RECOVERY);
+	if (retval) {
+		debug(PREFIX "cannot load recovery firmware\n");
+	}
+
+	release_firmware_storage(&f);
+	return retval;
 }
 
 void jump_to_firmware(void (*firmware_entry_point)(void))
@@ -91,6 +142,7 @@ void jump_to_firmware(void (*firmware_entry_point)(void))
 	enable_interrupts();
 	debug(PREFIX "error: firmware returns\n");
 
+	/* FIXME(clchiou) Bring up a sad face as boot has failed */
 	while (1);
 }
 
