@@ -20,21 +20,21 @@
 #define BLOCK_SIZE 512
 #define PREFIX "GetFirmwareBody: "
 
-void GetFirmwareBody_setup(caller_internal_t *ci,
+void GetFirmwareBody_setup(firmware_storage_t *f,
 		off_t firmware_data_offset_0, off_t firmware_data_offset_1)
 {
-	ci->firmware_data_offset[0] = firmware_data_offset_0;
-	ci->firmware_data_offset[1] = firmware_data_offset_1;
-	ci->firmware_body[0] = NULL;
-	ci->firmware_body[1] = NULL;
+	f->firmware_data_offset[0] = firmware_data_offset_0;
+	f->firmware_data_offset[1] = firmware_data_offset_1;
+	f->firmware_body[0] = NULL;
+	f->firmware_body[1] = NULL;
 }
 
-void GetFirmwareBody_dispose(caller_internal_t *ci)
+void GetFirmwareBody_dispose(firmware_storage_t *f)
 {
 	int i;
 	for (i = 0; i < 2; i ++)
-		if (ci->firmware_body[i])
-			free(ci->firmware_body[i]);
+		if (f->firmware_body[i])
+			free(f->firmware_body[i]);
 }
 
 /*
@@ -43,7 +43,7 @@ void GetFirmwareBody_dispose(caller_internal_t *ci)
  */
 int GetFirmwareBody(LoadFirmwareParams *params, uint64_t index)
 {
-	caller_internal_t *ci;
+	firmware_storage_t *f;
 	void *block;
 	VbKeyBlockHeader *kbh;
 	VbFirmwarePreambleHeader *fph;
@@ -60,15 +60,15 @@ int GetFirmwareBody(LoadFirmwareParams *params, uint64_t index)
 		return 1;
 	}
 
-	ci = (caller_internal_t *) params->caller_internal;
+	f = (firmware_storage_t *) params->caller_internal;
 
 	if (index == 0) {
 		block = params->verification_block_0;
 	} else {
 		block = params->verification_block_1;
 	}
-	data_offset = ci->firmware_data_offset[index];
-	ci->firmware_body[index] = malloc(MAX(CONFIG_LENGTH_FW_A_DATA,
+	data_offset = f->firmware_data_offset[index];
+	f->firmware_body[index] = malloc(MAX(CONFIG_LENGTH_FW_A_DATA,
 				CONFIG_LENGTH_FW_B_DATA));
 
 	kbh = (VbKeyBlockHeader *) block;
@@ -78,7 +78,7 @@ int GetFirmwareBody(LoadFirmwareParams *params, uint64_t index)
 	debug(PREFIX "preamble address: %p\n", fph);
 	debug(PREFIX "firmware body offset: %08lx\n", data_offset);
 
-	if (ci->seek(ci->context, data_offset, SEEK_SET) < 0) {
+	if (f->seek(f->context, data_offset, SEEK_SET) < 0) {
 		debug(PREFIX "seek to firmware data failed\n");
 		return 1;
 	}
@@ -89,11 +89,11 @@ int GetFirmwareBody(LoadFirmwareParams *params, uint64_t index)
 	 * This loop feeds firmware body into UpdateFirmwareBodyHash.
 	 * Variable <leftover> book-keeps the remaining number of bytes
 	 */
-	firmware_body = ci->firmware_body[index];
+	firmware_body = f->firmware_body[index];
 	for (leftover = fph->body_signature.data_size;
 			leftover > 0; leftover -= n) {
 		n = BLOCK_SIZE < leftover ? BLOCK_SIZE : leftover;
-		n = ci->read(ci->context, firmware_body, n);
+		n = f->read(f->context, firmware_body, n);
 		if (n <= 0) {
 			debug(PREFIX "an error has occured "
 					"while reading firmware: %d\n", n);

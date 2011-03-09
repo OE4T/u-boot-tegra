@@ -39,7 +39,7 @@ int lock_tpm_rewritable_firmware_index(void);
 #include <chromeos/firmware_storage.h>
 
 /* Returns 0 if success, nonzero if error. */
-int init_caller_internal(caller_internal_t *ci);
-int release_caller_internal(caller_internal_t *ci);
+int init_firmware_storage(firmware_storage_t *f);
+int release_firmware_storage(firmware_storage_t *f);
 
 #endif /* __HARDWARE_INTERFACE_H__ */

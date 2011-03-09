@@ -391,7 +391,7 @@ int do_load_fw(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	VbKeyBlockHeader *kbh;
 	VbFirmwarePreambleHeader *fph;
 	int i, status;
-	caller_internal_t ci = {
+	firmware_storage_t f = {
 		.seek = mem_seek,
 		.read = mem_read,
 		.context = (void *) &context
@@ -404,7 +404,7 @@ int do_load_fw(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	context.cur = context.begin;
 	context.end = context.begin + simple_strtoul(argv[2], NULL, 16);
 
-	GetFirmwareBody_setup(&ci, CONFIG_OFFSET_FW_A_DATA,
+	GetFirmwareBody_setup(&f, CONFIG_OFFSET_FW_A_DATA,
 			CONFIG_OFFSET_FW_B_DATA);
 
 	gbb = context.begin + CONFIG_OFFSET_GBB;
@@ -443,7 +443,7 @@ int do_load_fw(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	debug("do_load_fw: params.kernel_sign_key_size:\t%08llx\n",
 			params.kernel_sign_key_size);
 
-	params.caller_internal = &ci;
+	params.caller_internal = &f;
 
 	params.boot_flags = 0;
 
@@ -474,7 +474,7 @@ int do_load_fw(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		break;
 	}
 
-	GetFirmwareBody_dispose(&ci);
+	GetFirmwareBody_dispose(&f);
 
 	return 0;
 }

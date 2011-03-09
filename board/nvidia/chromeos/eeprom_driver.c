@@ -104,7 +104,7 @@ static ssize_t mem_read(void *context, void *buf, size_t count)
 	return count;
 }
 
-int init_caller_internal(caller_internal_t *ci)
+int init_firmware_storage(firmware_storage_t *f)
 {
 	struct context_t *context;
 
@@ -113,15 +113,15 @@ int init_caller_internal(caller_internal_t *ci)
 	context->cur = (void *) TEXT_BASE;
 	context->end = (void *) TEXT_BASE + CONFIG_FIRMWARE_SIZE;
 
-	ci->seek = mem_seek;
-	ci->read = mem_read;
-	ci->context = (void *) context;
+	f->seek = mem_seek;
+	f->read = mem_read;
+	f->context = (void *) context;
 
 	return 0;
 }
 
-int release_caller_internal(caller_internal_t *ci)
+int release_firmware_storage(firmware_storage_t *f)
 {
-	free(ci->context);
+	free(f->context);
 	return 0;
 }

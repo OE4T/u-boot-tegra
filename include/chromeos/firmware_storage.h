@@ -21,7 +21,7 @@
 enum whence_t { SEEK_SET, SEEK_CUR, SEEK_END };
 
 /*
- * This struct is the interface for accessing firmware storage.
+ * firmware_storage_t is the interface for accessing firmware storage.
  * It is also used as the internal data for caller of LoadFirmware() to talk to
  * GetFirmwareBody().
  */
@@ -63,13 +63,13 @@ typedef struct {
 	 * GetFirmwareBody().
 	 */
 	uint8_t *firmware_body[2];
-} caller_internal_t;
+} firmware_storage_t;
 
 /* Initialize fields for talking to GetFirmwareBody(). */
-void GetFirmwareBody_setup(caller_internal_t *ci,
+void GetFirmwareBody_setup(firmware_storage_t *f,
 		off_t firmware_data_offset_0, off_t firmware_data_offset_1);
 
 /* Dispose fields that are used for communicating with GetFirmwareBody(). */
-void GetFirmwareBody_dispose(caller_internal_t *ci);
+void GetFirmwareBody_dispose(firmware_storage_t *f);
 
 #endif /* __FIRMWARE_STORAGE_H_ */
