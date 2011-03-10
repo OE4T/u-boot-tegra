@@ -34,42 +34,6 @@
 #define FIRMWARE_B		2
 
 /*
- * Read <count> bytes, starting from <offset>, from firmware storage
- * device <file> into buffer <buf>.
- *
- * Return 0 on success, non-zero on error.
- */
-int read_firmware_device(firmware_storage_t *file, off_t offset, void *buf,
-		size_t count)
-{
-	ssize_t size;
-
-	if (file->seek(file->context, offset, SEEK_SET) < 0) {
-		debug(PREFIX "seek to address 0x%08x fail\n", offset);
-		return -1;
-	}
-
-	size = 0;
-	while (count > 0 &&
-			(size = file->read(file->context, buf, count)) > 0) {
-		count -= size;
-		buf += size;
-	}
-
-	if (size < 0) {
-		debug(PREFIX "an error occur when read firmware: %d\n", size);
-		return -1;
-	}
-
-	if (count > 0) {
-		debug(PREFIX "cannot read all data: %d\n", count);
-		return -1;
-	}
-
-	return 0;
-}
-
-/*
  * Read verification block on <vblock_offset> from <file>.
  *
  * The pointer to verification block is stored in <vblock_ptr>, and the size of

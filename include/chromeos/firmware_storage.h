@@ -72,4 +72,13 @@ void GetFirmwareBody_setup(firmware_storage_t *f,
 /* Dispose fields that are used for communicating with GetFirmwareBody(). */
 void GetFirmwareBody_dispose(firmware_storage_t *f);
 
+/*
+ * Read <count> bytes, starting from <offset>, from firmware storage
+ * device <file> into buffer <buf>.
+ *
+ * Return 0 on success, non-zero on error.
+ */
+int read_firmware_device(firmware_storage_t *file, off_t offset, void *buf,
+		size_t count);
+
 #endif /* __FIRMWARE_STORAGE_H_ */
