@@ -206,11 +206,11 @@ int load_firmware(uint8_t **firmware_data_ptr,
 }
 
 /*
- * Read recovery firmware into <firmware_data_buffer>.
+ * Read recovery firmware into <recovery_firmware_buffer>.
  *
  * Return 0 on success, non-zero on error.
  */
-int load_firmware_data(uint8_t *firmware_data_buffer)
+int load_recovery_firmware(uint8_t *recovery_firmware_buffer)
 {
 	firmware_storage_t file;
 	int retval;
@@ -221,37 +221,12 @@ int load_firmware_data(uint8_t *firmware_data_buffer)
 	}
 
 	retval = read_firmware_device(&file, CONFIG_OFFSET_RECOVERY,
-			firmware_data_buffer, CONFIG_LENGTH_RECOVERY);
-	if (retval) {
-		debug(PREFIX "cannot load recovery firmware\n");
-	}
-
-	release_firmware_storage(&file);
-	return retval;
-}
-
-/*
- * Read recovery firmware into <recovery_firmware_buffer>.
- *
- * Return 0 on success, non-zero on error.
- */
-int load_recovery_firmware(uint8_t *recovery_firmware_buffer)
-{
-	firmware_storage_t f;
-	int retval;
-
-	if (init_firmware_storage(&f)) {
-		debug(PREFIX "init_firmware_storage fail\n");
-		return -1;
-	}
-
-	retval = read_firmware_device(&f, CONFIG_OFFSET_RECOVERY,
 			recovery_firmware_buffer, CONFIG_LENGTH_RECOVERY);
 	if (retval) {
 		debug(PREFIX "cannot load recovery firmware\n");
 	}
 
-	release_firmware_storage(&f);
+	release_firmware_storage(&file);
 	return retval;
 }
 
@@ -321,7 +296,7 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	debug(PREFIX "jump to recovery firmware and never return\n");
 
 	firmware_data = malloc(CONFIG_LENGTH_RECOVERY);
-	WARN_ON_FAILURE(load_firmware_data(firmware_data));
+	WARN_ON_FAILURE(load_recovery_firmware(firmware_data));
 	jump_to_firmware((void (*)(void)) firmware_data);
 
 	debug(PREFIX "error: should never reach here!\n");
