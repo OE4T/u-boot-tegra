@@ -32,6 +32,31 @@
 #include <part.h>
 #include <fat.h>
 
+long fat_fsload(char * const interface, const int dev, const int part,
+		char * const filename,
+		void * const buffer, unsigned long maxsize)
+{
+	long size;
+	block_dev_desc_t *dev_desc = get_dev(interface, dev);
+
+	if (dev_desc == NULL) {
+		puts("\n** Invalid boot device **\n");
+		return -1;
+	}
+
+	if (fat_register_device(dev_desc, part)) {
+		printf("\n** Unable to use %s %d:%d for fatload **\n",
+				interface, dev, part);
+		return -1;
+	}
+
+	size = file_fat_read(filename, buffer, maxsize);
+	if (size < 0)
+		printf("\n** Unable to read \"%s\" from %s %d:%d **\n",
+				filename, interface, dev, part);
+
+	return size;
+}
 
 int do_fat_fsload (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
@@ -39,7 +64,6 @@ int do_fat_fsload (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	unsigned long offset;
 	unsigned long count;
 	char buf [12];
-	block_dev_desc_t *dev_desc=NULL;
 	int dev=0;
 	int part=1;
 	char *ep;
@@ -50,12 +74,8 @@ int do_fat_fsload (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		return 1;
 	}
 
+	/* parse dev and part */
 	dev = (int)simple_strtoul(argv[2], &ep, 16);
-	dev_desc = get_dev(argv[1],dev);
-	if (dev_desc == NULL) {
-		puts("\n** Invalid boot device **\n");
-		return 1;
-	}
 	if (*ep) {
 		if (*ep != ':') {
 			puts("\n** Invalid boot device, use `dev[:part]' **\n");
@@ -63,23 +83,17 @@ int do_fat_fsload (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		}
 		part = (int)simple_strtoul(++ep, NULL, 16);
 	}
-	if (fat_register_device(dev_desc,part)!=0) {
-		printf("\n** Unable to use %s %d:%d for fatload **\n",
-			argv[1], dev, part);
-		return 1;
-	}
+
+	/* parse offset and count */
 	offset = simple_strtoul(argv[3], NULL, 16);
 	if (argc == 6)
 		count = simple_strtoul(argv[5], NULL, 16);
 	else
 		count = 0;
-	size = file_fat_read(argv[4], (unsigned char *)offset, count);
 
-	if(size==-1) {
-		printf("\n** Unable to read \"%s\" from %s %d:%d **\n",
-			argv[4], argv[1], dev, part);
+	size = fat_fsload(argv[1], dev, part, argv[4], (void*) offset, count);
+	if (size < 0)
 		return 1;
-	}
 
 	printf("\n%ld bytes read\n", size);
 

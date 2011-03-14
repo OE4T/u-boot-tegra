@@ -216,4 +216,9 @@ long file_fat_read(const char *filename, void *buffer, unsigned long maxsize);
 const char *file_getfsname(int idx);
 int fat_register_device(block_dev_desc_t *dev_desc, int part_no);
 
+/* Return number of bytes read if success, negative values if error. */
+long fat_fsload(char * const interface, const int dev, const int part,
+		char * const filename,
+		void * const buffer, unsigned long maxsize);
+
 #endif /* _FAT_H_ */
