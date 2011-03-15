@@ -10,8 +10,13 @@
 
 #include <config.h>
 #include <common.h>
+#include <malloc.h>
 #include <part.h>
 #include <boot_device.h>
+
+#define PREFIX "boot_device: "
+
+#define BACKUP_LBA_OFFSET 0x20
 
 static struct {
 	block_dev_desc_t *dev_desc;
@@ -35,6 +40,47 @@ ulong get_offset(void)
 ulong get_limit(void)
 {
 	return bootdev_config.limit;
+}
+
+uint64_t get_bytes_per_lba(void)
+{
+	if (!bootdev_config.dev_desc) {
+		debug(PREFIX "get_bytes_per_lba: not dev_desc set\n");
+		return ~0ULL;
+	}
+
+	return (uint64_t) bootdev_config.dev_desc->blksz;
+}
+
+uint64_t get_ending_lba(void)
+{
+	uint8_t static_buf[512];
+	uint8_t *buf = NULL;
+	uint64_t ret = ~0ULL, bytes_per_lba = ~0ULL;
+
+	bytes_per_lba = get_bytes_per_lba();
+	if (bytes_per_lba == ~0ULL) {
+		debug(PREFIX "get_ending_lba: get bytes_per_lba fail\n");
+		goto EXIT;
+	}
+
+	if (bytes_per_lba > sizeof(static_buf))
+		buf = malloc(bytes_per_lba);
+	else
+		buf = static_buf;
+
+	if (BootDeviceReadLBA(1, 1, buf)) {
+		debug(PREFIX "get_ending_lba: read primary GPT header fail\n");
+		goto EXIT;
+	}
+
+	ret = *(uint64_t*) (buf + BACKUP_LBA_OFFSET);
+
+EXIT:
+	if (buf != static_buf)
+		free(buf);
+
+	return ret;
 }
 
 int set_bootdev(char *ifname, int dev, int part)

@@ -30,4 +30,7 @@ ulong get_offset(void);
 /* Return the size (in blocks) of the partition or entire device if part=0. */
 ulong get_limit(void);
 
+uint64_t get_bytes_per_lba(void);
+uint64_t get_ending_lba(void);
+
 #endif /* __CHROMEOS_BOOT_DEVICE_IMPL_H__ */

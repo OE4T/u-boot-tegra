@@ -495,11 +495,14 @@ int do_load_k(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		(uint8_t *) simple_strtoul(argv[3], NULL, 16);
 	par.shared_data_size = VB_SHARED_DATA_REC_SIZE;
 
-	par.bytes_per_lba = (uint64_t) dev_desc->blksz;
-	par.ending_lba = (uint64_t) get_limit() - 1;
+	par.bytes_per_lba = get_bytes_per_lba();
+	par.ending_lba = get_ending_lba();
 	par.kernel_buffer = (void *) simple_strtoul(argv[1], NULL, 16);
 	par.kernel_buffer_size = (uint64_t) simple_strtoul(argv[2], NULL, 16);
 	par.boot_flags = BOOT_FLAG_DEVELOPER | BOOT_FLAG_SKIP_ADDR_CHECK;
+
+	printf("bytes_per_lba: 0x%08x\n", (int) par.bytes_per_lba);
+	printf("ending_lba:    0x%08x\n", (int) par.ending_lba);
 
 	/* TODO: load GBB; see do_load_fw() */
 	par.gbb_data = NULL;
