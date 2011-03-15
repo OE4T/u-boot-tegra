@@ -65,6 +65,10 @@ typedef struct {
 	uint8_t *firmware_body[2];
 } firmware_storage_t;
 
+/* Returns 0 if success, nonzero if error. */
+int init_firmware_storage(firmware_storage_t *f);
+int release_firmware_storage(firmware_storage_t *f);
+
 /* Initialize fields for talking to GetFirmwareBody(). */
 void GetFirmwareBody_setup(firmware_storage_t *f,
 		off_t firmware_data_offset_0, off_t firmware_data_offset_1);
