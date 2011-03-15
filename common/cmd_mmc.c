@@ -28,6 +28,11 @@
 #ifndef CONFIG_GENERIC_MMC
 static int curr_device = -1;
 
+int initialize_mmc_device(int dev)
+{
+	return mmc_legacy_init(dev);
+}
+
 int do_mmc (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	int dev;
@@ -47,7 +52,7 @@ int do_mmc (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			return cmd_usage(cmdtp);
 		}
 
-		if (mmc_legacy_init(dev) != 0) {
+		if (initialize_mmc_device(dev) != 0) {
 			puts("No MMC card found\n");
 			return 1;
 		}
@@ -127,23 +132,33 @@ static void print_mmcinfo(struct mmc *mmc)
 	printf("Bus Width: %d-bit\n", mmc->bus_width);
 }
 
-int do_mmcinfo (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+int initialize_mmc_device(int dev_num)
 {
 	struct mmc *mmc;
+	int err;
+
+	mmc = find_mmc_device(dev_num);
+
+	if (mmc)
+		err = mmc_init(mmc);
+	return err;
+}
+
+int do_mmcinfo (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+{
 	int dev_num;
+	int err;
 
 	if (argc < 2)
 		dev_num = 0;
 	else
 		dev_num = simple_strtoul(argv[1], NULL, 0);
 
-	mmc = find_mmc_device(dev_num);
-
-	if (mmc) {
-		mmc_init(mmc);
-
+	err = initialize_mmc_device(dev_num);
+	if (err)
+		return err;
+	else
 		print_mmcinfo(mmc);
-	}
 
 	return 0;
 }
