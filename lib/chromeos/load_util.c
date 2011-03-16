@@ -26,7 +26,7 @@ void *load_gbb(firmware_storage_t *file, uint64_t *gbb_size_ptr)
 
 	gbb_size = CONFIG_LENGTH_GBB;
 	gbb_data = malloc(CONFIG_LENGTH_GBB);
-	if (gbb_data) {
+	if (!gbb_data) {
 		debug(PREFIX "cannot malloc gbb\n");
 		return NULL;
 	}
@@ -70,8 +70,8 @@ int load_kernel_wrapper(LoadKernelParams *params,
 		params->shared_data_size = CONFIG_VB_SHARED_DATA_SIZE;
 	}
 
-	params->bytes_per_lba = (uint64_t) dev_desc->blksz;
-	params->ending_lba = (uint64_t) get_limit() - 1;
+	params->bytes_per_lba = get_bytes_per_lba();
+	params->ending_lba = get_ending_lba();
 
 	params->kernel_buffer = (uint8_t *) CONFIG_LOADADDR;
 	params->kernel_buffer_size = CONFIG_MAX_KERNEL_SIZE;
@@ -80,18 +80,18 @@ int load_kernel_wrapper(LoadKernelParams *params,
 	params->nv_context = &vnc;
 
 	debug(PREFIX "call LoadKernel() with parameters...\n");
-	debug(PREFIX "header_sign_key_blob: 0x%p\n",
-			params.header_sign_key_blob);
+	debug(PREFIX "shared_data_blob:     0x%p\n",
+			params->shared_data_blob);
 	debug(PREFIX "bytes_per_lba:        %d\n",
-			(int) params.bytes_per_lba);
+			(int) params->bytes_per_lba);
 	debug(PREFIX "ending_lba:           0x%08x\n",
-			(int) params.ending_lba);
+			(int) params->ending_lba);
 	debug(PREFIX "kernel_buffer:        0x%p\n",
-			params.kernel_buffer);
+			params->kernel_buffer);
 	debug(PREFIX "kernel_buffer_size:   0x%08x\n",
-			(int) params.kernel_buffer_size);
+			(int) params->kernel_buffer_size);
 	debug(PREFIX "boot_flags:           0x%08x\n",
-			(int) params.boot_flags);
+			(int) params->boot_flags);
 
 	status = LoadKernel(params);
 
