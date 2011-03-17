@@ -83,3 +83,13 @@ void *Memcpy(void *dest, const void *src, uint64_t n)
 {
 	return memcpy(dest, src, (size_t) n);
 }
+
+uint64_t VbGetTimer(void) {
+	/* TODO: hook this up to a real timer; see utility.h */
+	return 0;
+}
+
+uint64_t VbGetTimerMaxFreq(void) {
+	/* TODO: return an approximate max timer frequency; see utility.h */
+	return UINT64_C(2000000000);
+}
