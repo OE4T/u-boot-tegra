@@ -123,6 +123,12 @@ typedef struct {
 } umass_bbb_csw_t;
 #define UMASS_BBB_CSW_SIZE	13
 
+#ifdef CONFIG_USB_STOR_NO_RETRY
+#define RETRIES(x) 1
+#else
+#define RETRIES(x) (x)
+#endif
+
 #define USB_MAX_STOR_DEV 5
 static int usb_max_devs; /* number of highest available usb device */
 
@@ -902,8 +908,8 @@ do_retry:
 
 static int usb_inquiry(ccb *srb, struct us_data *ss)
 {
-	int retry, i;
-	retry = 5;
+	int retry = RETRIES(5), i;
+
 	do {
 		memset(&srb->cmd[0], 0, 12);
 		srb->cmd[0] = SCSI_INQUIRY;
@@ -946,7 +952,8 @@ static int usb_request_sense(ccb *srb, struct us_data *ss)
 
 static int usb_test_unit_ready(ccb *srb, struct us_data *ss)
 {
-	int retries = 10;
+	int retry = RETRIES(10);
+	int result;
 
 	do {
 		memset(&srb->cmd[0], 0, 12);
@@ -958,16 +965,15 @@ static int usb_test_unit_ready(ccb *srb, struct us_data *ss)
 			return 0;
 		usb_request_sense(srb, ss);
 		wait_ms(100);
-	} while (retries--);
+	} while (retry--);
 
 	return -1;
 }
 
 static int usb_read_capacity(ccb *srb, struct us_data *ss)
 {
-	int retry;
-	/* XXX retries */
-	retry = 3;
+	int retry = RETRIES(3);
+
 	do {
 		memset(&srb->cmd[0], 0, 12);
 		srb->cmd[0] = SCSI_RD_CAPAC;

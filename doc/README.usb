@@ -79,4 +79,6 @@ CONFIG_USB_UHCI	    defines the lowlevel part.A lowlevel part must be defined
 		    if using CONFIG_CMD_USB
 CONFIG_USB_KEYBOARD enables the USB Keyboard
 CONFIG_USB_STORAGE  enables the USB storage devices
+CONFIG_USB_STOR_NO_RETRY    turns off retry in the USB storage scanning
+			    functions to speed up the resume time
 CONFIG_USB_HOST_ETHER	enables USB ethernet dongle support

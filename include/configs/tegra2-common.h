@@ -104,6 +104,7 @@
 #define CONFIG_EHCI_IS_TDI
 #define CONFIG_EHCI_DCACHE
 #define CONFIG_USB_STORAGE
+#define CONFIG_USB_STOR_NO_RETRY
 
 #define CONFIG_CMD_USB		/* USB Host support		*/
 
