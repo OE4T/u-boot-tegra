@@ -38,11 +38,7 @@
 
 #include <common.h>
 #include <malloc.h>
-#include <chromeos/hardware_interface.h>
-
-/* TODO Replace dummy functions below with real implementation. */
-
-int lock_down_eeprom(void) { return 0; }
+#include <chromeos/firmware_storage.h>
 
 /* TODO Replace mem_seek/read with spi_seek/read when moving firmware storage
  * from NAND to SPI Flash */

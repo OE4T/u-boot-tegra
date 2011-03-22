@@ -12,10 +12,10 @@ include $(TOPDIR)/config.mk
 
 LIB	= $(obj)libchromeos.a
 
-COBJS-$(CONFIG_CHROMEOS) += boot_device.o
+COBJS-$(CONFIG_CHROMEOS) += firmware_storage.o
 COBJS-$(CONFIG_CHROMEOS) += fmap.o
 COBJS-$(CONFIG_CHROMEOS) += load_firmware_fw.o
-COBJS-$(CONFIG_CHROMEOS) += load_util.o
+COBJS-$(CONFIG_CHROMEOS) += os_storage.o
 COBJS-$(CONFIG_CHROMEOS) += tlcl_stub.o
 COBJS-$(CONFIG_CHROMEOS) += utility.o
 COBJS-$(CONFIG_CHROMEOS_BMPBLK) += gbb_bmpblk.o

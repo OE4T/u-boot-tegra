@@ -11,7 +11,10 @@
 #ifndef __CHROMEOS_BOOT_DEVICE_IMPL_H__
 #define __CHROMEOS_BOOT_DEVICE_IMPL_H__
 
+#include <linux/types.h>
 #include <part.h>
+
+#include <load_kernel_fw.h>
 
 /* Set boot device.
  *
@@ -32,5 +35,18 @@ ulong get_limit(void);
 
 uint64_t get_bytes_per_lba(void);
 uint64_t get_ending_lba(void);
+
+/*
+ * Wrapper of LoadKernel() function. Returns the return value of LoadKernel().
+ *
+ * See vboot_reference/firmware/include/load_kernel_fw.h for documentation.
+ *
+ * If BOOT_FLAG_RECOVERY is set, it will ignore <shared_data_blob>.
+ * Ohterwise, when <shared_data_blob> is NULL, it will use a system default
+ * location.
+ */
+int load_kernel_wrapper(LoadKernelParams *params,
+		void *gbb_data, uint64_t gbb_size, uint64_t boot_flags,
+		uint8_t *shared_data_blob);
 
 #endif /* __CHROMEOS_BOOT_DEVICE_IMPL_H__ */

@@ -13,10 +13,12 @@
 
 #include <common.h>
 #include <command.h>
-#include <chromeos/boot_device_impl.h>
-#include <chromeos/hardware_interface.h>
+#include <malloc.h>
+#include <chromeos/firmware_storage.h>
 #include <chromeos/fmap.h>
 #include <chromeos/gbb_bmpblk.h>
+#include <chromeos/hardware_interface.h>
+#include <chromeos/os_storage.h>
 
 /* Verify Boot interface */
 #include <boot_device.h>
@@ -70,15 +72,15 @@ cmd_tbl_t cmd_cros_sub[] = {
 		"Find and print flash map",
 		"addr len\n    - Find and print flash map "
 		"in memory[addr, addr+len]\n"),
-	U_BOOT_CMD_MKENT(load_fw, 3, 1, do_load_fw,
+	U_BOOT_CMD_MKENT(load_fw, 5, 1, do_load_fw,
 		"Load firmware from memory "
 		"(you have to download the image before running this)",
-		"addr len shdata\n    - Wrapper of LoadFirmware."
+		"boot_flags addr len shdata\n    - Wrapper of LoadFirmware."
 		"Load firmware from [addr, addr+len] and "
 		"store shared data at shdata\n"),
 	U_BOOT_CMD_MKENT(load_k, 3, 1, do_load_k,
 		"Load kernel from the boot device",
-		"addr len shdata\n    - Load kernel to [addr, addr+len] and\n"
+		"boot_flags shdata\n    - Load kernel with boot_flags and "
 		"modify shared data at shdata\n"),
 	U_BOOT_CMD_MKENT(help, 1, 1, do_cros_help,
 		"show this message",
@@ -383,84 +385,38 @@ static ssize_t mem_read(void *context, void *buf, size_t count)
 
 int do_load_fw(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
+	int status;
 	LoadFirmwareParams params;
-        VbNvContext vnc;
+	uint64_t boot_flags = 0;
+	uint8_t *shared_data_blob = NULL, *firmware_data = NULL;
 	struct context_t context;
-	void *block[2];
-	uint64_t *psize[2];
-	VbKeyBlockHeader *kbh;
-	VbFirmwarePreambleHeader *fph;
-	int i, status;
-	firmware_storage_t f = {
+	firmware_storage_t file = {
 		.seek = mem_seek,
 		.read = mem_read,
 		.context = (void *) &context
 	};
 
-	if (argc != 4)
+	if (argc != 5)
 		USAGE(1, cmdtp, "Wrong number of arguments\n");
 
-	context.begin = (void *) simple_strtoul(argv[1], NULL, 16);
+	memset(&params, '\0', sizeof(params));
+
+	boot_flags = (uint64_t) simple_strtoul(argv[1], NULL, 16);
+
+	context.begin = (void *) simple_strtoul(argv[2], NULL, 16);
 	context.cur = context.begin;
-	context.end = context.begin + simple_strtoul(argv[2], NULL, 16);
+	context.end = context.begin + simple_strtoul(argv[3], NULL, 16);
 
-	GetFirmwareBody_setup(&f, CONFIG_OFFSET_FW_A_DATA,
-			CONFIG_OFFSET_FW_B_DATA);
+	shared_data_blob = (uint8_t *) simple_strtoul(argv[4], NULL, 16);
 
-	params.gbb_data = context.begin + CONFIG_OFFSET_GBB;
-	params.gbb_size = CONFIG_LENGTH_GBB;
+	status = load_firmware_wrapper(&file, FIRMWARE_A,
+			boot_flags, shared_data_blob, &firmware_data);
 
-	debug("do_load_fw: params.firmware_root_key_blob:\t%p\n",
-			params.firmware_root_key_blob);
-
-	params.verification_block_0 = context.begin + CONFIG_OFFSET_FW_A_KEY;
-	params.verification_block_1 = context.begin + CONFIG_OFFSET_FW_B_KEY;
-
-	block[0] = params.verification_block_0;
-	block[1] = params.verification_block_1;
-	psize[0] =  &params.verification_size_0;
-	psize[1] =  &params.verification_size_1;
-	for (i = 0; i < 2; i++) {
-		kbh = (VbKeyBlockHeader *) block[i];
-		fph = (VbFirmwarePreambleHeader *)
-			(block[i] + kbh->key_block_size);
-
-		*psize[i] = kbh->key_block_size + fph->preamble_size;
-
-		debug("do_load_fw: params.verification_block_%d:\t%p\n",
-				i, block[i]);
-		debug("do_load_fw: params.verification_size_%d:\t%08llx\n",
-				i, *psize[i]);
-	}
-
-	params.shared_data_blob =
-		(uint8_t *) simple_strtoul(argv[3], NULL, 16);
-	params.shared_data_size = VB_SHARED_DATA_REC_SIZE;
-
-	debug("do_load_fw: params.shared_data_blob:\t%p\n",
-			params.shared_data_blob);
-	debug("do_load_fw: params.shared_data_size:\t%08llx\n",
-			params.shared_data_size);
-
-	params.caller_internal = &f;
-
-	params.boot_flags = 0;
-
-        /* TODO: load vnc.raw from NV storage */
-        params.nv_context = &vnc;
-
-	status = LoadFirmware(&params);
-
-	if (vnc.raw_changed) {
-		/* TODO: save vnc.raw to NV storage */
-        }
-
-	puts("LoadFirmware returns: ");
+	printf("LoadFirmware returns: ");
 	switch (status) {
 	case LOAD_FIRMWARE_SUCCESS:
-		puts("LOAD_FIRMWARE_SUCCESS\n");
-		printf("firmware_index: %d\n",
-				(int) params.firmware_index);
+		printf("LOAD_FIRMWARE_SUCCESS: firmware_index: %lld\n",
+				params.firmware_index);
 		break;
 	case LOAD_FIRMWARE_RECOVERY:
 		puts("LOAD_FIRMWARE_RECOVERY\n");
@@ -473,82 +429,71 @@ int do_load_fw(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		break;
 	}
 
-	GetFirmwareBody_dispose(&f);
+	free(firmware_data);
 
-	return 0;
+	return status == LOAD_FIRMWARE_SUCCESS ? 0 : 1;
 }
 
 int do_load_k(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
-	LoadKernelParams par;
-        VbNvContext vnc;
-	block_dev_desc_t *dev_desc;
-	int i, status;
+	int retcode = 1;
+	int status;
+	LoadKernelParams params;
+	int i;
 
-	if (argc != 4)
+	if (argc != 3)
 		USAGE(1, cmdtp, "Wrong number of arguments\n");
 
-	if ((dev_desc = get_bootdev()) == NULL)
-		USAGE(1, cmdtp, "No boot device set yet\n");
+	params.boot_flags = (uint64_t) simple_strtoul(argv[1], NULL, 16);
+	params.shared_data_blob = (uint8_t*) simple_strtoul(argv[2], NULL, 16);
+	printf("boot_flags:       0x%08llx\n", params.boot_flags);
+	printf("shared_data_blob: 0x%p\n", params.shared_data_blob);
+	printf("kernel_buffer:    0x%p\n", params.kernel_buffer);
 
-	par.shared_data_blob =
-		(uint8_t *) simple_strtoul(argv[3], NULL, 16);
-	par.shared_data_size = VB_SHARED_DATA_REC_SIZE;
-
-	par.bytes_per_lba = get_bytes_per_lba();
-	par.ending_lba = get_ending_lba();
-	par.kernel_buffer = (void *) simple_strtoul(argv[1], NULL, 16);
-	par.kernel_buffer_size = (uint64_t) simple_strtoul(argv[2], NULL, 16);
-	par.boot_flags = BOOT_FLAG_DEVELOPER | BOOT_FLAG_SKIP_ADDR_CHECK;
-
-	printf("bytes_per_lba: 0x%08x\n", (int) par.bytes_per_lba);
-	printf("ending_lba:    0x%08x\n", (int) par.ending_lba);
-
-	/* TODO: load GBB; see do_load_fw() */
-	par.gbb_data = NULL;
-	par.gbb_size = 0;
-
-        /* TODO: load vnc.raw from NV storage */
-        par.nv_context = &vnc;
-
-	status = LoadKernel(&par);
-
-        if (vnc.raw_changed) {
-		/* TODO: save vnc.raw to NV storage */
-        }
-
-	switch (status) {
-	case LOAD_KERNEL_SUCCESS:
-		puts("Success; good kernel found on device\n");
-		printf("partition_number: %lld\n",
-				par.partition_number);
-		printf("bootloader_address: 0x%llx",
-				par.bootloader_address);
-		printf("bootloader_size: 0x%llx", par.bootloader_size);
-		puts("partition_guid:");
-		for (i = 0; i < 16; i++)
-			printf(" %02x", par.partition_guid[i]);
-		putc('\n');
-		break;
-	case LOAD_KERNEL_NOT_FOUND:
-		puts("No kernel found on device\n");
-		break;
-	case LOAD_KERNEL_INVALID:
-		puts("Only invalid kernels found on device\n");
-		break;
-	case LOAD_KERNEL_RECOVERY:
-		puts("Internal error; reboot to recovery mode\n");
-		break;
-	case LOAD_KERNEL_REBOOT:
-		puts("Internal error; reboot to current mode\n");
-		break;
-	default:
-		printf("Unexpected return status from LoadKernel: %d\n",
-				status);
+	if (load_gbb(NULL, &params.gbb_data, &params.gbb_size)) {
+		printf("error: cannot read gbb\n");
 		return 1;
 	}
 
-	return 0;
+	status = load_kernel_wrapper(&params, params.gbb_data, params.gbb_size,
+			params.boot_flags, params.shared_data_blob);
+
+	switch (status) {
+	case LOAD_KERNEL_SUCCESS:
+		printf("success: good kernel found on device\n");
+		printf("kernel_buffer:      0x%p\n", params.kernel_buffer);
+		printf("partition_number:   %lld\n", params.partition_number);
+		printf("bootloader_address: 0x%llx\n",
+				params.bootloader_address);
+		printf("bootloader_size:    0x%llx\n", params.bootloader_size);
+		printf("partition_guid:    ");
+		for (i = 0; i < 16; i++)
+			printf(" %02x", params.partition_guid[i]);
+		putc('\n');
+		retcode = 0;
+		break;
+	case LOAD_KERNEL_NOT_FOUND:
+		puts("fail: no kernel found on device\n");
+		break;
+	case LOAD_KERNEL_INVALID:
+		puts("fail: only invalid kernels found on device\n");
+		break;
+	case LOAD_KERNEL_RECOVERY:
+		puts("fail: internal error: reboot to recovery mode\n");
+		break;
+	case LOAD_KERNEL_REBOOT:
+		puts("fail: internal error; reboot to current mode\n");
+		break;
+	default:
+		printf("fail: unexpected return status from LoadKernel: %d\n",
+				status);
+		break;
+	}
+
+	printf("bytes_per_lba:      %lld\n", params.bytes_per_lba);
+	printf("ending_lba:         0x%08llx\n", params.ending_lba);
+
+	return retcode;
 }
 
 int do_cros_help(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])

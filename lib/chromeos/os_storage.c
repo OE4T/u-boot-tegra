@@ -8,11 +8,15 @@
  * Software Foundation.
  */
 
-#include <config.h>
 #include <common.h>
 #include <malloc.h>
 #include <part.h>
+#include <chromeos/os_storage.h>
+
 #include <boot_device.h>
+#include <load_kernel_fw.h>
+#include <vboot_nvstorage.h>
+#include <vboot_struct.h>
 
 #define PREFIX "boot_device: "
 
@@ -147,4 +151,80 @@ int BootDeviceWriteLBA(uint64_t lba_start, uint64_t lba_count,
 		return 1; /* error reading blocks */
 
 	return 0;
+}
+
+#undef PREFIX
+#define PREFIX "load_kernel_wrapper: "
+
+int load_kernel_wrapper(LoadKernelParams *params,
+		void *gbb_data, uint64_t gbb_size, uint64_t boot_flags,
+		uint8_t *shared_data_blob)
+{
+	int status = LOAD_KERNEL_NOT_FOUND;
+	block_dev_desc_t *dev_desc;
+	VbNvContext vnc;
+
+	memset(params, '\0', sizeof(*params));
+
+	dev_desc = get_bootdev();
+	if (!dev_desc) {
+		debug(PREFIX "get_bootdev fail\n");
+		goto EXIT;
+	}
+
+	params->gbb_data = gbb_data;
+	params->gbb_size = gbb_size;
+
+	params->boot_flags = boot_flags;
+
+	if (boot_flags & BOOT_FLAG_RECOVERY) {
+		params->shared_data_blob = NULL;
+		params->shared_data_size = 0;
+	} else {
+		params->shared_data_blob = shared_data_blob ? shared_data_blob :
+			(uint8_t *) CONFIG_VB_SHARED_DATA_BLOB;
+		params->shared_data_size = CONFIG_VB_SHARED_DATA_SIZE;
+	}
+
+	params->bytes_per_lba = get_bytes_per_lba();
+	params->ending_lba = get_ending_lba();
+
+	params->kernel_buffer = (uint8_t *) CONFIG_LOADADDR;
+	params->kernel_buffer_size = CONFIG_MAX_KERNEL_SIZE;
+
+        /* TODO: load vnc.raw from NV storage */
+	params->nv_context = &vnc;
+
+	debug(PREFIX "call LoadKernel() with parameters...\n");
+	debug(PREFIX "shared_data_blob:     0x%p\n",
+			params->shared_data_blob);
+	debug(PREFIX "bytes_per_lba:        %d\n",
+			(int) params->bytes_per_lba);
+	debug(PREFIX "ending_lba:           0x%08x\n",
+			(int) params->ending_lba);
+	debug(PREFIX "kernel_buffer:        0x%p\n",
+			params->kernel_buffer);
+	debug(PREFIX "kernel_buffer_size:   0x%08x\n",
+			(int) params->kernel_buffer_size);
+	debug(PREFIX "boot_flags:           0x%08x\n",
+			(int) params->boot_flags);
+
+	status = LoadKernel(params);
+
+	if (vnc.raw_changed) {
+		/* TODO: save vnc.raw to NV storage */
+	}
+
+EXIT:
+	debug(PREFIX "LoadKernel status: %d\n", status);
+	if (status == LOAD_KERNEL_SUCCESS) {
+		debug(PREFIX "partition_number:   0x%08x\n",
+				(int) params->partition_number);
+		debug(PREFIX "bootloader_address: 0x%08x\n",
+				(int) params->bootloader_address);
+		debug(PREFIX "bootloader_size:    0x%08x\n",
+				(int) params->bootloader_size);
+	}
+
+	return status;
 }

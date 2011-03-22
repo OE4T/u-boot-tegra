@@ -15,10 +15,9 @@
 #include <fat.h>
 #include <malloc.h>
 #include <mmc.h>
-#include <chromeos/boot_device_impl.h>
 #include <chromeos/firmware_storage.h>
 #include <chromeos/hardware_interface.h>
-#include <chromeos/load_util.h>
+#include <chromeos/os_storage.h>
 
 #include <boot_device.h>
 #include <load_kernel_fw.h>
@@ -82,36 +81,6 @@ int initialize_drive(void)
 	return 0;
 }
 
-int read_gbb_helper(void **gbb_data_ptr, uint64_t *gbb_size_ptr)
-{
-	firmware_storage_t file;
-	void *gbb_data;
-	uint64_t gbb_size;
-
-	if (init_firmware_storage(&file)) {
-		debug(PREFIX "error: cannot initialize firmware storage\n");
-		return -1;
-	}
-
-	gbb_data = load_gbb(&file, &gbb_size);
-	if (!gbb_data) {
-		debug(PREFIX "load_gbb() fail\n");
-	}
-
-	if (release_firmware_storage(&file)) {
-		debug(PREFIX "error: cannot release firmware storage\n");
-		free(gbb_data);
-		return -1;
-	}
-
-	if (gbb_data) {
-		*gbb_data_ptr = gbb_data;
-		*gbb_size_ptr = gbb_size;
-		return 0;
-	} else
-		return -1;
-}
-
 /* This function should never return */
 void reboot_to_recovery_mode(void)
 {
@@ -172,13 +141,13 @@ int do_cros_normal_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 	}
 
 	if (initialize_drive()) {
-		debug(PREFIX "initialize fixed drive fail\n");
+		debug(PREFIX "error: initialize fixed drive fail\n");
 		reboot_to_recovery_mode();
 		return 1;
 	}
 
-	if (read_gbb_helper(&gbb_data, &gbb_size)) {
-		debug(PREFIX "cannot read gbb\n");
+	if (load_gbb(NULL, &gbb_data, &gbb_size)) {
+		debug(PREFIX "error: cannot read gbb\n");
 		reboot_to_recovery_mode();
 		return 1;
 	}
@@ -188,7 +157,8 @@ int do_cros_normal_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 
 	debug(PREFIX "call load_kernel_wrapper with boot_flags: %d\n",
 			(int) boot_flags);
-	status = load_kernel_wrapper(&params, gbb_data, gbb_size, boot_flags);
+	status = load_kernel_wrapper(&params, gbb_data, gbb_size, boot_flags,
+			NULL);
 
 	if (status == LOAD_KERNEL_SUCCESS) {
 		debug(PREFIX "success: good kernel found on device\n");
@@ -213,6 +183,8 @@ int do_cros_normal_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 	} else {
 		debug(PREFIX "unknown status from LoadKernel(): %d\n", status);
 	}
+
+	free(gbb_data);
 
 	reboot_to_recovery_mode();
 	return 1;

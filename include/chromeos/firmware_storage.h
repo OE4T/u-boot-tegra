@@ -18,6 +18,10 @@
 
 #include <linux/types.h>
 
+#define FIRMWARE_A		0
+#define FIRMWARE_B		1
+#define FIRMWARE_RECOVERY	2
+
 enum whence_t { SEEK_SET, SEEK_CUR, SEEK_END };
 
 /*
@@ -66,6 +70,9 @@ typedef struct {
 } firmware_storage_t;
 
 /* Returns 0 if success, nonzero if error. */
+int lock_down_firmware_storage(void);
+
+/* Returns 0 if success, nonzero if error. */
 int init_firmware_storage(firmware_storage_t *f);
 int release_firmware_storage(firmware_storage_t *f);
 
@@ -84,5 +91,42 @@ void GetFirmwareBody_dispose(firmware_storage_t *f);
  */
 int read_firmware_device(firmware_storage_t *file, off_t offset, void *buf,
 		size_t count);
+
+/* Accessor to non-volatile storage: returns 0 if false, nonzero if true */
+int is_debug_reset_mode_field_containing_cookie(void);
+int is_recovery_mode_field_containing_cookie(void);
+int is_try_firmware_b_field_containing_cookie(void);
+
+/*
+ * Helper function for loading GBB
+ *
+ * If <file> is NULL, load_gbb() will try to open firmware device itself,
+ * and will close the firmware device it opened on exit.
+ *
+ * On success, it malloc an area for storing GBB, and returns 0.
+ * On error, it returns non-zero value, and gbb_size_ptr and gbb_size_ptr are
+ * untouched.
+ */
+int load_gbb(firmware_storage_t *file, void **gbb_data_ptr,
+		uint64_t *gbb_size_ptr);
+
+/*
+ * Load and verify rewritable firmware. A wrapper of LoadFirmware() function.
+ *
+ * Returns what is returned by LoadFirmware().
+ *
+ * For documentation of return values of LoadFirmware(), <primary_firmware>, and
+ * <boot_flags>, please refer to
+ * vboot_reference/firmware/include/load_firmware_fw.h
+ *
+ * The shared data blob for the firmware image is stored in
+ * <shared_data_blob>. When pass NULL, use system default location.
+ *
+ * Pointer to loaded firmware is malloc()'ed and stored in <firmware_data_ptr>
+ * when success. Otherwise, it is untouched.
+ */
+int load_firmware_wrapper(firmware_storage_t *file,
+		int primary_firmware, int boot_flags, void *shared_data_blob,
+		uint8_t **firmware_data_ptr);
 
 #endif /* __FIRMWARE_STORAGE_H_ */

@@ -17,16 +17,14 @@
 #include <malloc.h>
 #include <mmc.h>
 #include <usb.h>
-
-#include <bmpblk_header.h>
+#include <chromeos/firmware_storage.h>
 #include <chromeos/gbb_bmpblk.h>
 #include <chromeos/hardware_interface.h>
+#include <chromeos/os_storage.h>
 
+#include <bmpblk_header.h>
 #include <gbb_header.h>
-#include <load_firmware_fw.h>
 #include <load_kernel_fw.h>
-#include <chromeos/boot_device_impl.h>
-#include <chromeos/load_util.h>
 
 #define PREFIX "cros_rec: "
 
@@ -130,7 +128,7 @@ static int load_and_boot_kernel(uint8_t *load_addr, size_t load_size)
         }
 
 	/* Prepare to load kernel */
-	boot_flags = BOOT_FLAG_RECOVERY | BOOT_FLAG_SKIP_ADDR_CHECK;
+	boot_flags = BOOT_FLAG_RECOVERY;
 	if (g_is_dev) {
 		boot_flags |= BOOT_FLAG_DEVELOPER;
 	}
@@ -138,7 +136,7 @@ static int load_and_boot_kernel(uint8_t *load_addr, size_t load_size)
         debug(PREFIX "call load_kernel_wrapper with boot_flags: %lld\n",
 			boot_flags);
         status = load_kernel_wrapper(&par, g_gbb_base, g_gbb_size,
-			boot_flags);
+			boot_flags, NULL);
 
 	switch (status) {
 	case LOAD_KERNEL_SUCCESS:
@@ -199,15 +197,19 @@ static int boot_recovery_image_in_usb(void)
 static int init_gbb_in_ram(void)
 {
 	firmware_storage_t file;
+	void *gbb_base = NULL;
+
 	if (init_firmware_storage(&file)) {
 		debug(PREFIX "init_firmware_storage failed\n");
 		return -1;
 	}
-	g_gbb_base = load_gbb(&file, &g_gbb_size);
-	if (!g_gbb_base) {
+
+	if (load_gbb(&file, &gbb_base, &g_gbb_size)) {
 		debug(PREFIX "Unable to load gbb\n");
 		return -1;
 	}
+
+	g_gbb_base = gbb_base;
 	return 0;
 }
 
