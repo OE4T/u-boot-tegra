@@ -12,6 +12,7 @@
 
 #include <common.h>
 #include <command.h>
+#include <fat.h>
 #include <lcd.h>
 #include <malloc.h>
 #include <mmc.h>
@@ -25,6 +26,7 @@
 #include <load_firmware_fw.h>
 #include <load_kernel_fw.h>
 #include <chromeos/boot_device_impl.h>
+#include <chromeos/load_util.h>
 
 #define PREFIX "cros_rec: "
 
@@ -40,12 +42,20 @@
 #endif
 
 /* MMC dev number of SD card */
-#define MMC_DEV_NUM_SD 1
+#define MMC_DEV_NUM_SD		1
+#define MMC_DEV_NUM_SD_STR	"1"
 
-#define WAIT_MS_BETWEEN_PROBING 200
+#define ESP_PART		0xc
+#define SCRIPT_PATH		"/u-boot/boot.scr.uimg"
+#define SCRIPT_LOAD_ADDRESS	0x408000
+
+#define WAIT_MS_BETWEEN_PROBING	400
+#define WAIT_MS_SHOW_ERROR	2000
 
 uint8_t *g_gbb_base = NULL;
+uint64_t g_gbb_size = 0;
 int g_is_dev = 0;
+ScreenIndex g_cur_scr = SCREEN_BLANK;
 
 static void sleep_ms(int msecond)
 {
@@ -72,9 +82,8 @@ static int is_usb_storage_present(void)
 		/* Scanning bus for storage devices, mode = 1. */
 		return usb_stor_scan(1) == 0;
 	}
-#else
-	return i;
 #endif
+	return 1;
 }
 
 static int write_log(void)
@@ -91,39 +100,45 @@ static int clear_ram_not_in_use(void)
 
 static int load_and_boot_kernel(uint8_t *load_addr, size_t load_size)
 {
+	char *devtype;
+	int devnum;
+	uint64_t boot_flags;
 	LoadKernelParams par;
-	block_dev_desc_t *dev_desc;
-	VbNvContext vnc;
 	int i, status;
-	GoogleBinaryBlockHeader *gbbh = (GoogleBinaryBlockHeader *)g_gbb_base;
-	char buffer[CONFIG_SYS_CBSIZE];
 
-	if ((dev_desc = get_bootdev()) == NULL) {
-		printf(PREFIX "No boot device set yet\n");
-		return 1;
-	}
+	devtype = getenv("devtype");
+	devnum = (int)simple_strtoul(getenv("devnum"), NULL, 10);
 
-	par.gbb_data = g_gbb_base;
-	par.gbb_size = CONFIG_LENGTH_GBB;
-	par.shared_data_blob = NULL;
-	par.shared_data_size = 0;
-	par.bytes_per_lba = (uint64_t) dev_desc->blksz;
-	par.ending_lba = (uint64_t) get_limit() - 1;
-	par.kernel_buffer = load_addr;
-	par.kernel_buffer_size = load_size;
-	par.boot_flags = BOOT_FLAG_RECOVERY | BOOT_FLAG_SKIP_ADDR_CHECK;
-	/* TODO: load vnc.raw from NV storage */
-	par.nv_context = &vnc;
+        /* FIXME: Should not execute scripts in EFI system partition */
+	if (fat_fsload(devtype, devnum, ESP_PART, SCRIPT_PATH,
+			(void*) SCRIPT_LOAD_ADDRESS, 0) < 0) {
+                debug(PREFIX "fail to load %s from %s %x:%x to 0x%08x\n",
+				SCRIPT_PATH, devtype, devnum,
+				ESP_PART, SCRIPT_LOAD_ADDRESS);
+                return -1;
+        }
+        if (source(SCRIPT_LOAD_ADDRESS, NULL)) {
+                debug(PREFIX "fail to execute script at 0x%08x\n",
+                                SCRIPT_LOAD_ADDRESS);
+                return -1;
+        }
 
+        debug(PREFIX "set_bootdev %s %x:0\n", DEVICE_TYPE, DEVICE_NUMBER);
+        if (set_bootdev(devtype, devnum, 0)) {
+                debug(PREFIX "set_bootdev fail\n");
+                return -1;
+        }
+
+	/* Prepare to load kernel */
+	boot_flags = BOOT_FLAG_RECOVERY | BOOT_FLAG_SKIP_ADDR_CHECK;
 	if (g_is_dev) {
-		par.boot_flags |= BOOT_FLAG_DEVELOPER;
+		boot_flags |= BOOT_FLAG_DEVELOPER;
 	}
 
-	status = LoadKernel(&par);
-
-	if (vnc.raw_changed) {
-		/* TODO: save vnc.raw to NV storage */
-	}
+        debug(PREFIX "call load_kernel_wrapper with boot_flags: %lld\n",
+			boot_flags);
+        status = load_kernel_wrapper(&par, g_gbb_base, g_gbb_size,
+			boot_flags);
 
 	switch (status) {
 	case LOAD_KERNEL_SUCCESS:
@@ -137,14 +152,6 @@ static int load_and_boot_kernel(uint8_t *load_addr, size_t load_size)
 		for (i = 0; i < 16; i++)
 			printf("%02x", par.partition_guid[i]);
 		putc('\n');
-
-		lcd_clear();
-
-		strcpy(buffer, "console=ttyS0,115200n8 ");
-		strcat(buffer, getenv("platform_extras"));
-		setenv("bootargs", buffer);
-		sprintf(buffer, "%lld", par.partition_number + 1);
-		setenv("rootpart", buffer);
 
 		source(CONFIG_LOADADDR + par.bootloader_address -
 			0x100000, NULL);
@@ -170,20 +177,22 @@ static int load_and_boot_kernel(uint8_t *load_addr, size_t load_size)
 	return 0;
 }
 
-static int load_recovery_image_in_mmc(void)
+static int boot_recovery_image_in_mmc(void)
 {
 	char buffer[CONFIG_SYS_CBSIZE];
+        setenv("devtype", "mmc");
 	sprintf(buffer, "mmcblk%dp", MMC_DEV_NUM_SD);
 	setenv("devname", buffer);
-	set_bootdev("mmc", MMC_DEV_NUM_SD, 0);
+	setenv("devnum", MMC_DEV_NUM_SD_STR);
 	return load_and_boot_kernel((uint8_t *)CONFIG_LOADADDR, 0x01000000);
 }
 
-static int load_recovery_image_in_usb(void)
+static int boot_recovery_image_in_usb(void)
 {
 	/* TODO: Find the correct dev num of USB storage instead of always 0 */
+        setenv("devtype", "usb");
 	setenv("devname", "sda");
-	set_bootdev("usb", 0, 0);
+	setenv("devnum", "0");
 	return load_and_boot_kernel((uint8_t *)CONFIG_LOADADDR, 0x01000000);
 }
 
@@ -194,32 +203,34 @@ static int init_gbb_in_ram(void)
 		debug(PREFIX "init_firmware_storage failed\n");
 		return -1;
 	}
-	g_gbb_base = malloc(CONFIG_LENGTH_GBB);
+	g_gbb_base = load_gbb(&file, &g_gbb_size);
 	if (!g_gbb_base) {
-		debug(PREFIX "Unable to malloc g_gbb_base\n");
-		return -1;
-	}
-	if (read_firmware_device(&file, CONFIG_OFFSET_GBB, g_gbb_base,
-			CONFIG_LENGTH_GBB)) {
-		debug(PREFIX "Unable to read firmware to g_gbb_base\n");
+		debug(PREFIX "Unable to load gbb\n");
 		return -1;
 	}
 	return 0;
 }
 
+static int clear_screen(void)
+{
+	g_cur_scr = SCREEN_BLANK;
+	return lcd_clear();
+}
+
 static int show_screen(ScreenIndex scr)
 {
-	static ScreenIndex cur_scr;
-	if (cur_scr == scr) {
+	if (g_cur_scr == scr) {
+		/* No need to update. Do nothing and return success. */
 		return 0;
 	} else {
-		cur_scr = scr;
+		g_cur_scr = scr;
 		return display_screen_in_bmpblk(g_gbb_base, scr);
 	}
 }
 
 int do_cros_rec(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
+	int is_mmc, is_usb;
 	WARN_ON_FAILURE(write_log());
 	WARN_ON_FAILURE(clear_ram_not_in_use());
 	WARN_ON_FAILURE(init_gbb_in_ram());
@@ -236,24 +247,34 @@ int do_cros_rec(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	for (;;) {
 		/* Wait for user to plug in SD card or USB storage device */
-		while (!is_mmc_storage_present() && !is_usb_storage_present()) {
-			show_screen(SCREEN_RECOVERY_NO_OS);
-			sleep_ms(WAIT_MS_BETWEEN_PROBING);
-		}
-		if (is_mmc_storage_present()) {
-			WARN_ON_FAILURE(load_recovery_image_in_mmc());
+		is_mmc = is_usb = 0;
+		do {
+			is_mmc = is_mmc_storage_present();
+			if (!is_mmc) {
+				is_usb = is_usb_storage_present();
+			}
+			if (!is_mmc && !is_usb) {
+				show_screen(SCREEN_RECOVERY_NO_OS);
+				sleep_ms(WAIT_MS_BETWEEN_PROBING);
+			}
+		} while (!is_mmc && !is_usb);
+
+		clear_screen();
+
+		if (is_mmc) {
+			WARN_ON_FAILURE(boot_recovery_image_in_mmc());
 			/* Wait for user to plug out SD card */
-			while (is_mmc_storage_present()) {
+			do {
 				show_screen(SCREEN_RECOVERY_MISSING_OS);
-				sleep_ms(WAIT_MS_BETWEEN_PROBING);
-			}
-		} else if (is_usb_storage_present()) {
-			WARN_ON_FAILURE(load_recovery_image_in_usb());
+				sleep_ms(WAIT_MS_SHOW_ERROR);
+			} while (is_mmc_storage_present());
+		} else if (is_usb) {
+			WARN_ON_FAILURE(boot_recovery_image_in_usb());
 			/* Wait for user to plug out USB storage device */
-			while (is_usb_storage_present()) {
+			do {
 				show_screen(SCREEN_RECOVERY_MISSING_OS);
-				sleep_ms(WAIT_MS_BETWEEN_PROBING);
-			}
+				sleep_ms(WAIT_MS_SHOW_ERROR);
+			} while (is_usb_storage_present());
 		}
 	}
 
