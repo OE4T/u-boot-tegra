@@ -201,12 +201,12 @@ int load_firmware_wrapper(firmware_storage_t *file,
 	 * data_offset[primary_firmware][firmware_data_index].
 	 */
 	const off_t vblock_offset[2][2] = {
-		{ CONFIG_OFFSET_FW_A_KEY, CONFIG_OFFSET_FW_B_KEY },
-		{ CONFIG_OFFSET_FW_B_KEY, CONFIG_OFFSET_FW_A_KEY },
+		{ CONFIG_OFFSET_VBLOCK_A, CONFIG_OFFSET_VBLOCK_B },
+		{ CONFIG_OFFSET_VBLOCK_B, CONFIG_OFFSET_VBLOCK_A },
 	};
 	const off_t data_offset[2][2] = {
-		{ CONFIG_OFFSET_FW_A_DATA, CONFIG_OFFSET_FW_B_DATA },
-		{ CONFIG_OFFSET_FW_B_DATA, CONFIG_OFFSET_FW_A_DATA },
+		{ CONFIG_OFFSET_FW_MAIN_A, CONFIG_OFFSET_FW_MAIN_B },
+		{ CONFIG_OFFSET_FW_MAIN_B, CONFIG_OFFSET_FW_MAIN_A },
 	};
 
 	int status = LOAD_FIRMWARE_RECOVERY;

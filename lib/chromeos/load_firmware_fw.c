@@ -67,8 +67,8 @@ int GetFirmwareBody(LoadFirmwareParams *params, uint64_t index)
 		block = params->verification_block_1;
 	}
 	data_offset = f->firmware_data_offset[index];
-	f->firmware_body[index] = malloc(MAX(CONFIG_LENGTH_FW_A_DATA,
-				CONFIG_LENGTH_FW_B_DATA));
+	f->firmware_body[index] = malloc(MAX(CONFIG_LENGTH_FW_MAIN_A,
+				CONFIG_LENGTH_FW_MAIN_B));
 
 	kbh = (VbKeyBlockHeader *) block;
 	fph = (VbFirmwarePreambleHeader *) (block + kbh->key_block_size);
