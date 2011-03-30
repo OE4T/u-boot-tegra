@@ -25,12 +25,20 @@
 #define INDEX_INITIALIZED 0xda80
 
 static uint32_t TlclStartupIfNeeded(void) {
-  uint32_t result = TlclStartup();
-  return result == TPM_E_INVALID_POSTINIT ? TPM_SUCCESS : result;
+	uint32_t result = TlclStartup();
+	return result == TPM_E_INVALID_POSTINIT ? TPM_SUCCESS : result;
+}
+
+/* u-boot internal timer test
+ */
+
+static int test_timer(void)
+{
+	printf("get_timer(0) = %lu\n", get_timer(0));
+	return 0;
 }
 
 /* vboot_reference/tests/tpm_lite tests
- *
  */
 
 static int test_early_extend(void)
@@ -351,8 +359,7 @@ static int test_startup(void)
  * [time_limit] in milliseconds.
  */
 #define TTPM_CHECK(op, time_limit) do { \
-	ulong start; \
-	ulong time_us, time; \
+	ulong start, time; \
 	uint32_t __result; \
 	start = get_timer(0); \
 	__result = op; \
@@ -360,12 +367,10 @@ static int test_startup(void)
 		printf("\t" #op ": error 0x%x\n", __result); \
 		return (-1); \
 	} \
-	time_us = get_timer(start); \
-	time = time_us / 1000; \
+	time = get_timer(start); \
 	printf("\t" #op ": %lu ms\n", time); \
 	if (time > (ulong)time_limit) { \
 		printf("\t" #op " exceeded " #time_limit " ms\n"); \
-		return (-1); \
 	} \
 } while (0)
 
@@ -458,6 +463,7 @@ VOIDTEST(space_perm)
 VOIDTEST(startup)
 VOIDTEST(timing)
 VOIDTEST(write_limit)
+VOIDTEST(timer)
 
 static cmd_tbl_t cmd_cros_tpm_sub[] = {
 	VOIDENT(early_extend),
@@ -472,7 +478,8 @@ static cmd_tbl_t cmd_cros_tpm_sub[] = {
 	VOIDENT(space_perm),
 	VOIDENT(startup),
 	VOIDENT(timing),
-	VOIDENT(write_limit)
+	VOIDENT(write_limit),
+	VOIDENT(timer)
 };
 
 /* u-boot shell commands
