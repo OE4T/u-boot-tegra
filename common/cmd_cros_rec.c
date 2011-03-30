@@ -48,7 +48,7 @@
 
 #define ESP_PART		0xc
 #define SCRIPT_PATH		"/u-boot/boot.scr.uimg"
-#define SCRIPT_LOAD_ADDRESS	0x408000
+#define SCRIPT_LOAD_ADDRESS	0x8000
 
 #define WAIT_MS_BETWEEN_PROBING	400
 #define WAIT_MS_SHOW_ERROR	2000
@@ -99,7 +99,7 @@ static int clear_ram_not_in_use(void)
 	return 0;
 }
 
-static int load_and_boot_kernel(uint8_t *load_addr, size_t load_size)
+static int load_and_boot_kernel(void)
 {
 	firmware_storage_t file;
 	char *devtype;
@@ -220,7 +220,7 @@ static int boot_recovery_image_in_mmc(void)
 	sprintf(buffer, "mmcblk%dp", MMC_DEV_NUM_SD);
 	setenv("devname", buffer);
 	setenv("devnum", MMC_DEV_NUM_SD_STR);
-	return load_and_boot_kernel((uint8_t *)CONFIG_LOADADDR, 0x01000000);
+	return load_and_boot_kernel();
 }
 
 static int boot_recovery_image_in_usb(void)
@@ -229,7 +229,7 @@ static int boot_recovery_image_in_usb(void)
         setenv("devtype", "usb");
 	setenv("devname", "sda");
 	setenv("devnum", "0");
-	return load_and_boot_kernel((uint8_t *)CONFIG_LOADADDR, 0x01000000);
+	return load_and_boot_kernel();
 }
 
 static int init_gbb_in_ram(void)

@@ -41,7 +41,7 @@ int do_bootm(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 #define DEVICE_PART		0xc
 
 #define SCRIPT_PATH		"/u-boot/boot.scr.uimg"
-#define SCRIPT_LOAD_ADDRESS	0x408000
+#define SCRIPT_LOAD_ADDRESS	0x8000
 
 /* Return 0 if success, non-zero on error */
 int initialize_drive(void)
