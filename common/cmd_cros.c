@@ -19,6 +19,7 @@
 #include <chromeos/gbb_bmpblk.h>
 #include <chromeos/hardware_interface.h>
 #include <chromeos/load_firmware_helper.h>
+#include <chromeos/vboot_nvstorage_helper.h>
 #include <chromeos/os_storage.h>
 
 /* Verify Boot interface */
@@ -42,6 +43,7 @@ int do_bootdev	(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 int do_bmpblk	(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 #endif /* CONFIG_CHROMEOS_BMPBLK */
 int do_fmap	(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
+int do_nvram	(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 int do_load_fw	(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 int do_load_k	(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 int do_cros_help(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
@@ -74,13 +76,18 @@ cmd_tbl_t cmd_cros_sub[] = {
 		"Find and print flash map",
 		"addr len\n    - Find and print flash map "
 		"in memory[addr, addr+len]\n"),
-	U_BOOT_CMD_MKENT(load_fw, 5, 1, do_load_fw,
+	U_BOOT_CMD_MKENT(nvram, 2, 1, do_nvram,
+		"Read/write nvram",
+		"read/write\n"
+		"read\n    - Read nvram\n"
+		"write [0-9a-fA-F]{VBNV_BLOCK_SIZE*2}\n    - Write nvram\n"),
+	U_BOOT_CMD_MKENT(load_fw, 4, 1, do_load_fw,
 		"Load firmware from memory "
 		"(you have to download the image before running this)",
 		"boot_flags addr len shdata\n    - Wrapper of LoadFirmware. "
 		"Load firmware from [addr, addr+len] and "
 		"store shared data at shdata\n"),
-	U_BOOT_CMD_MKENT(load_k, 3, 1, do_load_k,
+	U_BOOT_CMD_MKENT(load_k, 2, 1, do_load_k,
 		"Load kernel from the boot device",
 		"boot_flags shdata\n    - Load kernel with boot_flags and "
 		"modify shared data at shdata\n"),
@@ -334,6 +341,97 @@ int do_fmap(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	return 0;
 }
 
+static int ascii_to_integer(int c)
+{
+	if ('0' <= c && c <= '9')
+		return c - '0';
+	else if ('a' <= c && c <= 'f')
+		return c - 'a' + 10;
+	else if ('A' <= c && c <= 'F')
+		return c - 'A' + 10;
+	else
+		return -1;
+}
+
+int do_nvram(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+{
+	const char charmap[] = "0123456789abcdef";
+	VbNvContext nvcxt;
+	int rc = 1, status, i, c, d;
+	firmware_storage_t file;
+
+	if (firmware_storage_init(&file)) {
+		printf("error: cannot init firmware storage device\n");
+		return 1;
+	}
+
+	if (!strcmp(argv[1], "read")) {
+		if (argc != 2) {
+			printf("read does not accept arguments\n");
+			cmd_usage(cmdtp);
+			goto EXIT;
+		}
+
+		status = read_nvcontext(&file, &nvcxt);
+		if (status) {
+			printf("read nvram fail: %d\n", status);
+			goto EXIT;
+		} else
+			rc = 0;
+
+		printf("nvram content: ");
+		for (i = 0; i < VBNV_BLOCK_SIZE; i++) {
+			putc(charmap[nvcxt.raw[i] >> 4]);
+			putc(charmap[nvcxt.raw[i] & 0x0f]);
+		}
+		putc('\n');
+	} else if (!strcmp(argv[1], "write")) {
+		if (argc != 3) {
+			printf("write requires one argument\n");
+			cmd_usage(cmdtp);
+			goto EXIT;
+		}
+
+		if (strlen(argv[2]) != VBNV_BLOCK_SIZE * 2) {
+			printf("write needs %d bytes of data\n",
+					VBNV_BLOCK_SIZE);
+			cmd_usage(cmdtp);
+			goto EXIT;
+		}
+
+		for (i = 0; i < VBNV_BLOCK_SIZE; i++) {
+			c = argv[2][i<<1];
+			d = argv[2][(i<<1) + 1];
+			c = ascii_to_integer(c);
+			d = ascii_to_integer(d);
+			if (c == -1 || d == -1) {
+				printf("invalid hex string: %c%c\n",
+						argv[2][i<<1],
+						argv[2][(i<<1) + 1]);
+				goto EXIT;
+			}
+			nvcxt.raw[i] = (c << 4) + d;
+		}
+
+		status = write_nvcontext(&file, &nvcxt);
+		if (status)
+			printf("write nvram fail: %d\n", status);
+		else
+			rc = 0;
+	} else {
+		printf("Unknown command: %s\n", argv[1]);
+		cmd_usage(cmdtp);
+	}
+
+EXIT:
+	if (file.close(file.context)) {
+		printf("error: cannot release firmware storage device\n");
+		return 1;
+	}
+
+	return rc;
+}
+
 int do_load_fw(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	int status;
@@ -413,7 +511,6 @@ int do_load_k(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	params.shared_data_blob = (uint8_t*) simple_strtoul(argv[2], NULL, 16);
 	printf("boot_flags:       0x%08llx\n", params.boot_flags);
 	printf("shared_data_blob: 0x%p\n", params.shared_data_blob);
-	printf("kernel_buffer:    0x%p\n", params.kernel_buffer);
 
 	status = load_kernel_wrapper(&params, params.gbb_data, params.gbb_size,
 			params.boot_flags, &nvcxt, params.shared_data_blob);
