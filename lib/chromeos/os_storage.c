@@ -176,15 +176,9 @@ int load_kernel_wrapper(LoadKernelParams *params,
 	params->gbb_size = gbb_size;
 
 	params->boot_flags = boot_flags;
-
-	if (boot_flags & BOOT_FLAG_RECOVERY) {
-		params->shared_data_blob = NULL;
-		params->shared_data_size = 0;
-	} else {
-		params->shared_data_blob = shared_data_blob ? shared_data_blob :
+	params->shared_data_blob = shared_data_blob ? shared_data_blob :
 			(uint8_t *) CONFIG_VB_SHARED_DATA_BLOB;
-		params->shared_data_size = CONFIG_VB_SHARED_DATA_SIZE;
-	}
+	params->shared_data_size = CONFIG_VB_SHARED_DATA_SIZE;
 
 	params->bytes_per_lba = get_bytes_per_lba();
 	params->ending_lba = get_ending_lba();

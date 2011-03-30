@@ -41,9 +41,7 @@ uint64_t get_ending_lba(void);
  *
  * See vboot_reference/firmware/include/load_kernel_fw.h for documentation.
  *
- * If BOOT_FLAG_RECOVERY is set, it will ignore <shared_data_blob>.
- * Ohterwise, when <shared_data_blob> is NULL, it will use a system default
- * location.
+ * If <shared_data_blob> is NULL, it will use a system default location.
  */
 int load_kernel_wrapper(LoadKernelParams *params,
 		void *gbb_data, uint64_t gbb_size, uint64_t boot_flags,
