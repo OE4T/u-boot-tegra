@@ -18,6 +18,7 @@
 #include <mmc.h>
 #include <usb.h>
 #include <chromeos/firmware_storage.h>
+#include <chromeos/load_firmware_helper.h>
 #include <chromeos/gbb_bmpblk.h>
 #include <chromeos/hardware_interface.h>
 #include <chromeos/os_storage.h>
@@ -199,8 +200,8 @@ static int init_gbb_in_ram(void)
 	firmware_storage_t file;
 	void *gbb_base = NULL;
 
-	if (init_firmware_storage(&file)) {
-		debug(PREFIX "init_firmware_storage failed\n");
+	if (firmware_storage_init(&file)) {
+		debug(PREFIX "init firmware storage failed\n");
 		return -1;
 	}
 

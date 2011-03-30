@@ -39,9 +39,7 @@ include $(TOPDIR)/config.mk
 LIB	= $(obj)libchromeos_hardware_interface.a
 
 COBJS-$(CONFIG_CHROMEOS) += cpu_state.o
-COBJS-$(CONFIG_CHROMEOS) += eeprom_driver.o
 COBJS-$(CONFIG_CHROMEOS) += gpio.o
-COBJS-$(CONFIG_CHROMEOS) += nvram.o
 COBJS-$(CONFIG_CHROMEOS) += tpm_driver.o
 
 COBJS	:= $(COBJS-y)

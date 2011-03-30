@@ -18,6 +18,7 @@
 #include <chromeos/fmap.h>
 #include <chromeos/gbb_bmpblk.h>
 #include <chromeos/hardware_interface.h>
+#include <chromeos/load_firmware_helper.h>
 #include <chromeos/os_storage.h>
 
 /* Verify Boot interface */
@@ -75,7 +76,7 @@ cmd_tbl_t cmd_cros_sub[] = {
 	U_BOOT_CMD_MKENT(load_fw, 5, 1, do_load_fw,
 		"Load firmware from memory "
 		"(you have to download the image before running this)",
-		"boot_flags addr len shdata\n    - Wrapper of LoadFirmware."
+		"boot_flags addr len shdata\n    - Wrapper of LoadFirmware. "
 		"Load firmware from [addr, addr+len] and "
 		"store shared data at shdata\n"),
 	U_BOOT_CMD_MKENT(load_k, 3, 1, do_load_k,
@@ -332,69 +333,14 @@ int do_fmap(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	return 0;
 }
 
-struct context_t {
-	void *begin, *cur, *end;
-};
-
-static off_t mem_seek(void *context, off_t offset, enum whence_t whence)
-{
-	struct context_t *cxt = (struct context_t *) context;
-	void *cur;
-
-	if (whence == SEEK_SET)
-		cur = cxt->begin + offset;
-	else if (whence == SEEK_CUR)
-		cur = cxt->cur + offset;
-	else if (whence == SEEK_END)
-		cur = cxt->end + offset;
-	else {
-		debug("mem_seek: unknown whence value: %d\n", whence);
-		return -1;
-	}
-
-	if (cur < cxt->begin) {
-		debug("mem_seek: offset underflow: %p < %p\n", cur, cxt->begin);
-		return -1;
-	}
-
-	if (cur >= cxt->end) {
-		debug("mem_seek: offset exceeds size: %p >= %p\n", cur,
-				cxt->end);
-		return -1;
-	}
-
-	cxt->cur = cur;
-	return cur - cxt->begin;
-}
-
-static ssize_t mem_read(void *context, void *buf, size_t count)
-{
-	struct context_t *cxt = (struct context_t *) context;
-
-	if (count == 0)
-		return 0;
-
-	if (count > cxt->end - cxt->cur)
-		count = cxt->end - cxt->cur;
-
-	memcpy(buf, cxt->cur, count);
-	cxt->cur += count;
-
-	return count;
-}
-
 int do_load_fw(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	int status;
 	LoadFirmwareParams params;
 	uint64_t boot_flags = 0;
 	uint8_t *shared_data_blob = NULL, *firmware_data = NULL;
-	struct context_t context;
-	firmware_storage_t file = {
-		.seek = mem_seek,
-		.read = mem_read,
-		.context = (void *) &context
-	};
+	firmware_storage_t file;
+	void *beg, *end;
 
 	if (argc != 5)
 		USAGE(1, cmdtp, "Wrong number of arguments\n");
@@ -403,11 +349,11 @@ int do_load_fw(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	boot_flags = (uint64_t) simple_strtoul(argv[1], NULL, 16);
 
-	context.begin = (void *) simple_strtoul(argv[2], NULL, 16);
-	context.cur = context.begin;
-	context.end = context.begin + simple_strtoul(argv[3], NULL, 16);
+	beg = (void*) simple_strtoul(argv[2], NULL, 16);
+	end = beg + simple_strtoul(argv[3], NULL, 16);
+	firmware_storage_init_ram(&file, beg, end);
 
-	shared_data_blob = (uint8_t *) simple_strtoul(argv[4], NULL, 16);
+	shared_data_blob = (uint8_t*) simple_strtoul(argv[4], NULL, 16);
 
 	status = load_firmware_wrapper(&file, FIRMWARE_A,
 			boot_flags, shared_data_blob, &firmware_data);
@@ -439,21 +385,29 @@ int do_load_k(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	int retcode = 1;
 	int status;
 	LoadKernelParams params;
+	firmware_storage_t file;
 	int i;
 
 	if (argc != 3)
 		USAGE(1, cmdtp, "Wrong number of arguments\n");
+
+	if (firmware_storage_init(&file)) {
+		printf("error: cannot init firmware storage\n");
+		return 1;
+	}
+
+	if (load_gbb(&file, &params.gbb_data, &params.gbb_size)) {
+		printf("error: cannot read gbb\n");
+		return 1;
+	}
+
+	file.close(file.context);
 
 	params.boot_flags = (uint64_t) simple_strtoul(argv[1], NULL, 16);
 	params.shared_data_blob = (uint8_t*) simple_strtoul(argv[2], NULL, 16);
 	printf("boot_flags:       0x%08llx\n", params.boot_flags);
 	printf("shared_data_blob: 0x%p\n", params.shared_data_blob);
 	printf("kernel_buffer:    0x%p\n", params.kernel_buffer);
-
-	if (load_gbb(NULL, &params.gbb_data, &params.gbb_size)) {
-		printf("error: cannot read gbb\n");
-		return 1;
-	}
 
 	status = load_kernel_wrapper(&params, params.gbb_data, params.gbb_size,
 			params.boot_flags, params.shared_data_blob);

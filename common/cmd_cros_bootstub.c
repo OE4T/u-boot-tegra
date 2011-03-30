@@ -15,6 +15,8 @@
 #include <malloc.h>
 #include <chromeos/firmware_storage.h>
 #include <chromeos/hardware_interface.h>
+#include <chromeos/load_firmware_helper.h>
+#include <chromeos/vboot_nvstorage_helper.h>
 
 /* Verify Boot interface */
 #include <gbb_header.h>
@@ -40,8 +42,9 @@ int load_recovery_firmware(firmware_storage_t *file,
 {
 	int retval;
 
-	retval = read_firmware_device(file, CONFIG_OFFSET_RECOVERY,
-			recovery_firmware_buffer, CONFIG_LENGTH_RECOVERY);
+	retval = firmware_storage_read(file,
+			CONFIG_OFFSET_RECOVERY, CONFIG_LENGTH_RECOVERY,
+			recovery_firmware_buffer);
 	if (retval) {
 		debug(PREFIX "cannot load recovery firmware\n");
 	}
@@ -73,14 +76,14 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	/* TODO Start initializing chipset */
 
-	if (init_firmware_storage(&file)) {
+	if (firmware_storage_init(&file)) {
 		/* FIXME(clchiou) Bring up a sad face as boot has failed */
 		debug(PREFIX "init_firmware_storage fail\n");
 		while (1);
 	}
 
 	if (is_firmware_write_protect_gpio_asserted())
-		WARN_ON_FAILURE(lock_down_firmware_storage());
+		WARN_ON_FAILURE(file.lock_device(file.context));
 
 	WARN_ON_FAILURE(initialize_tpm());
 

@@ -16,8 +16,10 @@
 #include <malloc.h>
 #include <mmc.h>
 #include <chromeos/firmware_storage.h>
+#include <chromeos/load_firmware_helper.h>
 #include <chromeos/hardware_interface.h>
 #include <chromeos/os_storage.h>
+#include <chromeos/vboot_nvstorage_helper.h>
 
 #include <boot_device.h>
 #include <load_kernel_fw.h>
@@ -126,11 +128,18 @@ int do_cros_normal_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 {
 	int status;
 	LoadKernelParams params;
+	firmware_storage_t file;
 	void *gbb_data = NULL;
 	uint64_t gbb_size = 0;
 	uint64_t boot_flags = 0;
 
 	/* TODO Continue initializing chipset */
+
+	if (firmware_storage_init(&file)) {
+		debug(PREFIX "init firmware storage failed\n");
+		reboot_to_recovery_mode();
+		return 1;
+	}
 
 	if (is_recovery_mode_gpio_asserted() ||
 			is_recovery_mode_field_containing_cookie()) {
@@ -146,11 +155,13 @@ int do_cros_normal_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 		return 1;
 	}
 
-	if (load_gbb(NULL, &gbb_data, &gbb_size)) {
+	if (load_gbb(&file, &gbb_data, &gbb_size)) {
 		debug(PREFIX "error: cannot read gbb\n");
 		reboot_to_recovery_mode();
 		return 1;
 	}
+
+	file.close(file.context);
 
 	if (is_developer_mode_gpio_asserted())
 		boot_flags |= BOOT_FLAG_DEVELOPER;

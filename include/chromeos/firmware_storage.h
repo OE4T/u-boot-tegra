@@ -8,125 +8,51 @@
  * Software Foundation.
  */
 
-/*
- * The firmware_storage provides a interface for GetFirmware to interact with
- * board-specific firmware storage device.
- */
+/* Interface for access various storage device */
 
-#ifndef __FIRMWARE_STORAGE_H__
-#define __FIRMWARE_STORAGE_H__
+#ifndef CHROMEOS_FIRMWARE_STORAGE_H_
+#define CHROMEOS_FIRMWARE_STORAGE_H_
 
 #include <linux/types.h>
-
-#define FIRMWARE_A		0
-#define FIRMWARE_B		1
-#define FIRMWARE_RECOVERY	2
 
 enum whence_t { SEEK_SET, SEEK_CUR, SEEK_END };
 
 /*
- * firmware_storage_t is the interface for accessing firmware storage.
- * It is also used as the internal data for caller of LoadFirmware() to talk to
- * GetFirmwareBody().
+ * The semantic (argument and return value) is similar with system
+ * call lseek(2), read(2) and write(2), except that file description
+ * is replaced by <context>.
+ *
+ * <context> stores current status of the storage device and
+ * local states of the driver.
  */
 typedef struct {
-	/*
-	 * The semantic (argument and return value) is similar with system
-	 * call lseek(2) and read(2), except that file description is replaced
-	 * by <context>.
-	 *
-	 * <context> stores current status of the storage device and
-	 * local states of the driver.
-	 *
-	 * A storage device driver that implements this interface must provide
-	 * methods to initialize <context> to caller of LoadFirmware().
-	 *
-	 * For example, common/cmd_cros.c implements a driver of RAM.
-	 */
 	off_t (*seek)(void *context, off_t offset, enum whence_t whence);
 	ssize_t (*read)(void *context, void *buf, size_t count);
+	ssize_t (*write)(void *context, const void *buf, size_t count);
+	int (*close)(void *context);
+
+	/* Returns 0 if success, nonzero if error. */
+	int (*lock_device)(void *context);
+
 	void *context;
-
-
-	/*
-	 * The two fields below (<firmware_data_offset> and <firmware_body>) are
-	 * used for communicating with GetFirmwareBody.
-	 *
-	 * Caller of LoadFirmware() must initialize and dispose them by
-	 * prepare_for_GetFirmwareBody() and dispose_firmware_data() below.
-	 */
-
-	/*
-	 * This field is offset of firmware data sections, from the beginning
-	 * of firmware storage device.
-	 */
-	off_t firmware_data_offset[2];
-
-	/*
-	 * These pointers will point to firmware data loaded by
-	 * GetFirmwareBody().
-	 */
-	uint8_t *firmware_body[2];
 } firmware_storage_t;
 
 /* Returns 0 if success, nonzero if error. */
-int lock_down_firmware_storage(void);
+int firmware_storage_init_nand(firmware_storage_t *file);
+int firmware_storage_init_spi(firmware_storage_t *file);
+int firmware_storage_init_ram(firmware_storage_t *file, void *beg, void *end);
 
-/* Returns 0 if success, nonzero if error. */
-int init_firmware_storage(firmware_storage_t *f);
-int release_firmware_storage(firmware_storage_t *f);
-
-/* Initialize fields for talking to GetFirmwareBody(). */
-void GetFirmwareBody_setup(firmware_storage_t *f,
-		off_t firmware_data_offset_0, off_t firmware_data_offset_1);
-
-/* Dispose fields that are used for communicating with GetFirmwareBody(). */
-void GetFirmwareBody_dispose(firmware_storage_t *f);
+extern int (*const firmware_storage_init)(firmware_storage_t *file);
 
 /*
- * Read <count> bytes, starting from <offset>, from firmware storage
- * device <file> into buffer <buf>.
+ * Read/write <count> bytes, starting from <offset>, from/to firmware storage
+ * device <file> into/from buffer <buf>.
  *
  * Return 0 on success, non-zero on error.
  */
-int read_firmware_device(firmware_storage_t *file, off_t offset, void *buf,
-		size_t count);
+int firmware_storage_read(firmware_storage_t *file,
+		const off_t offset, const size_t count, void *buf);
+int firmware_storage_write(firmware_storage_t *file,
+		const off_t offset, const size_t count, const void *buf);
 
-/* Accessor to non-volatile storage: returns 0 if false, nonzero if true */
-int is_debug_reset_mode_field_containing_cookie(void);
-int is_recovery_mode_field_containing_cookie(void);
-int is_try_firmware_b_field_containing_cookie(void);
-
-/*
- * Helper function for loading GBB
- *
- * If <file> is NULL, load_gbb() will try to open firmware device itself,
- * and will close the firmware device it opened on exit.
- *
- * On success, it malloc an area for storing GBB, and returns 0.
- * On error, it returns non-zero value, and gbb_size_ptr and gbb_size_ptr are
- * untouched.
- */
-int load_gbb(firmware_storage_t *file, void **gbb_data_ptr,
-		uint64_t *gbb_size_ptr);
-
-/*
- * Load and verify rewritable firmware. A wrapper of LoadFirmware() function.
- *
- * Returns what is returned by LoadFirmware().
- *
- * For documentation of return values of LoadFirmware(), <primary_firmware>, and
- * <boot_flags>, please refer to
- * vboot_reference/firmware/include/load_firmware_fw.h
- *
- * The shared data blob for the firmware image is stored in
- * <shared_data_blob>. When pass NULL, use system default location.
- *
- * Pointer to loaded firmware is malloc()'ed and stored in <firmware_data_ptr>
- * when success. Otherwise, it is untouched.
- */
-int load_firmware_wrapper(firmware_storage_t *file,
-		int primary_firmware, int boot_flags, void *shared_data_blob,
-		uint8_t **firmware_data_ptr);
-
-#endif /* __FIRMWARE_STORAGE_H_ */
+#endif /* CHROMEOS_FIRMWARE_STORAGE_H_ */
