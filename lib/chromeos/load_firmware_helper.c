@@ -120,6 +120,7 @@ static int read_verification_block(firmware_storage_t *file,
 int load_firmware_wrapper(firmware_storage_t *file,
 		const int primary_firmware,
 		const uint64_t boot_flags,
+		VbNvContext *nvcxt,
 		void *shared_data_blob,
 		uint8_t **firmware_data_ptr)
 {
@@ -142,7 +143,6 @@ int load_firmware_wrapper(firmware_storage_t *file,
 	int status = LOAD_FIRMWARE_RECOVERY;
 	LoadFirmwareParams params;
 	get_firmware_body_internal_t gfbi;
-        VbNvContext vnc;
 
 	memset(&params, '\0', sizeof(params));
 
@@ -169,8 +169,7 @@ int load_firmware_wrapper(firmware_storage_t *file,
 		goto EXIT;
 	}
 
-        /* TODO: load vnc.raw from NV storage */
-        params.nv_context = &vnc;
+        params.nv_context = nvcxt;
 
 	params.boot_flags = boot_flags;
 	params.shared_data_blob = shared_data_blob ? shared_data_blob :
@@ -179,10 +178,6 @@ int load_firmware_wrapper(firmware_storage_t *file,
 	params.caller_internal = &gfbi;
 
 	status = LoadFirmware(&params);
-
-	if (vnc.raw_changed) {
-		/* TODO: save vnc.raw to NV storage */
-        }
 
 	if (status == LOAD_FIRMWARE_SUCCESS) {
 		debug(PREFIX "will jump to rewritable firmware %lld\n",

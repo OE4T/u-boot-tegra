@@ -16,6 +16,8 @@
 #include <linux/types.h>
 #include <chromeos/firmware_storage.h>
 
+#include <vboot_nvstorage.h>
+
 #define FIRMWARE_A		0
 #define FIRMWARE_B		1
 #define FIRMWARE_RECOVERY	2
@@ -48,6 +50,7 @@ int load_gbb(firmware_storage_t *file,
 int load_firmware_wrapper(firmware_storage_t *file,
 		const int primary_firmware,
 		const uint64_t boot_flags,
+		VbNvContext *nvcxt,
 		void *shared_data_blob,
 		uint8_t **firmware_data_ptr);
 

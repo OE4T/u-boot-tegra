@@ -21,6 +21,7 @@
 /* Verify Boot interface */
 #include <gbb_header.h>
 #include <load_firmware_fw.h>
+#include <vboot_nvstorage.h>
 #include <vboot_struct.h>
 
 #define PREFIX "cros_bootstub: "
@@ -71,7 +72,12 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	int status = LOAD_FIRMWARE_RECOVERY;
 	firmware_storage_t file;
-	int primary_firmware, boot_flags = 0;
+	VbNvContext nvcxt;
+	uint64_t boot_flags = 0;
+	uint32_t debug_reset_mode = 0;
+	uint32_t recovery_request = 0;
+	uint32_t reason = VBNV_RECOVERY_RO_UNSPECIFIED;
+	int primary_firmware;
 	uint8_t *firmware_data;
 
 	/* TODO Start initializing chipset */
@@ -85,38 +91,91 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	if (is_firmware_write_protect_gpio_asserted())
 		WARN_ON_FAILURE(file.lock_device(file.context));
 
-	WARN_ON_FAILURE(initialize_tpm());
+	if (initialize_tpm()) {
+		debug(PREFIX "init tpm failed\n");
+		reason = VBNV_RECOVERY_RO_TPM_ERROR;
+		goto RECOVERY;
+	}
 
-	if (is_s3_resume() && !is_debug_reset_mode_field_containing_cookie()) {
-		WARN_ON_FAILURE(lock_tpm());
+	if (read_nvcontext(&file, &nvcxt) ||
+			VbNvGet(&nvcxt, VBNV_DEBUG_RESET_MODE,
+				&debug_reset_mode) ||
+			VbNvGet(&nvcxt, VBNV_RECOVERY_REQUEST,
+				&recovery_request)) {
+		debug(PREFIX "fail to read nvcontext\n");
+		goto RECOVERY;
+	}
+
+	/* clear VBNV_DEBUG_RESET_MODE after read */
+	if (VbNvSet(&nvcxt, VBNV_DEBUG_RESET_MODE, 0)) {
+		debug(PREFIX "fail to write nvcontext\n");
+		goto RECOVERY;
+	}
+
+	if (is_s3_resume() && !debug_reset_mode) {
+		if (lock_tpm()) {
+			debug(PREFIX "lock tpm failed\n");
+			reason = VBNV_RECOVERY_RO_TPM_ERROR;
+			goto RECOVERY;
+		}
+
 		/* TODO Jump to S3 resume pointer and should never return */
 		return 0;
+		/* reason = VBNV_RECOVERY_RO_S3_RESUME; */
+		/* goto RECOVERY; */
 	}
 
-	if (is_recovery_mode_gpio_asserted() ||
-			is_recovery_mode_field_containing_cookie()) {
-		debug(PREFIX "boot recovery firmware\n");
-	} else {
-		if (is_try_firmware_b_field_containing_cookie())
-			primary_firmware = FIRMWARE_B;
-		else
-			primary_firmware = FIRMWARE_A;
-
-		if (is_developer_mode_gpio_asserted())
-			boot_flags |= BOOT_FLAG_DEVELOPER;
-
-		status = load_firmware_wrapper(&file,
-				primary_firmware, boot_flags, NULL,
-				&firmware_data);
+	if (recovery_request != VBNV_RECOVERY_NOT_REQUESTED) {
+		debug(PREFIX "boot recovery cookie set\n");
+		reason = recovery_request;
+		goto RECOVERY;
 	}
 
-	WARN_ON_FAILURE(lock_tpm_rewritable_firmware_index());
+	if (is_recovery_mode_gpio_asserted()) {
+		debug(PREFIX "recovery button pressed\n");
+		reason = VBNV_RECOVERY_RO_MANUAL;
+		goto RECOVERY;
+	}
+
+	/*
+	 * TODO remove primary_firmware parameter from load_firmware_wrapper
+	 * since it is no longer needed
+	 */
+	primary_firmware = FIRMWARE_A;
+
+	if (is_developer_mode_gpio_asserted())
+		boot_flags |= BOOT_FLAG_DEVELOPER;
+
+	status = load_firmware_wrapper(&file,
+			primary_firmware, boot_flags, &nvcxt, NULL,
+			&firmware_data);
+
+	if (nvcxt.raw_changed && write_nvcontext(&file, &nvcxt)) {
+		debug(PREFIX "fail to write nvcontext\n");
+		goto RECOVERY;
+        }
+
+	if (lock_tpm_rewritable_firmware_index()) {
+		debug(PREFIX "lock tpm rewritable firmware index failed\n");
+		reason = VBNV_RECOVERY_RO_TPM_ERROR;
+		goto RECOVERY;
+	}
 
 	if (status == LOAD_FIRMWARE_SUCCESS) {
 		jump_to_firmware((void (*)(void)) firmware_data);
+	} else {
+		reason = VBNV_RECOVERY_RO_INVALID_RW;
+	}
 
-		debug(PREFIX "error: should never reach here! "
-				"jump to recovery firmware\n");
+RECOVERY:
+	debug(PREFIX "write to recovery cookie\n");
+
+	if (VbNvSet(&nvcxt, VBNV_RECOVERY_REQUEST, reason) ||
+			VbNvTeardown(&nvcxt) ||
+			(nvcxt.raw_changed && write_nvcontext(&file, &nvcxt))) {
+		/* FIXME: bring up a sad face? */
+		debug(PREFIX "error: cannot write recovery cookie");
+		while (1);
 	}
 
 	debug(PREFIX "jump to recovery firmware and never return\n");
@@ -125,7 +184,7 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	WARN_ON_FAILURE(load_recovery_firmware(&file, firmware_data));
 	jump_to_firmware((void (*)(void)) firmware_data);
 
-	debug(PREFIX "error: should never reach here!\n");
+	/* never reach here */
 	return 1;
 }
 

@@ -22,10 +22,12 @@
 #include <chromeos/gbb_bmpblk.h>
 #include <chromeos/hardware_interface.h>
 #include <chromeos/os_storage.h>
+#include <chromeos/vboot_nvstorage_helper.h>
 
 #include <bmpblk_header.h>
 #include <gbb_header.h>
 #include <load_kernel_fw.h>
+#include <vboot_nvstorage.h>
 
 #define PREFIX "cros_rec: "
 
@@ -99,10 +101,12 @@ static int clear_ram_not_in_use(void)
 
 static int load_and_boot_kernel(uint8_t *load_addr, size_t load_size)
 {
+	firmware_storage_t file;
 	char *devtype;
 	int devnum;
 	uint64_t boot_flags;
 	LoadKernelParams par;
+	VbNvContext nvcxt;
 	int i, status;
 
 	devtype = getenv("devtype");
@@ -134,10 +138,42 @@ static int load_and_boot_kernel(uint8_t *load_addr, size_t load_size)
 		boot_flags |= BOOT_FLAG_DEVELOPER;
 	}
 
+	if (firmware_storage_init(&file) || read_nvcontext(&file, &nvcxt)) {
+		/*
+		 * If we fail to initialize firmware storage or fail to read
+		 * VbNvContext, we might not be able to clear the recovery
+		 * cookie. As a result, next time we will still boot recovery
+		 * firmware!
+		 */
+		debug(PREFIX "init firmware storage or clear recovery cookie "
+				"failed\n");
+	}
+
         debug(PREFIX "call load_kernel_wrapper with boot_flags: %lld\n",
 			boot_flags);
         status = load_kernel_wrapper(&par, g_gbb_base, g_gbb_size,
-			boot_flags, NULL);
+			boot_flags, &nvcxt, NULL);
+
+	/* Should only clear recovery cookie if successfully load kernel */
+	if (status == LOAD_KERNEL_SUCCESS &&
+			VbNvSet(&nvcxt, VBNV_RECOVERY_REQUEST,
+				VBNV_RECOVERY_NOT_REQUESTED)) {
+		/*
+		 * We might still boot recovery firmware next time we boot for
+		 * the same reason above.
+		 */
+		debug(PREFIX "fail to clear recovery cookie\n");
+	}
+
+	if (nvcxt.raw_changed && write_nvcontext(&file, &nvcxt)) {
+		/*
+		 * We might still boot recovery firmware next time we boot for
+		 * the same reason above.
+		 */
+		debug(PREFIX "fail to write nvcontext\n");
+	}
+
+	file.close(file.context);
 
 	switch (status) {
 	case LOAD_KERNEL_SUCCESS:
@@ -173,6 +209,7 @@ static int load_and_boot_kernel(uint8_t *load_addr, size_t load_size)
 				status);
 		return 1;
 	}
+
 	return 0;
 }
 
@@ -234,6 +271,7 @@ static int show_screen(ScreenIndex scr)
 int do_cros_rec(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	int is_mmc, is_usb;
+
 	WARN_ON_FAILURE(write_log());
 	WARN_ON_FAILURE(clear_ram_not_in_use());
 	WARN_ON_FAILURE(init_gbb_in_ram());

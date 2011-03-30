@@ -15,6 +15,7 @@
 #include <part.h>
 
 #include <load_kernel_fw.h>
+#include <vboot_nvstorage.h>
 
 /* Set boot device.
  *
@@ -45,6 +46,6 @@ uint64_t get_ending_lba(void);
  */
 int load_kernel_wrapper(LoadKernelParams *params,
 		void *gbb_data, uint64_t gbb_size, uint64_t boot_flags,
-		uint8_t *shared_data_blob);
+		VbNvContext *nvcxt, uint8_t *shared_data_blob);
 
 #endif /* __CHROMEOS_BOOT_DEVICE_IMPL_H__ */

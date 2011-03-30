@@ -11,9 +11,19 @@
 #ifndef CHROMEOS_VBOOT_NVSTORAGE_HELPER_H_
 #define CHROMEOS_VBOOT_NVSTORAGE_HELPER_H_
 
-/* Accessor to non-volatile storage: returns 0 if false, nonzero if true */
-int is_debug_reset_mode_field_containing_cookie(void);
-int is_recovery_mode_field_containing_cookie(void);
-int is_try_firmware_b_field_containing_cookie(void);
+#include <linux/types.h>
+#include <chromeos/firmware_storage.h>
+
+#include <vboot_nvstorage.h>
+
+/*
+ * Read/write non-volative storage: return zero if success, non-zero if fail.
+ *
+ * <nvram> must be at least VBNV_BLOCK_SIZE bytes.
+ *
+ * See vboot_reference/firmware/include/vboot_nvstorage.h
+ */
+int read_nvcontext(firmware_storage_t *file, VbNvContext *vnc);
+int write_nvcontext(firmware_storage_t *file, VbNvContext *vnc);
 
 #endif /* CHROMEOS_VBOOT_NVSTORAGE_HELPER_H_ */

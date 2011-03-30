@@ -26,6 +26,7 @@
 #include <gbb_header.h>
 #include <load_firmware_fw.h>
 #include <load_kernel_fw.h>
+#include <vboot_nvstorage.h>
 #include <vboot_struct.h>
 
 #define USAGE(ret, cmdtp, fmt, ...) do { \
@@ -340,6 +341,7 @@ int do_load_fw(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	uint64_t boot_flags = 0;
 	uint8_t *shared_data_blob = NULL, *firmware_data = NULL;
 	firmware_storage_t file;
+	VbNvContext nvcxt;
 	void *beg, *end;
 
 	if (argc != 5)
@@ -355,8 +357,11 @@ int do_load_fw(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	shared_data_blob = (uint8_t*) simple_strtoul(argv[4], NULL, 16);
 
+	/* TODO let user set cookie content */
+	memset(nvcxt.raw, '\0', sizeof(nvcxt.raw));
+
 	status = load_firmware_wrapper(&file, FIRMWARE_A,
-			boot_flags, shared_data_blob, &firmware_data);
+			boot_flags, &nvcxt, shared_data_blob, &firmware_data);
 
 	printf("LoadFirmware returns: ");
 	switch (status) {
@@ -386,6 +391,7 @@ int do_load_k(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	int status;
 	LoadKernelParams params;
 	firmware_storage_t file;
+	VbNvContext nvcxt;
 	int i;
 
 	if (argc != 3)
@@ -410,7 +416,7 @@ int do_load_k(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	printf("kernel_buffer:    0x%p\n", params.kernel_buffer);
 
 	status = load_kernel_wrapper(&params, params.gbb_data, params.gbb_size,
-			params.boot_flags, params.shared_data_blob);
+			params.boot_flags, &nvcxt, params.shared_data_blob);
 
 	switch (status) {
 	case LOAD_KERNEL_SUCCESS:

@@ -37,20 +37,41 @@
 #include <common.h>
 #include <chromeos/vboot_nvstorage_helper.h>
 
-int is_debug_reset_mode_field_containing_cookie(void)
+/*
+ * TODO It should averagely distributed erase/write operation to entire flash
+ * memory section allocated for VBNVCONTEXT to increase maximal lifetime.
+ *
+ * But since VbNvContext gets written infrequently enough, this is likely
+ * an overkill.
+ */
+
+#define PREFIX "vboot_nvstorage_helper: "
+
+int read_nvcontext(firmware_storage_t *file, VbNvContext *nvcxt)
 {
-	/* TODO Implement this function */
+	if (firmware_storage_read(file,
+			CONFIG_OFFSET_VBNVCONTEXT, VBNV_BLOCK_SIZE,
+			nvcxt->raw)) {
+		debug(PREFIX "read_nvcontext fail\n");
+		return -1;
+	}
+
+	if (VbNvSetup(nvcxt)) {
+		debug(PREFIX "setup nvcontext fail\n");
+		return -1;
+	}
+
 	return 0;
 }
 
-int is_recovery_mode_field_containing_cookie(void)
+int write_nvcontext(firmware_storage_t *file, VbNvContext *nvcxt)
 {
-	/* TODO Implement this function */
-	return 0;
-}
+	if (firmware_storage_write(file,
+			CONFIG_OFFSET_VBNVCONTEXT, VBNV_BLOCK_SIZE,
+			nvcxt->raw)) {
+		debug(PREFIX "write_nvcontext fail\n");
+		return -1;
+	}
 
-int is_try_firmware_b_field_containing_cookie(void)
-{
-	/* TODO Implement this function */
 	return 0;
 }

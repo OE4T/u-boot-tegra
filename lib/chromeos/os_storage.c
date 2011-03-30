@@ -158,11 +158,10 @@ int BootDeviceWriteLBA(uint64_t lba_start, uint64_t lba_count,
 
 int load_kernel_wrapper(LoadKernelParams *params,
 		void *gbb_data, uint64_t gbb_size, uint64_t boot_flags,
-		uint8_t *shared_data_blob)
+		VbNvContext *nvcxt, uint8_t *shared_data_blob)
 {
 	int status = LOAD_KERNEL_NOT_FOUND;
 	block_dev_desc_t *dev_desc;
-	VbNvContext vnc;
 
 	memset(params, '\0', sizeof(*params));
 
@@ -186,8 +185,7 @@ int load_kernel_wrapper(LoadKernelParams *params,
 	params->kernel_buffer = (uint8_t *) CONFIG_LOADADDR;
 	params->kernel_buffer_size = CONFIG_MAX_KERNEL_SIZE;
 
-        /* TODO: load vnc.raw from NV storage */
-	params->nv_context = &vnc;
+	params->nv_context = nvcxt;
 
 	debug(PREFIX "call LoadKernel() with parameters...\n");
 	debug(PREFIX "shared_data_blob:     0x%p\n",
@@ -204,10 +202,6 @@ int load_kernel_wrapper(LoadKernelParams *params,
 			(int) params->boot_flags);
 
 	status = LoadKernel(params);
-
-	if (vnc.raw_changed) {
-		/* TODO: save vnc.raw to NV storage */
-	}
 
 EXIT:
 	debug(PREFIX "LoadKernel status: %d\n", status);
