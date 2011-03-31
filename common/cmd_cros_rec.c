@@ -29,6 +29,8 @@
 #include <load_kernel_fw.h>
 #include <vboot_nvstorage.h>
 
+DECLARE_GLOBAL_DATA_PTR;
+
 #define PREFIX "cros_rec: "
 
 #ifdef VBOOT_DEBUG
@@ -46,6 +48,7 @@
 #define MMC_DEV_NUM_SD		1
 #define MMC_DEV_NUM_SD_STR	"1"
 
+/* We put EFI System Partition in partition 12 (hex:c).*/
 #define ESP_PART		0xc
 #define SCRIPT_PATH		"/u-boot/boot.scr.uimg"
 #define SCRIPT_LOAD_ADDRESS	0x8000
@@ -53,19 +56,20 @@
 #define WAIT_MS_BETWEEN_PROBING	400
 #define WAIT_MS_SHOW_ERROR	2000
 
+#define STACK_MARGIN		256
+#define MAX_EXCLUDED_REGIONS	16
+
+/* This is the data structure of the to-be-cleared memory region list. */
+struct MemRegion {
+	uint32_t start;
+	uint32_t end;
+} g_memory_region, g_excluded_regions[MAX_EXCLUDED_REGIONS];
+int g_excluded_size = 0;
+
 uint8_t *g_gbb_base = NULL;
 uint64_t g_gbb_size = 0;
 int g_is_dev = 0;
 ScreenIndex g_cur_scr = SCREEN_BLANK;
-
-static void sleep_ms(int msecond)
-{
-	const ulong start = get_timer(0);
-	const ulong delay = msecond * CONFIG_SYS_HZ / 1000;
-
-	while (!ctrlc() && get_timer(start) < delay)
-		udelay(100);
-}
 
 static int is_mmc_storage_present(void)
 {
@@ -75,6 +79,7 @@ static int is_mmc_storage_present(void)
 static int is_usb_storage_present(void)
 {
 	int i;
+
 	/* TODO: Seek a better way to probe USB instead of restart it */
 	usb_stop();
 	i = usb_init();
@@ -93,10 +98,146 @@ static int write_log(void)
 	return 0;
 }
 
-static int clear_ram_not_in_use(void)
+static uint32_t get_cur_stack_addr(void)
 {
-	/* TODO: Implement it when the memory layout is defined. */
+	uint32_t local_var;
+	uint32_t addr = (uint32_t)&local_var;
+
+	return addr;
+}
+
+/*
+ * Initializes the memory region that needs to be cleared.
+ */
+static void init_mem_region(uint32_t start, uint32_t end)
+{
+	g_memory_region.start = start;
+	g_memory_region.end = end;
+	g_excluded_size = 0;
+}
+
+/*
+ * Excludes a memory region from the to-be-cleared region.
+ * The function returns 0 on success; otherwise -1.
+ */
+static int exclude_mem_region(uint32_t start, uint32_t end)
+{
+	int i = g_excluded_size;
+
+	if (g_excluded_size >= MAX_EXCLUDED_REGIONS) {
+		debug(PREFIX "the number of excluded regions reaches"
+				"the maximum: %d\n", MAX_EXCLUDED_REGIONS);
+		return -1;
+	}
+
+	while (i > 0 && g_excluded_regions[i - 1].start > start) {
+		g_excluded_regions[i].start = g_excluded_regions[i - 1].start;
+		g_excluded_regions[i].end = g_excluded_regions[i - 1].end;
+		i--;
+	}
+	g_excluded_regions[i].start = start;
+	g_excluded_regions[i].end = end;
+	g_excluded_size++;
+
 	return 0;
+}
+
+static void zero_mem(uint32_t start, uint32_t end)
+{
+	if (end > start) {
+		debug(PREFIX "\t[0x%08x, 0x%08x)\n", start, end);
+		memset((void *)start, '\0', (size_t)(end - start));
+	}
+}
+
+/*
+ * Clears the memory not in excluded regions.
+ */
+static void clear_mem_regions(void)
+{
+	int i;
+	uint32_t addr = g_memory_region.start;
+
+	debug(PREFIX "clear memory regions:\n");
+	for (i = 0; i < g_excluded_size; ++i) {
+		zero_mem(addr, g_excluded_regions[i].start);
+		if (g_excluded_regions[i].end > addr)
+			addr = g_excluded_regions[i].end;
+	}
+	zero_mem(addr, g_memory_region.end);
+}
+
+#ifdef TEST_CLEAR_MEM_REGIONS
+static int test_clear_mem_regions(void)
+{
+	int i;
+	char s[10] = "ABCDEFGHIJ";
+	char r[10] = "\0BCDEFGH\0J";
+	uint32_t base = (uint32_t)s;
+
+	init_mem_region(base, base + 10);
+	/* Result: ---------- */
+	exclude_mem_region(base + 1, base + 2);
+	/* Result: -B-------- */
+	exclude_mem_region(base + 5, base + 7);
+	/* Result: -B---FG--- */
+	exclude_mem_region(base + 2, base + 3);
+	/* Result: -BC--FG--- */
+	exclude_mem_region(base + 9, base + 10);
+	/* Result: -BC--FG--J */
+	exclude_mem_region(base + 4, base + 6);
+	/* Result: -BC-EFG--J */
+	exclude_mem_region(base + 3, base + 5);
+	/* Result: -BCDEFG--J */
+	exclude_mem_region(base + 2, base + 8);
+	/* Result: -BCDEFGH-J */
+	clear_mem_regions();
+	for (i = 0; i < 10; ++i) {
+		if (s[i] != r[i]) {
+			debug(PREFIX "test_clear_mem_regions FAILED!\n");
+			return -1;
+		}
+	}
+	return 0;
+}
+#endif
+
+/*
+ * Clears the memory regions that the recovery firmware not used.
+ * We do that to prevent cold boot attacks.
+ */
+static void clear_ram_not_in_use(void)
+{
+	uint32_t stack_top = get_cur_stack_addr();
+
+	init_mem_region(0, PHYS_SDRAM_1_SIZE);
+
+	/* Excludes the firmware text + data + bss regions. */
+	exclude_mem_region(TEXT_BASE,
+			TEXT_BASE + (_bss_end - _armboot_start));
+
+	/* TODO: Remove the GBB exclusion when we store it in SPI flash. */
+	exclude_mem_region(TEXT_BASE + CONFIG_OFFSET_GBB,
+			TEXT_BASE + CONFIG_OFFSET_GBB + CONFIG_LENGTH_GBB);
+
+	/* Excludes the global data. */
+	exclude_mem_region((uint32_t)gd, (uint32_t)gd + sizeof(*gd));
+	exclude_mem_region((uint32_t)gd->bd,
+			(uint32_t)gd->bd + sizeof(*gd->bd));
+
+	/* Excludes the whole heap. */
+	exclude_mem_region(CONFIG_STACKBASE - CONFIG_SYS_MALLOC_LEN,
+			CONFIG_STACKBASE);
+
+	/* Excludes the used stack. Leave a margin for safe. */
+	exclude_mem_region(stack_top - STACK_MARGIN,
+			CONFIG_STACKBASE + CONFIG_STACKSIZE);
+
+	/* Excludes the framebuffer. */
+	exclude_mem_region(gd->fb_base, gd->fb_base + panel_info.vl_col *
+			panel_info.vl_row * NBITS(panel_info.vl_bpix) / 8);
+
+	clear_mem_regions();
 }
 
 static int load_and_boot_kernel(void)
@@ -126,7 +267,7 @@ static int load_and_boot_kernel(void)
                 return -1;
         }
 
-        debug(PREFIX "set_bootdev %s %x:0\n", DEVICE_TYPE, DEVICE_NUMBER);
+        debug(PREFIX "set_bootdev %s %x:0\n", devtype, devnum);
         if (set_bootdev(devtype, devnum, 0)) {
                 debug(PREFIX "set_bootdev fail\n");
                 return -1;
@@ -216,6 +357,7 @@ static int load_and_boot_kernel(void)
 static int boot_recovery_image_in_mmc(void)
 {
 	char buffer[CONFIG_SYS_CBSIZE];
+
         setenv("devtype", "mmc");
 	sprintf(buffer, "mmcblk%dp", MMC_DEV_NUM_SD);
 	setenv("devname", buffer);
@@ -273,16 +415,22 @@ int do_cros_rec(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	int is_mmc, is_usb;
 
 	WARN_ON_FAILURE(write_log());
-	WARN_ON_FAILURE(clear_ram_not_in_use());
+
+#ifdef TEST_CLEAR_MEM_REGIONS
+	test_clear_mem_regions();
+#endif
+
+	clear_ram_not_in_use();
+
 	WARN_ON_FAILURE(init_gbb_in_ram());
 
 	g_is_dev = is_developer_mode_gpio_asserted();
 
 	if (!g_is_dev) {
-		/* Wait for user to plug out SD card and USB storage device */
+		/* Wait for user to unplug SD card and USB storage device */
 		while (is_mmc_storage_present() || is_usb_storage_present()) {
 			show_screen(SCREEN_RECOVERY_MODE);
-			sleep_ms(WAIT_MS_BETWEEN_PROBING);
+			wait_ms(WAIT_MS_BETWEEN_PROBING);
 		}
 	}
 
@@ -296,7 +444,7 @@ int do_cros_rec(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			}
 			if (!is_mmc && !is_usb) {
 				show_screen(SCREEN_RECOVERY_NO_OS);
-				sleep_ms(WAIT_MS_BETWEEN_PROBING);
+				wait_ms(WAIT_MS_BETWEEN_PROBING);
 			}
 		} while (!is_mmc && !is_usb);
 
@@ -304,17 +452,17 @@ int do_cros_rec(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 		if (is_mmc) {
 			WARN_ON_FAILURE(boot_recovery_image_in_mmc());
-			/* Wait for user to plug out SD card */
+			/* Wait for user to unplug SD card */
 			do {
 				show_screen(SCREEN_RECOVERY_MISSING_OS);
-				sleep_ms(WAIT_MS_SHOW_ERROR);
+				wait_ms(WAIT_MS_SHOW_ERROR);
 			} while (is_mmc_storage_present());
 		} else if (is_usb) {
 			WARN_ON_FAILURE(boot_recovery_image_in_usb());
-			/* Wait for user to plug out USB storage device */
+			/* Wait for user to unplug USB storage device */
 			do {
 				show_screen(SCREEN_RECOVERY_MISSING_OS);
-				sleep_ms(WAIT_MS_SHOW_ERROR);
+				wait_ms(WAIT_MS_SHOW_ERROR);
 			} while (is_usb_storage_present());
 		}
 	}
