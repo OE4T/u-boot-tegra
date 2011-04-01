@@ -58,6 +58,11 @@ uint32_t TlclStubSendReceive(const uint8_t* request, int request_length,
 	ret= tis_sendrecv(request, request_length, response, &recv_len);
 	if (ret)
 		return TPM_E_IOERROR;
+#else
+	/* Make a successful response */
+	uint8_t successful_response[10] =
+			{0x0, 0x0, 0x0, 0x0, 0x0, 0xa, 0x0, 0x0, 0x0, 0x0};
+	memcpy(response, successful_response, 10);
 #endif
 	return TPM_SUCCESS;
 }
