@@ -92,6 +92,7 @@ static NS16550_t serial_ports[4] = {
 };
 
 #define PORT	serial_ports[port-1]
+#define PORTNR	(port-1)
 #if defined(CONFIG_CONS_INDEX)
 #define CONSOLE	(serial_ports[CONFIG_CONS_INDEX-1])
 #endif
@@ -219,13 +220,13 @@ _serial_puts (const char *s,const int port)
 int
 _serial_getc(const int port)
 {
-	return NS16550_getc(PORT);
+	return NS16550_getc(PORT, PORTNR);
 }
 
 int
 _serial_tstc(const int port)
 {
-	return NS16550_tstc(PORT);
+	return NS16550_tstc(PORT, PORTNR);
 }
 
 void

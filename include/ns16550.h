@@ -160,6 +160,6 @@ typedef volatile struct NS16550 *NS16550_t;
 
 void	NS16550_init   (NS16550_t com_port, int baud_divisor);
 void	NS16550_putc   (NS16550_t com_port, char c);
-char	NS16550_getc   (NS16550_t com_port);
-int	NS16550_tstc   (NS16550_t com_port);
+char	NS16550_getc   (NS16550_t regs, unsigned int port);
+int	NS16550_tstc   (NS16550_t regs, unsigned int port);
 void	NS16550_reinit (NS16550_t com_port, int baud_divisor);

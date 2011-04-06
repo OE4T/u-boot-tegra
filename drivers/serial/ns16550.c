@@ -4,11 +4,14 @@
  * modified to use CONFIG_SYS_ISA_MEM and new defines
  */
 
+#include <common.h>
 #include <config.h>
 #include <ns16550.h>
 #include <watchdog.h>
 #include <linux/types.h>
 #include <asm/io.h>
+
+DECLARE_GLOBAL_DATA_PTR;
 
 #define UART_LCRVAL UART_LCR_8N1		/* 8 data, 1 stop, no parity */
 #define UART_MCRVAL (UART_MCR_DTR | \
@@ -86,21 +89,104 @@ void NS16550_putc (NS16550_t com_port, char c)
 }
 
 #ifndef CONFIG_NS16550_MIN_FUNCTIONS
-char NS16550_getc (NS16550_t com_port)
+
+static char NS16550_raw_getc(NS16550_t regs)
 {
-	while ((serial_in(&com_port->lsr) & UART_LSR_DR) == 0) {
+	while ((serial_in(&regs->lsr) & UART_LSR_DR) == 0) {
 #ifdef CONFIG_USB_TTY
 		extern void usbtty_poll(void);
 		usbtty_poll();
 #endif
 		WATCHDOG_RESET();
 	}
-	return serial_in(&com_port->rbr);
+	return serial_in(&regs->rbr);
 }
 
-int NS16550_tstc (NS16550_t com_port)
+static int NS16550_raw_tstc(NS16550_t regs)
 {
-	return ((serial_in(&com_port->lsr) & UART_LSR_DR) != 0);
+	return ((serial_in(&regs->lsr) & UART_LSR_DR) != 0);
 }
 
+
+#ifdef CONFIG_NS16550_BUFFER_READS
+
+#define BUF_SIZE 256
+#define NUM_PORTS 4
+
+struct ns16550_priv {
+	char buf[BUF_SIZE];
+	unsigned int head, tail;
+};
+
+static struct ns16550_priv rxstate[NUM_PORTS];
+
+static void enqueue(unsigned int port, char ch)
+{
+	/* If queue is full, drop the character. */
+	if ((rxstate[port].head - rxstate[port].tail - 1) % BUF_SIZE == 0)
+		return;
+
+	rxstate[port].buf[rxstate[port].tail] = ch;
+	rxstate[port].tail = (rxstate[port].tail + 1) % BUF_SIZE;
+}
+
+static int dequeue(unsigned int port, char *ch)
+{
+	/* Empty queue? */
+	if (rxstate[port].head == rxstate[port].tail)
+		return 0;
+
+	*ch = rxstate[port].buf[rxstate[port].head];
+	rxstate[port].head = (rxstate[port].head + 1) % BUF_SIZE;
+	return 1;
+}
+
+static void fill_rx_buf(NS16550_t regs, unsigned int port)
+{
+	while ((serial_in(&regs->lsr) & UART_LSR_DR) != 0)
+		enqueue(port, serial_in(&regs->rbr));
+}
+
+char NS16550_getc(NS16550_t regs, unsigned int port)
+{
+	char ch;
+
+	if (port >= NUM_PORTS || !(gd->flags & GD_FLG_RELOC))
+		return NS16550_raw_getc(regs);
+
+	do  {
+#ifdef CONFIG_USB_TTY
+		extern void usbtty_poll(void);
+		usbtty_poll();
+#endif
+		fill_rx_buf(regs, port);
+		WATCHDOG_RESET();
+	} while (!dequeue(port, &ch));
+
+	return ch;
+}
+
+int NS16550_tstc(NS16550_t regs, unsigned int port)
+{
+	if (port >= NUM_PORTS || !(gd->flags & GD_FLG_RELOC))
+		return NS16550_raw_tstc(regs);
+
+	fill_rx_buf(regs, port);
+
+	return rxstate[port].head != rxstate[port].tail;
+}
+
+#else /* CONFIG_NS16550_BUFFER_READS */
+
+char NS16550_getc(NS16550_t regs, unsigned int port)
+{
+	return NS16550_raw_getc(regs);
+}
+
+int NS16550_tstc(NS16550_t regs, unsigned int port)
+{
+	return NS16550_raw_tstc(regs);
+}
+
+#endif /* CONFIG_NS16550_BUFFER_READS */
 #endif /* CONFIG_NS16550_MIN_FUNCTIONS */

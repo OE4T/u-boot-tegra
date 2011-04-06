@@ -2665,6 +2665,14 @@ use the "saveenv" command to store a valid environment.
 		space for already greatly restricted images, including but not
 		limited to NAND_SPL configurations.
 
+- CONFIG_NS16550_BUFFER_READS:
+		Instead of reading directly from the receive register
+		every time U-Boot is ready for another byte, keep a
+		buffer and fill it from the hardware fifo every time
+		U-Boot reads a character.  This helps U-Boot keep up with
+		a larger amount of rapid input, such as happens when
+		pasting text into the terminal.
+
 Low Level (hardware related) configuration options:
 ---------------------------------------------------
 
