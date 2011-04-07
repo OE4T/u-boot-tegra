@@ -164,6 +164,7 @@ COBJS-$(CONFIG_LYNXKDI) += lynxkdi.o
 COBJS-$(CONFIG_MODEM_SUPPORT) += modem.o
 COBJS-$(CONFIG_UPDATE_TFTP) += update.o
 COBJS-$(CONFIG_USB_KEYBOARD) += usb_kbd.o
+COBJS-$(CONFIG_BOOTSTAGE) += bootstage.o
 
 
 COBJS	:= $(sort $(COBJS-y))

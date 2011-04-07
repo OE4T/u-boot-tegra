@@ -342,6 +342,7 @@ NetLoop(proto_t protocol)
 		NetArpWaitTxPacketSize = 0;
 	}
 
+	bootstage_mark(BOOTSTAGE_ETH_START, "eth_start");
 	eth_halt();
 #ifdef CONFIG_NET_MULTI
 	eth_set_current();

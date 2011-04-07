@@ -274,6 +274,8 @@ void board_init_f (ulong bootflag)
 	gd_t *id;
 	ulong addr, addr_sp;
 
+	bootstage_mark(BOOTSTAGE_START_UBOOT, "start_armboot");
+
 	/* Pointer is writable since we allocated a register for it */
 	gd = (gd_t *) ((CONFIG_SYS_INIT_SP_ADDR) & ~0x07);
 	/* compiler optimization barrier needed for GCC >= 3.4 */

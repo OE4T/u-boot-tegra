@@ -177,6 +177,14 @@ typedef void (interrupt_handler_t)(void *);
 #endif /* CONFIG_SERIAL_MULTI */
 
 /*
+ * Return the time since boot in microseconds, This is needed for bootstage
+ * and should be defined in CPU- or board-specific code.
+ */
+unsigned long timer_get_us(void);
+
+#include <bootstage.h>
+
+/*
  * General Purpose Utilities
  */
 #define min(X, Y)				\

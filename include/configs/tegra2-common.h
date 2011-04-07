@@ -32,6 +32,8 @@
 #define CONFIG_TEGRA2			/* in a NVidia Tegra2 core */
 #define CONFIG_MACH_TEGRA_GENERIC	/* which is a Tegra generic machine */
 #define CONFIG_SYS_NO_L2CACHE		/* No L2 cache */
+#define CONFIG_BOOTSTAGE		/* Record boot time */
+#define CONFIG_BOOTSTAGE_REPORT		/* Print a boot time report */
 
 #define CONFIG_ENABLE_CORTEXA9		/* enable CPU (A9 complex) */
 
