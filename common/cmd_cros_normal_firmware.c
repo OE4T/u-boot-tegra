@@ -40,9 +40,6 @@ int do_bootm(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 #define DEVICE_NUMBER		0
 #define DEVICE_PART		0xc
 
-#define SCRIPT_PATH		"/u-boot/boot.scr.uimg"
-#define SCRIPT_LOAD_ADDRESS	0x8000
-
 /* Return 0 if success, non-zero on error */
 int initialize_drive(void)
 {
@@ -51,29 +48,14 @@ int initialize_drive(void)
 		return -1;
 	}
 
-	/*
-	 * Environment variables used by u-boot scripts in EFI partition and
-	 * kernel partition
-	 */
+	/* Environment variables used by u-boot scripts in kernel partition */
 	setenv("devtype", DEVICE_TYPE);
 	setenv("devname", DEVICE_NAME);
 	setenv("devnum",  DEVICE_NUMBER_STRING);
 
-	/* To get ${kernelpart} and other stuff from EFI partition. */
-	if (fat_fsload(DEVICE_TYPE, DEVICE_NUMBER, DEVICE_PART, SCRIPT_PATH,
-				(void*) SCRIPT_LOAD_ADDRESS, 0) < 0) {
-		debug(PREFIX "fail to load %s from %s %x:%x to 0x%08x\n",
-				SCRIPT_PATH,
-				DEVICE_TYPE, DEVICE_NUMBER, DEVICE_PART,
-				SCRIPT_LOAD_ADDRESS);
-		return -1;
-	}
-	/* FIXME Should not execute scripts in EFI partition */
-	if (source(SCRIPT_LOAD_ADDRESS, NULL)) {
-		debug(PREFIX "fail to execute script at 0x%08x\n",
-				SCRIPT_LOAD_ADDRESS);
-		return -1;
-	}
+	/* TODO move to u-boot-config */
+	run_command("setenv console console=ttyS0,115200n8", 0);
+	run_command("setenv bootargs ${console} ${platform_extras}", 0);
 
 	debug(PREFIX "set_bootdev %s %x:0\n", DEVICE_TYPE, DEVICE_NUMBER);
 	if (set_bootdev(DEVICE_TYPE, DEVICE_NUMBER, 0)) {

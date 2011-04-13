@@ -48,11 +48,6 @@ DECLARE_GLOBAL_DATA_PTR;
 #define MMC_DEV_NUM_SD		1
 #define MMC_DEV_NUM_SD_STR	"1"
 
-/* We put EFI System Partition in partition 12 (hex:c).*/
-#define ESP_PART		0xc
-#define SCRIPT_PATH		"/u-boot/boot.scr.uimg"
-#define SCRIPT_LOAD_ADDRESS	0x8000
-
 #define WAIT_MS_BETWEEN_PROBING	400
 #define WAIT_MS_SHOW_ERROR	2000
 
@@ -253,19 +248,9 @@ static int load_and_boot_kernel(void)
 	devtype = getenv("devtype");
 	devnum = (int)simple_strtoul(getenv("devnum"), NULL, 10);
 
-        /* FIXME: Should not execute scripts in EFI system partition */
-	if (fat_fsload(devtype, devnum, ESP_PART, SCRIPT_PATH,
-			(void*) SCRIPT_LOAD_ADDRESS, 0) < 0) {
-                debug(PREFIX "fail to load %s from %s %x:%x to 0x%08x\n",
-				SCRIPT_PATH, devtype, devnum,
-				ESP_PART, SCRIPT_LOAD_ADDRESS);
-                return -1;
-        }
-        if (source(SCRIPT_LOAD_ADDRESS, NULL)) {
-                debug(PREFIX "fail to execute script at 0x%08x\n",
-                                SCRIPT_LOAD_ADDRESS);
-                return -1;
-        }
+	/* TODO move to u-boot-config */
+	run_command("setenv console console=ttyS0,115200n8", 0);
+	run_command("setenv bootargs ${console} ${platform_extras}", 0);
 
         debug(PREFIX "set_bootdev %s %x:0\n", devtype, devnum);
         if (set_bootdev(devtype, devnum, 0)) {

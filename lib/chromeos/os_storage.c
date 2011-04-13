@@ -212,6 +212,18 @@ EXIT:
 				(int) params->bootloader_address);
 		debug(PREFIX "bootloader_size:    0x%08x\n",
 				(int) params->bootloader_size);
+
+		if (params->partition_number == 2) {
+			setenv("kernelpart", "2");
+			setenv("rootpart", "3");
+		} else if (params->partition_number == 4) {
+			setenv("kernelpart", "4");
+			setenv("rootpart", "5");
+		} else {
+			debug(PREFIX "unknown kernel partition: %d\n",
+					(int) params->partition_number);
+			status = LOAD_KERNEL_NOT_FOUND;
+		}
 	}
 
 	return status;
