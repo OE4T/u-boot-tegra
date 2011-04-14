@@ -37,6 +37,118 @@
 #include <common.h>
 #include <chromeos/vboot_nvstorage_helper.h>
 
+/* TODO: temporary hack for factory bring up; remove/rewrite when necessary */
+#include <mmc.h>
+#include <part.h>
+#include <linux/string.h>
+
+/*
+ * TODO: So far (2011/04/12) kernel does not have a SPI flash driver. That
+ * means kernel cannot access cookies in SPI flash. (In addition, there is
+ * an on-going discussion about the storage device for these cookies. So the
+ * final storage of the cookies might even not be SPI flash after a couple of
+ * months.) Here is a temporary workaround for factory bring up that stores
+ * the cookies in mmc device where we are certain that kernel can access.
+ */
+
+#define PREFIX "vboot_nvstorage_helper: "
+
+#define BACKUP_LBA_OFFSET 0x20
+
+uint64_t get_nvcxt_lba(void)
+{
+	int cur_dev = get_mmc_current_device();
+	block_dev_desc_t *dev_desc = NULL;
+	uint64_t nvcxt_lba;
+	uint8_t buf[512];
+
+	/* use side effect of "mmc init 0" to set current device for us */
+	if (cur_dev == -1)
+		run_command("mmc init 0", 0);
+	else if (cur_dev != 0)
+		initialize_mmc_device(0);
+
+	if ((dev_desc = get_dev("mmc", 0)) == NULL) {
+		debug(PREFIX "get_dev fail\n");
+		return ~0ULL;
+	}
+
+	if (dev_desc->block_read(dev_desc->dev, 1, 1, buf) < 0) {
+		debug(PREFIX "read primary GPT table fail\n");
+		return ~0ULL;
+	}
+
+	nvcxt_lba = 1 + *(uint64_t*) (buf + BACKUP_LBA_OFFSET);
+
+	/* restore previous device */
+	if (cur_dev != -1 && cur_dev != 0)
+		initialize_mmc_device(cur_dev);
+
+	return nvcxt_lba;
+}
+
+static int access_nvcontext(firmware_storage_t *file, VbNvContext *nvcxt,
+		int is_read)
+{
+	int cur_dev = get_mmc_current_device();
+	block_dev_desc_t *dev_desc = NULL;
+	uint64_t nvcxt_lba;
+	uint8_t buf[512];
+
+	debug(PREFIX "cur_dev: %d\n", cur_dev);
+
+	/* use side effect of "mmc init 0" to set current device for us */
+	if (cur_dev == -1)
+		run_command("mmc init 0", 0);
+	else if (cur_dev != 0)
+		initialize_mmc_device(0);
+
+	if ((dev_desc = get_dev("mmc", 0)) == NULL) {
+		debug(PREFIX "get_dev fail\n");
+		return -1;
+	}
+
+	if (dev_desc->block_read(dev_desc->dev, 1, 1, buf) < 0) {
+		debug(PREFIX "read primary GPT table fail\n");
+		return -1;
+	}
+
+	nvcxt_lba = 1 + *(uint64_t*) (buf + BACKUP_LBA_OFFSET);
+
+	if (is_read) {
+		if (dev_desc->block_read(dev_desc->dev,
+					nvcxt_lba, 1, buf) < 0) {
+			debug(PREFIX "block_read fail\n");
+			return -1;
+		}
+		memcpy(nvcxt->raw, buf, VBNV_BLOCK_SIZE);
+	} else {
+		memcpy(buf, nvcxt->raw, VBNV_BLOCK_SIZE);
+		if (dev_desc->block_write(dev_desc->dev,
+					nvcxt_lba, 1, buf) < 0) {
+			debug(PREFIX "block_write fail\n");
+			return -1;
+		}
+	}
+
+	/* restore previous device */
+	if (cur_dev != -1 && cur_dev != 0)
+		initialize_mmc_device(cur_dev);
+
+	return 0;
+}
+
+int read_nvcontext(firmware_storage_t *file, VbNvContext *nvcxt)
+{
+	return access_nvcontext(file, nvcxt, 1);
+}
+
+int write_nvcontext(firmware_storage_t *file, VbNvContext *nvcxt)
+{
+	return access_nvcontext(file, nvcxt, 0);
+}
+
+#if 0
 /*
  * TODO It should averagely distributed erase/write operation to entire flash
  * memory section allocated for VBNVCONTEXT to increase maximal lifetime.
@@ -44,8 +156,6 @@
  * But since VbNvContext gets written infrequently enough, this is likely
  * an overkill.
  */
-
-#define PREFIX "vboot_nvstorage_helper: "
 
 int read_nvcontext(firmware_storage_t *file, VbNvContext *nvcxt)
 {
@@ -75,3 +185,4 @@ int write_nvcontext(firmware_storage_t *file, VbNvContext *nvcxt)
 
 	return 0;
 }
+#endif

@@ -33,6 +33,12 @@ int initialize_mmc_device(int dev)
 	return mmc_legacy_init(dev);
 }
 
+/* TODO: temporary hack for factory bring up; remove/rewrite when necessary */
+int get_mmc_current_device(void)
+{
+	return curr_device;
+}
+
 int do_mmc (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	int dev;

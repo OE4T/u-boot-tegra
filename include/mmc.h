@@ -294,6 +294,8 @@ int initialize_mmc_device(int dev);
 int atmel_mci_init(void *regs);
 #else
 int mmc_legacy_init(int verbose);
+/* TODO: temporary hack for factory bring up; remove/rewrite when necessary */
+int get_mmc_current_device(void);
 #endif
 
 #endif /* _MMC_H_ */
