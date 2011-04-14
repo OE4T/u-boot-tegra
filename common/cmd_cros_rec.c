@@ -33,7 +33,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #define PREFIX "cros_rec: "
 
-#ifdef VBOOT_DEBUG
+#ifdef DEBUG
 #define WARN_ON_FAILURE(action) do { \
 	int return_code = (action); \
 	if (return_code != 0) \
