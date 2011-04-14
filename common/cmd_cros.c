@@ -458,7 +458,7 @@ int do_load_fw(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	/* TODO let user set cookie content */
 	memset(nvcxt.raw, '\0', sizeof(nvcxt.raw));
 
-	status = load_firmware_wrapper(&file, FIRMWARE_A,
+	status = load_firmware_wrapper(&file,
 			boot_flags, &nvcxt, shared_data_blob, &firmware_data);
 
 	printf("LoadFirmware returns: ");

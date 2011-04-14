@@ -77,7 +77,6 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	uint32_t debug_reset_mode = 0;
 	uint32_t recovery_request = 0;
 	uint32_t reason = VBNV_RECOVERY_RO_UNSPECIFIED;
-	int primary_firmware;
 	uint8_t *firmware_data;
 
 	/* TODO Start initializing chipset */
@@ -137,18 +136,11 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		goto RECOVERY;
 	}
 
-	/*
-	 * TODO remove primary_firmware parameter from load_firmware_wrapper
-	 * since it is no longer needed
-	 */
-	primary_firmware = FIRMWARE_A;
-
 	if (is_developer_mode_gpio_asserted())
 		boot_flags |= BOOT_FLAG_DEVELOPER;
 
 	status = load_firmware_wrapper(&file,
-			primary_firmware, boot_flags, &nvcxt, NULL,
-			&firmware_data);
+			boot_flags, &nvcxt, NULL, &firmware_data);
 
 	if (nvcxt.raw_changed && write_nvcontext(&file, &nvcxt)) {
 		debug(PREFIX "fail to write nvcontext\n");

@@ -103,7 +103,7 @@ static int read_verification_block(firmware_storage_t *file,
 	}
 
 	if (firmware_storage_read(file, vblock_offset, vblock_size, vblock)) {
-		debug(PREFIX "read verification block %d fail\n");
+		debug(PREFIX "read verification block fail\n");
 		free(vblock);
 		return -1;
 	}
@@ -118,51 +118,33 @@ static int read_verification_block(firmware_storage_t *file,
 #define PREFIX "load_firmware_wrapper: "
 
 int load_firmware_wrapper(firmware_storage_t *file,
-		const int primary_firmware,
 		const uint64_t boot_flags,
 		VbNvContext *nvcxt,
 		void *shared_data_blob,
 		uint8_t **firmware_data_ptr)
 {
-	/*
-	 * Offsets of verification blocks are
-	 * vblock_offset[primary_firmware][verification_block_index].
-	 *
-	 * Offsets of firmware data are
-	 * data_offset[primary_firmware][firmware_data_index].
-	 */
-	const off_t vblock_offset[2][2] = {
-		{ CONFIG_OFFSET_VBLOCK_A, CONFIG_OFFSET_VBLOCK_B },
-		{ CONFIG_OFFSET_VBLOCK_B, CONFIG_OFFSET_VBLOCK_A },
-	};
-	const off_t data_offset[2][2] = {
-		{ CONFIG_OFFSET_FW_MAIN_A, CONFIG_OFFSET_FW_MAIN_B },
-		{ CONFIG_OFFSET_FW_MAIN_B, CONFIG_OFFSET_FW_MAIN_A },
-	};
-
 	int status = LOAD_FIRMWARE_RECOVERY;
 	LoadFirmwareParams params;
 	get_firmware_body_internal_t gfbi;
 
 	memset(&params, '\0', sizeof(params));
 
-	get_firmware_body_internal_setup(&gfbi, file,
-			data_offset[primary_firmware][0],
-			data_offset[primary_firmware][1]);
+	get_firmware_body_internal_setup(&gfbi,
+			file, CONFIG_OFFSET_FW_MAIN_A, CONFIG_OFFSET_FW_MAIN_B);
 
 	if (load_gbb(file, &params.gbb_data, &params.gbb_size)) {
 		debug(PREFIX "error: read gbb fail\n");
 		goto EXIT;
 	}
 
-	if (read_verification_block(file, vblock_offset[primary_firmware][0],
+	if (read_verification_block(file, CONFIG_OFFSET_VBLOCK_A,
 				&params.verification_block_0,
 				&params.verification_size_0)) {
 		debug(PREFIX "error: read verification block 0 fail\n");
 		goto EXIT;
 	}
 
-	if (read_verification_block(file, vblock_offset[primary_firmware][1],
+	if (read_verification_block(file, CONFIG_OFFSET_VBLOCK_B,
 				&params.verification_block_1,
 				&params.verification_size_1)) {
 		debug(PREFIX "read verification block 1 fail\n");

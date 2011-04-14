@@ -37,9 +37,8 @@ int load_gbb(firmware_storage_t *file,
  *
  * Returns what is returned by LoadFirmware().
  *
- * For documentation of return values of LoadFirmware(), <primary_firmware>, and
- * <boot_flags>, please refer to
- * vboot_reference/firmware/include/load_firmware_fw.h
+ * For documentation of return values of LoadFirmware() and <boot_flags>, please
+ * refer to vboot_reference/firmware/include/load_firmware_fw.h
  *
  * The shared data blob for the firmware image is stored in
  * <shared_data_blob>. When pass NULL, use system default location.
@@ -48,7 +47,6 @@ int load_gbb(firmware_storage_t *file,
  * when success. Otherwise, <firmware_data_ptr> is untouched.
  */
 int load_firmware_wrapper(firmware_storage_t *file,
-		const int primary_firmware,
 		const uint64_t boot_flags,
 		VbNvContext *nvcxt,
 		void *shared_data_blob,
