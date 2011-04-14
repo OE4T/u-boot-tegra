@@ -24,6 +24,8 @@
 
 include $(TOPDIR)/config.mk
 
+$(shell mkdir -p $(obj)../common)
+
 LIB	= $(obj)lib$(BOARD).o
 
 COBJS	+= ../common/board.o
