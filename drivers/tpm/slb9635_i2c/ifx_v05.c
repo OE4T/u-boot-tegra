@@ -18,7 +18,28 @@
 
 int tpm_init_v05(void)
 {
-	return i2c_probe(TPM_V05_ADDR );
+	int rc;
+
+#ifdef CONFIG_INFINEON_TPM_I2C_BUS
+	if ((rc = i2c_set_bus_num(CONFIG_INFINEON_TPM_I2C_BUS))) {
+		debug("%s: fail: i2c_set_bus_num(0x%x) return %d\n", __func__,
+				CONFIG_INFINEON_TPM_I2C_BUS, rc);
+		return rc;
+	}
+#else
+#warning "No i2c bus number is configured."
+#endif
+	/* request for waking up device */
+	if ((rc = i2c_probe(TPM_V05_ADDR)) == 0)
+		return 0;
+
+	/* do the probing job */
+	if ((rc = i2c_probe(TPM_V05_ADDR)) == 0)
+		return 0;
+
+	debug("%s: fail: i2c_probe(0x%x) return %d\n", __func__,
+			TPM_V05_ADDR, rc);
+	return rc;
 }
 
 int tpm_open_v05(void)
