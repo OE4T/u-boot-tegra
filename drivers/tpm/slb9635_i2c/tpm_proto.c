@@ -103,11 +103,11 @@ typedef struct s_inf_stat_reg {
  */
 #define HUGE_BUFFER_SIZE 300
 
-#ifdef VBOOT_DEBUG
+#ifdef DEBUG
 #define vboot_debug printf
 #else
 #define vboot_debug debug
-#endif /* VBOOT_DEBUG */
+#endif /* DEBUG */
 
 #define TPM_CHECK(XACTION) do { \
 	int ret_code = XACTION; \
@@ -133,7 +133,7 @@ static uint8_t xor_checksum(const uint8_t *array, size_t len)
 static inline void tpm_i2c_debug_dump(const uint8_t *data, int dir_w,
 	size_t len)
 {
-#ifdef VBOOT_DEBUG
+#ifdef DEBUG
 	uint32_t i;
 	size_t data_len = len - DATA_START - 1;
 	printf("%c - transport header %02x %02x %02x %02x %02x\n",
@@ -147,7 +147,7 @@ static inline void tpm_i2c_debug_dump(const uint8_t *data, int dir_w,
 		printf("%02x ", data[i + DATA_START]);
 	}
 	printf("\n  - checksum         %02x\n", data[DATA_START + data_len]);
-#endif /* VBOOT_DEBUG */
+#endif /* DEBUG */
 }
 
 /* 'to' buffer must be 6 bytes more larger than 'from' byte length */
@@ -377,17 +377,17 @@ int tpm_init_v03(void)
 	i2c_set_bus_num(CONFIG_INFINEON_TPM_I2C_BUS);
 	#endif
 	ret_code = i2c_probe(INFINEON_TPM_CHIP);
-	#ifdef VBOOT_DEBUG
+	#ifdef DEBUG
 	printf("v03 probe  : %s\n", ret_code ? "N/A" : "found");
-	#endif /* VBOOT_DEBUG */
+	#endif /* DEBUG */
 	if (ret_code)
 		return ret_code;
 	ret_code = tpm_status_v03(&ready_write, &ready_read, &read_len);
-	#ifdef VBOOT_DEBUG
+	#ifdef DEBUG
 	printf("status : %d\n\tw[%c] r[%c : %u]\n", ret_code,
 	ready_write ? 'y' : 'n',
 	ready_read  ? 'y' : 'n', read_len);
-	#endif /* VBOOT_DEBUG */
+	#endif /* DEBUG */
 	if (ret_code)
 		return ret_code;
 	TPM_CHECK(tpm_prepare_write(TIMEOUT_WRITE_MS));
