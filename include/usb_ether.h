@@ -37,8 +37,9 @@
 
 struct ueth_data {
 	/* eth info */
-	struct eth_device eth_dev;		/* used with eth_register */
-	int phy_id;						/* mii phy id */
+	struct eth_device eth_dev;	/* used with eth_register */
+	int phy_id;			/* mii phy id */
+	int has_been_running;		/* 1 if we have had a link up */
 
 	/* usb info */
 	struct usb_device *pusb_dev;	/* this usb_device */

@@ -81,6 +81,7 @@
 
 #define AX_DEFAULT_RX_CTL	\
 	(AX_RX_CTL_SO | AX_RX_CTL_AB)
+#define AX_DISABLE_RX_CTL	AX_RX_CTL_AB
 
 /* GPIO 2 toggles */
 #define AX_GPIO_GPO2EN		0x10	/* GPIO2 Output enable */
@@ -307,20 +308,12 @@ static int mii_nway_restart(struct ueth_data *dev)
 	return r;
 }
 
-/*
- * Asix callbacks
- */
-static int asix_init(struct eth_device *eth, bd_t *bd)
+static int full_init(struct eth_device *eth)
 {
+	struct ueth_data *dev = (struct ueth_data *)eth->priv;
 	int embd_phy;
 	unsigned char buf[ETH_ALEN];
 	u16 rx_ctl;
-	struct ueth_data	*dev = (struct ueth_data *)eth->priv;
-	int timeout = 0;
-#define TIMEOUT_RESOLUTION 50	/* ms */
-	int link_detected;
-
-	debug("** %s()\n", __func__);
 
 	if (asix_write_gpio(dev,
 			AX_GPIO_RSE | AX_GPIO_GPO_2 | AX_GPIO_GPO2EN, 5) < 0)
@@ -392,10 +385,28 @@ static int asix_init(struct eth_device *eth, bd_t *bd)
 		debug("Write IPG,IPG1,IPG2 failed\n");
 		goto out_err;
 	}
+	return 0;
+out_err:
+	return -1;
+}
+
+/*
+ * Asix callbacks
+ */
+static int asix_init(struct eth_device *eth, bd_t *bd)
+{
+	struct ueth_data *dev = (struct ueth_data *)eth->priv;
+	int timeout = 0;
+#define TIMEOUT_RESOLUTION 50	/* ms */
+	int link_detected;
+
+	debug("** %s()\n", __func__);
+
+	if (!dev->has_been_running && full_init(eth))
+		return -1;
 
 	if (asix_write_rx_ctl(dev, AX_DEFAULT_RX_CTL) < 0)
-		goto out_err;
-
+		return -1;
 	do {
 		link_detected = asix_mdio_read(dev, dev->phy_id, MII_BMSR) &
 			BMSR_LSTATUS;
@@ -411,12 +422,11 @@ static int asix_init(struct eth_device *eth, bd_t *bd)
 			printf("done.\n");
 	} else {
 		printf("unable to connect.\n");
-		goto out_err;
+		return -1;
 	}
 
+	dev->has_been_running = 1;
 	return 0;
-out_err:
-	return -1;
 }
 
 static int asix_send(struct eth_device *eth, volatile void *packet, int length)
@@ -516,7 +526,11 @@ static int asix_recv(struct eth_device *eth)
 
 static void asix_halt(struct eth_device *eth)
 {
+	struct ueth_data *dev = (struct ueth_data *)eth->priv;
+
+	/* Disable packet reception */
 	debug("** %s()\n", __func__);
+	(void)asix_write_rx_ctl(dev, AX_DISABLE_RX_CTL);
 }
 
 /*
