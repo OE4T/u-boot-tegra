@@ -79,8 +79,6 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	uint32_t reason = VBNV_RECOVERY_RO_UNSPECIFIED;
 	uint8_t *firmware_data;
 
-	/* TODO Start initializing chipset */
-
 	if (firmware_storage_init(&file)) {
 		/* FIXME(clchiou) Bring up a sad face as boot has failed */
 		debug(PREFIX "init_firmware_storage fail\n");

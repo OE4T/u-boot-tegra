@@ -129,8 +129,6 @@ int do_cros_normal_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 	uint64_t boot_flags = 0;
 	uint32_t reason = VBNV_RECOVERY_RW_UNSPECIFIED;
 
-	/* TODO Continue initializing chipset */
-
 	if (firmware_storage_init(&file)) {
 		/*
 		 * FIXME: because we can't write to nv context, we can't even
