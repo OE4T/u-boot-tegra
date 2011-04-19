@@ -385,6 +385,15 @@ int do_nvram(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			putc(charmap[nvcxt.raw[i] & 0x0f]);
 		}
 		putc('\n');
+
+		VbNvSetup(&nvcxt);
+
+		printf("content after VbNvSetup: ");
+		for (i = 0; i < VBNV_BLOCK_SIZE; i++) {
+			putc(charmap[nvcxt.raw[i] >> 4]);
+			putc(charmap[nvcxt.raw[i] & 0x0f]);
+		}
+		putc('\n');
 	} else if (!strcmp(argv[1], "write")) {
 		if (argc != 3) {
 			printf("write requires one argument\n");
@@ -412,6 +421,16 @@ int do_nvram(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			}
 			nvcxt.raw[i] = (c << 4) + d;
 		}
+
+		nvcxt.regenerate_crc = 1;
+		VbNvTeardown(&nvcxt);
+
+		printf("content after VbNvTeardown: ");
+		for (i = 0; i < VBNV_BLOCK_SIZE; i++) {
+			putc(charmap[nvcxt.raw[i] >> 4]);
+			putc(charmap[nvcxt.raw[i] & 0x0f]);
+		}
+		putc('\n');
 
 		status = write_nvcontext(&file, &nvcxt);
 		if (status)
