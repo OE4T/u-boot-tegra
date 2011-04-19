@@ -76,7 +76,7 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	uint64_t boot_flags = 0;
 	uint32_t debug_reset_mode = 0;
 	uint32_t recovery_request = 0;
-	uint32_t reason = VBNV_RECOVERY_RO_UNSPECIFIED;
+	uint32_t reason = VBNV_RECOVERY_NOT_REQUESTED;
 	uint8_t *firmware_data;
 
 	if (firmware_storage_init(&file)) {
@@ -100,12 +100,14 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			VbNvGet(&nvcxt, VBNV_RECOVERY_REQUEST,
 				&recovery_request)) {
 		debug(PREFIX "fail to read nvcontext\n");
+		reason = VBNV_RECOVERY_US_UNSPECIFIED;
 		goto RECOVERY;
 	}
 
 	/* clear VBNV_DEBUG_RESET_MODE after read */
 	if (VbNvSet(&nvcxt, VBNV_DEBUG_RESET_MODE, 0)) {
 		debug(PREFIX "fail to write nvcontext\n");
+		reason = VBNV_RECOVERY_US_UNSPECIFIED;
 		goto RECOVERY;
 	}
 
@@ -142,6 +144,7 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	if (nvcxt.raw_changed && write_nvcontext(&file, &nvcxt)) {
 		debug(PREFIX "fail to write nvcontext\n");
+		reason = VBNV_RECOVERY_US_UNSPECIFIED;
 		goto RECOVERY;
         }
 
@@ -153,18 +156,31 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	if (status == LOAD_FIRMWARE_SUCCESS) {
 		jump_to_firmware((void (*)(void)) firmware_data);
-	} else {
-		reason = VBNV_RECOVERY_RO_INVALID_RW;
+	} else if (status == LOAD_FIRMWARE_REBOOT) {
+		reset_cpu(0);
 	}
+
+	/* assert(status == LOAD_FIRMWARE_RECOVERY) */
 
 RECOVERY:
 	debug(PREFIX "write to recovery cookie\n");
 
-	if (VbNvSet(&nvcxt, VBNV_RECOVERY_REQUEST, reason) ||
-			VbNvTeardown(&nvcxt) ||
-			(nvcxt.raw_changed && write_nvcontext(&file, &nvcxt))) {
+	if (reason != VBNV_RECOVERY_NOT_REQUESTED &&
+			VbNvSet(&nvcxt, VBNV_RECOVERY_REQUEST, reason)) {
 		/* FIXME: bring up a sad face? */
-		debug(PREFIX "error: cannot write recovery cookie");
+		debug(PREFIX "error: cannot write recovery reason\n");
+		while (1);
+	}
+
+	if (VbNvTeardown(&nvcxt)) {
+		/* FIXME: bring up a sad face? */
+		debug(PREFIX "error: cannot tear down cookie\n");
+		while (1);
+	}
+
+	if (nvcxt.raw_changed && write_nvcontext(&file, &nvcxt)) {
+		/* FIXME: bring up a sad face? */
+		debug(PREFIX "error: cannot write recovery cookie\n");
 		while (1);
 	}
 
