@@ -291,6 +291,10 @@ static int load_and_boot_kernel(void)
 		debug(PREFIX "fail to clear recovery cookie\n");
 	}
 
+	if (VbNvTeardown(&nvcxt)) {
+		debug(PREFIX "fail to tear down cookie\n");
+	}
+
 	if (nvcxt.raw_changed && write_nvcontext(&file, &nvcxt)) {
 		/*
 		 * We might still boot recovery firmware next time we boot for

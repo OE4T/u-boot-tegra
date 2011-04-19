@@ -167,6 +167,11 @@ int do_cros_normal_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 	status = load_kernel_wrapper(&params, gbb_data, gbb_size,
 			boot_flags, &nvcxt, NULL);
 
+	if (VbNvTeardown(&nvcxt)) {
+		debug(PREFIX "fail to tear down cookie\n");
+		while (1);
+	}
+
 	if (nvcxt.raw_changed && write_nvcontext(&file, &nvcxt)) {
 		/*
 		 * FIXME: because we can't write to nv context, we can't even
