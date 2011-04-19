@@ -40,6 +40,7 @@
 /* TODO: temporary hack for factory bring up; remove/rewrite when necessary */
 #include <mmc.h>
 #include <part.h>
+#include <asm/arch/nv_sdmmc.h>
 #include <linux/string.h>
 
 /*
@@ -55,71 +56,67 @@
 
 #define BACKUP_LBA_OFFSET 0x20
 
-uint64_t get_nvcxt_lba(void)
+static int set_mmc_device(int new_device_index, int *last_device_index_ptr)
 {
-	int cur_dev = get_mmc_current_device();
+	int cur_dev = mmc_get_current_dev_index();
+
+	if (cur_dev == new_device_index)
+		return 0;
+
+	if (last_device_index_ptr)
+		*last_device_index_ptr = cur_dev;
+
+	return initialize_mmc_device(new_device_index);
+}
+
+static int prepare_access_nvcontext(block_dev_desc_t **dev_desc_ptr,
+		uint64_t *nvcxt_lba_ptr)
+{
 	block_dev_desc_t *dev_desc = NULL;
-	uint64_t nvcxt_lba;
 	uint8_t buf[512];
 
-	/* use side effect of "mmc init 0" to set current device for us */
-	if (cur_dev == -1)
-		run_command("mmc init 0", 0);
-	else if (cur_dev != 0)
-		initialize_mmc_device(0);
-
-	if ((dev_desc = get_dev("mmc", 0)) == NULL) {
-		debug(PREFIX "get_dev fail\n");
-		return ~0ULL;
+	dev_desc = get_dev("mmc", 0);
+	if (dev_desc == NULL) {
+		debug(PREFIX "get_dev(0) fail\n");
+		return -1;
 	}
 
 	if (dev_desc->block_read(dev_desc->dev, 1, 1, buf) < 0) {
 		debug(PREFIX "read primary GPT table fail\n");
-		return ~0ULL;
+		return -1;
 	}
 
-	nvcxt_lba = 1 + *(uint64_t*) (buf + BACKUP_LBA_OFFSET);
-
-	/* restore previous device */
-	if (cur_dev != -1 && cur_dev != 0)
-		initialize_mmc_device(cur_dev);
-
-	return nvcxt_lba;
+	*dev_desc_ptr = dev_desc;
+	*nvcxt_lba_ptr = 1 + *(uint64_t*) (buf + BACKUP_LBA_OFFSET);
+	return 0;
 }
 
 static int access_nvcontext(firmware_storage_t *file, VbNvContext *nvcxt,
 		int is_read)
 {
-	int cur_dev = get_mmc_current_device();
-	block_dev_desc_t *dev_desc = NULL;
+	int retval = -1;
+	int last_dev;
+	block_dev_desc_t *dev_desc;
 	uint64_t nvcxt_lba;
 	uint8_t buf[512];
 
-	debug(PREFIX "cur_dev: %d\n", cur_dev);
-
-	/* use side effect of "mmc init 0" to set current device for us */
-	if (cur_dev == -1)
-		run_command("mmc init 0", 0);
-	else if (cur_dev != 0)
-		initialize_mmc_device(0);
-
-	if ((dev_desc = get_dev("mmc", 0)) == NULL) {
-		debug(PREFIX "get_dev fail\n");
+	if (set_mmc_device(0, &last_dev)) {
+		debug(PREFIX "set_mmc_device(0) fail\n");
 		return -1;
 	}
 
-	if (dev_desc->block_read(dev_desc->dev, 1, 1, buf) < 0) {
-		debug(PREFIX "read primary GPT table fail\n");
-		return -1;
-	}
+	debug(PREFIX "last_dev: %d\n", last_dev);
 
-	nvcxt_lba = 1 + *(uint64_t*) (buf + BACKUP_LBA_OFFSET);
+	if (prepare_access_nvcontext(&dev_desc, &nvcxt_lba)) {
+		debug(PREFIX "prepare_access_nvcontext fail\n");
+		goto EXIT;
+	}
 
 	if (is_read) {
 		if (dev_desc->block_read(dev_desc->dev,
 					nvcxt_lba, 1, buf) < 0) {
 			debug(PREFIX "block_read fail\n");
-			return -1;
+			goto EXIT;
 		}
 		memcpy(nvcxt->raw, buf, VBNV_BLOCK_SIZE);
 	} else {
@@ -127,15 +124,38 @@ static int access_nvcontext(firmware_storage_t *file, VbNvContext *nvcxt,
 		if (dev_desc->block_write(dev_desc->dev,
 					nvcxt_lba, 1, buf) < 0) {
 			debug(PREFIX "block_write fail\n");
-			return -1;
+			goto EXIT;
 		}
 	}
 
+	retval = 0;
+EXIT:
 	/* restore previous device */
-	if (cur_dev != -1 && cur_dev != 0)
-		initialize_mmc_device(cur_dev);
+	if (last_dev != -1)
+		set_mmc_device(last_dev, NULL);
 
-	return 0;
+	return retval;
+}
+
+uint64_t get_nvcxt_lba(void)
+{
+	int last_dev;
+	block_dev_desc_t *dev_desc;
+	uint64_t nvcxt_lba = ~0ULL;
+
+	if (set_mmc_device(0, &last_dev)) {
+		debug(PREFIX "set_mmc_device(0) fail\n");
+		return ~0ULL;
+	}
+
+	if (prepare_access_nvcontext(&dev_desc, &nvcxt_lba))
+		debug(PREFIX "prepare_access_nvcontext fail\n");
+
+	/* restore previous device */
+	if (last_dev != -1)
+		set_mmc_device(last_dev, NULL);
+
+	return nvcxt_lba;
 }
 
 int read_nvcontext(firmware_storage_t *file, VbNvContext *nvcxt)
