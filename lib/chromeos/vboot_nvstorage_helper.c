@@ -38,6 +38,7 @@
 #include <chromeos/vboot_nvstorage_helper.h>
 
 /* TODO: temporary hack for factory bring up; remove/rewrite when necessary */
+#include <fat.h>
 #include <mmc.h>
 #include <part.h>
 #include <asm/arch/nv_sdmmc.h>
@@ -54,17 +55,18 @@
 
 #define PREFIX "vboot_nvstorage_helper: "
 
-#define BACKUP_LBA_OFFSET 0x20
+#define VBNVCONTEXT_PATH "/u-boot/nvcxt.bin"
+#define EFI_PART_NUM 0xc
 
 static int set_mmc_device(int new_device_index, int *last_device_index_ptr)
 {
 	int cur_dev = mmc_get_current_dev_index();
 
-	if (cur_dev == new_device_index)
-		return 0;
-
 	if (last_device_index_ptr)
 		*last_device_index_ptr = cur_dev;
+
+	if (cur_dev == new_device_index)
+		return 0;
 
 	return initialize_mmc_device(new_device_index);
 }
@@ -86,8 +88,19 @@ static int prepare_access_nvcontext(block_dev_desc_t **dev_desc_ptr,
 		return -1;
 	}
 
+	if (fat_register_device(dev_desc, EFI_PART_NUM) != 0) {
+		debug(PREFIX "fat_register_deivce fail\n");
+		return -1;
+	}
+
+	if (file_fat_starting_lba(VBNVCONTEXT_PATH, nvcxt_lba_ptr)) {
+		debug(PREFIX "file_fat_starting_lba fail\n");
+		return -1;
+	}
+
+	debug(PREFIX "starting_lba=0x%x\n", (int) *nvcxt_lba_ptr);
+
 	*dev_desc_ptr = dev_desc;
-	*nvcxt_lba_ptr = 1 + *(uint64_t*) (buf + BACKUP_LBA_OFFSET);
 	return 0;
 }
 
@@ -131,7 +144,7 @@ static int access_nvcontext(firmware_storage_t *file, VbNvContext *nvcxt,
 	retval = 0;
 EXIT:
 	/* restore previous device */
-	if (last_dev != -1)
+	if (last_dev != -1 && last_dev != 0)
 		set_mmc_device(last_dev, NULL);
 
 	return retval;
@@ -152,7 +165,7 @@ uint64_t get_nvcxt_lba(void)
 		debug(PREFIX "prepare_access_nvcontext fail\n");
 
 	/* restore previous device */
-	if (last_dev != -1)
+	if (last_dev != -1 && last_dev != 0)
 		set_mmc_device(last_dev, NULL);
 
 	return nvcxt_lba;
