@@ -38,7 +38,6 @@
 #include <chromeos/vboot_nvstorage_helper.h>
 
 /* TODO: temporary hack for factory bring up; remove/rewrite when necessary */
-#include <fat.h>
 #include <mmc.h>
 #include <part.h>
 #include <asm/arch/nv_sdmmc.h>
@@ -54,9 +53,6 @@
  */
 
 #define PREFIX "vboot_nvstorage_helper: "
-
-#define VBNVCONTEXT_PATH "/u-boot/nvcxt.bin"
-#define EFI_PART_NUM 0xc
 
 static int set_mmc_device(int new_device_index, int *last_device_index_ptr)
 {
@@ -88,19 +84,8 @@ static int prepare_access_nvcontext(block_dev_desc_t **dev_desc_ptr,
 		return -1;
 	}
 
-	if (fat_register_device(dev_desc, EFI_PART_NUM) != 0) {
-		debug(PREFIX "fat_register_deivce fail\n");
-		return -1;
-	}
-
-	if (file_fat_starting_lba(VBNVCONTEXT_PATH, nvcxt_lba_ptr)) {
-		debug(PREFIX "file_fat_starting_lba fail\n");
-		return -1;
-	}
-
-	debug(PREFIX "starting_lba=0x%x\n", (int) *nvcxt_lba_ptr);
-
 	*dev_desc_ptr = dev_desc;
+	*nvcxt_lba_ptr = 0; /* Store cookie in MBR */
 	return 0;
 }
 
@@ -125,14 +110,14 @@ static int access_nvcontext(firmware_storage_t *file, VbNvContext *nvcxt,
 		goto EXIT;
 	}
 
-	if (is_read) {
-		if (dev_desc->block_read(dev_desc->dev,
-					nvcxt_lba, 1, buf) < 0) {
-			debug(PREFIX "block_read fail\n");
-			goto EXIT;
-		}
+	if (dev_desc->block_read(dev_desc->dev, nvcxt_lba, 1, buf) < 0) {
+		debug(PREFIX "block_read fail\n");
+		goto EXIT;
+	}
+
+	if (is_read)
 		memcpy(nvcxt->raw, buf, VBNV_BLOCK_SIZE);
-	} else {
+	else {
 		memcpy(buf, nvcxt->raw, VBNV_BLOCK_SIZE);
 		if (dev_desc->block_write(dev_desc->dev,
 					nvcxt_lba, 1, buf) < 0) {
