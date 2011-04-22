@@ -76,6 +76,7 @@ void reboot_to_recovery_mode(firmware_storage_t *file, VbNvContext *nvcxt,
 			(nvcxt->raw_changed && write_nvcontext(file, nvcxt))) {
 		/* FIXME: bring up a sad face? */
 		debug(PREFIX "error: cannot write recovery cookie");
+		printf("Please reset and press recovery button when reboot.\n");
 		while (1);
 	}
 
@@ -144,6 +145,7 @@ int do_cros_normal_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 		 * can't reboot to recovery. Bring up a sad face now?
 		 */
 		debug(PREFIX "fail to read nvcontext\n");
+		printf("Please reset and press recovery button when reboot.\n");
 		while (1);
 	}
 
@@ -178,6 +180,7 @@ int do_cros_normal_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 		 * reboot to recovery firmware! Bring up a sad face now?
 		 */
 		debug(PREFIX "fail to write nvcontext\n");
+		printf("Please reset and press recovery button when reboot.\n");
 		while (1);
         }
 

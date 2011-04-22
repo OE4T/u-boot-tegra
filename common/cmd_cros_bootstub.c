@@ -165,23 +165,27 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 RECOVERY:
 	debug(PREFIX "write to recovery cookie\n");
 
+	/*
+	 * Although writing back VbNvContext cookies may fail, we boot
+	 * recovery firmware anyway. In this way, the recovery reason
+	 * would be incorrect, but this is much better than not booting
+	 * anything.
+	 */
+
 	if (reason != VBNV_RECOVERY_NOT_REQUESTED &&
 			VbNvSet(&nvcxt, VBNV_RECOVERY_REQUEST, reason)) {
 		/* FIXME: bring up a sad face? */
 		debug(PREFIX "error: cannot write recovery reason\n");
-		while (1);
 	}
 
 	if (VbNvTeardown(&nvcxt)) {
 		/* FIXME: bring up a sad face? */
 		debug(PREFIX "error: cannot tear down cookie\n");
-		while (1);
 	}
 
 	if (nvcxt.raw_changed && write_nvcontext(&file, &nvcxt)) {
 		/* FIXME: bring up a sad face? */
 		debug(PREFIX "error: cannot write recovery cookie\n");
-		while (1);
 	}
 
 	debug(PREFIX "jump to recovery firmware and never return\n");
