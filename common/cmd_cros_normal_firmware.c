@@ -23,6 +23,7 @@
 
 #include <boot_device.h>
 #include <load_kernel_fw.h>
+#include <tlcl_stub.h>
 #include <vboot_nvstorage.h>
 #include <vboot_struct.h>
 
@@ -147,6 +148,12 @@ int do_cros_normal_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 		debug(PREFIX "fail to read nvcontext\n");
 		printf("Please reset and press recovery button when reboot.\n");
 		while (1);
+	}
+
+	if (TlclStubInit() != TPM_SUCCESS) {
+		debug(PREFIX "fail to init tpm\n");
+		reboot_to_recovery_mode(&file, &nvcxt,
+				VBNV_RECOVERY_RW_TPM_ERROR);
 	}
 
 	if (initialize_drive()) {
