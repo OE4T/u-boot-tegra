@@ -42,8 +42,14 @@ const struct tegra2_sysinfo sysinfo = {
 };
 
 #ifdef CONFIG_BOARD_EARLY_INIT_F
+
+/* Note this function is executed by the ARM7TDMI AVP. It does not return. */
+
 int board_early_init_f(void)
 {
+	/* Init UART, scratch regs, and start CPU */
+	tegra2_start();
+
 	/* Initialize periph clocks */
 	clock_init();
 
@@ -53,8 +59,6 @@ int board_early_init_f(void)
 	/* Initialize periph GPIOs */
 	gpio_init();
 
-	/* Init UART, scratch regs, and start CPU */
-	tegra2_start();
 	return 0;
 }
 #endif	/* EARLY_INIT */

@@ -43,7 +43,6 @@
 #define CONFIG_DISPLAY_CPUINFO
 #define CONFIG_DISPLAY_BOARDINFO
 
-#define CONFIG_SKIP_RELOCATE_UBOOT
 #define CONFIG_SKIP_LOWLEVEL_INIT
 
 #define CONFIG_CMDLINE_TAG		/* enable passing of ATAGs */
@@ -103,6 +102,7 @@
 #define CONFIG_USB_EHCI_TXFIFO_THRESH	10
 
 #define CONFIG_EHCI_IS_TDI
+#define CONFIG_EHCI_DCACHE
 #define CONFIG_USB_STORAGE
 
 #define CONFIG_CMD_USB		/* USB Host support		*/
@@ -125,6 +125,8 @@
 #undef CONFIG_CMD_IMI
 #undef CONFIG_CMD_IMLS
 #undef CONFIG_CMD_NFS		/* NFS support */
+
+#define CONFIG_CMD_CACHE
 
 /*
  * Ethernet support

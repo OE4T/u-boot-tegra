@@ -24,5 +24,8 @@
 # MA 02111-1307 USA
 #
 
-# Use ARMv4 for Tegra2 - initial code runs on the AVP, which is an ARM7TDI.
-PLATFORM_CPPFLAGS += -march=armv4
+# The AVP is an ARM7TDMI and this runs first, so some of the code must be
+# ARMv4T compliant. But if we are careful we can avoid newer instructions.
+# We could enhance the makefiles to support multiple architectures in the
+# same build.
+PLATFORM_CPPFLAGS += -march=armv7-a

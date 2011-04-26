@@ -59,7 +59,7 @@ void s_init(void)
 #ifndef CONFIG_ICACHE_OFF
 	icache_enable();
 #endif
-	invalidate_dcache();
+	invalidate_dcache_all();
 }
 
 int dram_init(void)

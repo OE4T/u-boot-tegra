@@ -164,9 +164,11 @@ static void enable_cpu_power_rail(void)
 	 * The TI PMU65861C needs a 3.75ms delay between enabling
 	 * the power rail and enabling the CPU clock.  This delay
 	 * between SM1EN and SM1 is for switching time + the ramp
-	 * up of the voltage to the CPU (VDD_CPU from PMU).
+	 * up of the voltage to the CPU (VDD_CPU from PMU). We use 0xf00 as
+	 * is is ARM-friendly (can fit in a single ARMv4T mov immmediate
+	 * instruction).
 	 */
-	udelay(3750);
+	udelay(3840);
 }
 
 static void reset_A9_cpu(int reset)

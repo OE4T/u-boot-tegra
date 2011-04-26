@@ -28,8 +28,6 @@ struct tegra2_sysinfo {
 	char *board_string;
 };
 
-void invalidate_dcache(void);
-
 extern const struct tegra2_sysinfo sysinfo;
 
 #endif
