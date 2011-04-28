@@ -24,6 +24,7 @@
 #include <common.h>
 #include <ns16550.h>
 #include <asm/io.h>
+#include <asm/arch/bitfield.h>
 #include <asm/arch/tegra2.h>
 #include <asm/arch/sys_proto.h>
 
@@ -78,20 +79,20 @@ static void clock_init_uart(void)
 	u32 reg;
 
 	reg = readl(&pll->pll_base);
-	if (!(reg & PLL_BASE_OVRRIDE_BIT)) {
+	if (!(reg & bf_mask(PLL_BASE_OVRRIDE))) {
 		/* Override pllp setup for 216MHz operation. */
-		reg = (PLL_BYPASS_BIT | PLL_BASE_OVRRIDE_BIT | PLL_DIVP_VALUE);
-		reg |= (((NVRM_PLLP_FIXED_FREQ_KHZ/500) << 8) | PLL_DIVM_VALUE);
+		reg = bf_mask(PLL_BYPASS) | bf_mask(PLL_BASE_OVRRIDE) |
+			bf_pack(PLL_DIVP, 1) | bf_pack(PLL_DIVM, 0xc);
+		reg |= bf_pack(PLL_DIVN, NVRM_PLLP_FIXED_FREQ_KHZ / 500);
 		writel(reg, &pll->pll_base);
 
-		reg |= PLL_ENABLE_BIT;
+		reg |= bf_mask(PLL_ENABLE);
 		writel(reg, &pll->pll_base);
 
-		reg &= ~PLL_BYPASS_BIT;
+		reg &= ~bf_mask(PLL_BYPASS);
 		writel(reg, &pll->pll_base);
 	}
 
-	/* Now do the UART reset/clock enable */
 #if defined(CONFIG_TEGRA2_ENABLE_UARTA)
 	/* Assert UART reset and enable clock */
 	reset_set_enable(PERIPH_ID_UART1, 1);
