@@ -183,7 +183,7 @@ stack_setup:
 
 	adr	r0, _start
 #ifndef CONFIG_PRELOADER
-	cmp	r0, r6
+	subs	r9, r6, r0		/* r9 <- relocation offset */
 	beq	clear_bss		/* skip relocation */
 #endif
 	mov	r1, r6			/* r1 <- scratch for copy_loop */
