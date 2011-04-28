@@ -28,6 +28,7 @@
 #include <asm/arch/sys_proto.h>
 
 #include <asm/arch/clk_rst.h>
+#include <asm/arch/clock.h>
 #include <asm/arch/pinmux.h>
 #include <asm/arch/uart.h>
 #include "board.h"
@@ -73,33 +74,28 @@ int timer_init(void)
 static void clock_init_uart(void)
 {
 	struct clk_rst_ctlr *clkrst = (struct clk_rst_ctlr *)NV_PA_CLK_RST_BASE;
+	struct clk_pll *pll = &clkrst->crc_pll[CLOCK_PLL_ID_PERIPH];
 	u32 reg;
 
-	reg = readl(&clkrst->crc_pllp_base);
-	if (!(reg & PLL_BASE_OVRRIDE)) {
+	reg = readl(&pll->pll_base);
+	if (!(reg & PLL_BASE_OVRRIDE_BIT)) {
 		/* Override pllp setup for 216MHz operation. */
-		reg = (PLL_BYPASS | PLL_BASE_OVRRIDE | PLL_DIVP);
-		reg |= (((NVRM_PLLP_FIXED_FREQ_KHZ/500) << 8) | PLL_DIVM);
-		writel(reg, &clkrst->crc_pllp_base);
+		reg = (PLL_BYPASS_BIT | PLL_BASE_OVRRIDE_BIT | PLL_DIVP_VALUE);
+		reg |= (((NVRM_PLLP_FIXED_FREQ_KHZ/500) << 8) | PLL_DIVM_VALUE);
+		writel(reg, &pll->pll_base);
 
-		reg |= PLL_ENABLE;
-		writel(reg, &clkrst->crc_pllp_base);
+		reg |= PLL_ENABLE_BIT;
+		writel(reg, &pll->pll_base);
 
-		reg &= ~PLL_BYPASS;
-		writel(reg, &clkrst->crc_pllp_base);
+		reg &= ~PLL_BYPASS_BIT;
+		writel(reg, &pll->pll_base);
 	}
 
 	/* Now do the UART reset/clock enable */
 #if defined(CONFIG_TEGRA2_ENABLE_UARTA)
-	/* Assert Reset to UART */
-	reg = readl(&clkrst->crc_rst_dev_l);
-	reg |= SWR_UARTA_RST;		/* SWR_UARTA_RST = 1 */
-	writel(reg, &clkrst->crc_rst_dev_l);
-
-	/* Enable clk to UART */
-	reg = readl(&clkrst->crc_clk_out_enb_l);
-	reg |= CLK_ENB_UARTA;		/* CLK_ENB_UARTA = 1 */
-	writel(reg, &clkrst->crc_clk_out_enb_l);
+	/* Assert UART reset and enable clock */
+	reset_set_enable(PERIPH_ID_UART1, 1);
+	clock_enable(PERIPH_ID_UART1);
 
 	/* Enable pllp_out0 to UART */
 	reg = readl(&clkrst->crc_clk_src_uarta);
@@ -110,20 +106,12 @@ static void clock_init_uart(void)
 	udelay(2);
 
 	/* De-assert reset to UART */
-	reg = readl(&clkrst->crc_rst_dev_l);
-	reg &= ~SWR_UARTA_RST;		/* SWR_UARTA_RST = 0 */
-	writel(reg, &clkrst->crc_rst_dev_l);
+	reset_set_enable(PERIPH_ID_UART1, 0);
 #endif	/* CONFIG_TEGRA2_ENABLE_UARTA */
 #if defined(CONFIG_TEGRA2_ENABLE_UARTD)
-	/* Assert Reset to UART */
-	reg = readl(&clkrst->crc_rst_dev_u);
-	reg |= SWR_UARTD_RST;		/* SWR_UARTD_RST = 1 */
-	writel(reg, &clkrst->crc_rst_dev_u);
-
-	/* Enable clk to UART */
-	reg = readl(&clkrst->crc_clk_out_enb_u);
-	reg |= CLK_ENB_UARTD;		/* CLK_ENB_UARTD = 1 */
-	writel(reg, &clkrst->crc_clk_out_enb_u);
+	/* Assert UART reset and enable clock */
+	reset_set_enable(PERIPH_ID_UART4, 1);
+	clock_enable(PERIPH_ID_UART4);
 
 	/* Enable pllp_out0 to UART */
 	reg = readl(&clkrst->crc_clk_src_uartd);
@@ -134,9 +122,7 @@ static void clock_init_uart(void)
 	udelay(2);
 
 	/* De-assert reset to UART */
-	reg = readl(&clkrst->crc_rst_dev_u);
-	reg &= ~SWR_UARTD_RST;		/* SWR_UARTD_RST = 0 */
-	writel(reg, &clkrst->crc_rst_dev_u);
+	reset_set_enable(PERIPH_ID_UART4, 0);
 #endif	/* CONFIG_TEGRA2_ENABLE_UARTD */
 }
 
