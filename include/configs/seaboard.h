@@ -43,4 +43,14 @@
 #define CONFIG_BOARD_EARLY_INIT_F
 #define CONFIG_TEGRA2_GPIO
 #define CONFIG_CMD_TEGRA2_GPIO_INFO
+
+/* To select the order in which U-Boot sees USB ports */
+#define CONFIG_TEGRA2_USB0	NV_PA_USB3_BASE
+#define CONFIG_TEGRA2_USB1	NV_PA_USB1_BASE
+#define CONFIG_TEGRA2_USB2	0
+#define CONFIG_TEGRA2_USB3	0
+
+/* Put USB1 in host mode */
+#define CONFIG_TEGRA2_USB1_HOST
+
 #endif /* __CONFIG_H */

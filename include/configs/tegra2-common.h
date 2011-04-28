@@ -83,6 +83,36 @@
 #define CONFIG_SYS_BAUDRATE_TABLE	{4800, 9600, 19200, 38400, 57600,\
 					115200}
 
+
+/*
+ * USB Host.
+ */
+#define CONFIG_USB_EHCI
+#define CONFIG_USB_EHCI_TEGRA
+#define CONFIG_USB_CONTROLLER_INSTANCES	2
+
+/* Tegra2 requires USB buffers to be aligned to a word boundary */
+#define CONFIG_USB_EHCI_DATA_ALIGN	4
+
+/*
+ * This parameter affects a TXFILLTUNING field that controls how much data is
+ * sent to the latency fifo before it is sent to the wire. Without this
+ * parameter, the default (2) causes occasional Data Buffer Errors in OUT
+ * packets depending on the buffer address and size.
+ */
+#define CONFIG_USB_EHCI_TXFIFO_THRESH	10
+
+#define CONFIG_EHCI_IS_TDI
+#define CONFIG_USB_STORAGE
+
+#define CONFIG_CMD_USB		/* USB Host support		*/
+
+/* partition types and file systems we want */
+#define CONFIG_DOS_PARTITION
+#define CONFIG_EFI_PARTITION
+#define CONFIG_CMD_EXT2
+
+
 /* include default commands */
 #include <config_cmd_default.h>
 

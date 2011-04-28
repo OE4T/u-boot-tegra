@@ -247,6 +247,13 @@ static int ehci_reset(void)
 #endif
 		ehci_writel(reg_ptr, tmp);
 	}
+
+#ifdef CONFIG_USB_EHCI_TXFIFO_THRESH
+	cmd = ehci_readl(&hcor->or_txfilltuning);
+	cmd &= ~TXFIFO_THRESH(0x3f);
+	cmd |= TXFIFO_THRESH(CONFIG_USB_EHCI_TXFIFO_THRESH);
+	ehci_writel(&hcor->or_txfilltuning, cmd);
+#endif
 out:
 	return ret;
 }
@@ -322,6 +329,27 @@ ehci_submit_async(struct usb_device *dev, unsigned long pipe, void *buffer,
 	int timeout;
 	int ret = 0;
 
+#ifdef CONFIG_USB_EHCI_DATA_ALIGN
+	/* In case ehci host requires alignment for buffers */
+	void *align_buf = NULL;
+	void *orig_buf = buffer;
+	int unaligned = ((int)buffer & (CONFIG_USB_EHCI_DATA_ALIGN - 1)) != 0;
+
+	if (unaligned) {
+		align_buf = malloc(length + CONFIG_USB_EHCI_DATA_ALIGN);
+		if (!align_buf)
+			return -1;
+		if ((int)align_buf & (CONFIG_USB_EHCI_DATA_ALIGN - 1))
+			buffer = (void *)((int)align_buf +
+				CONFIG_USB_EHCI_DATA_ALIGN -
+				((int)align_buf &
+					(CONFIG_USB_EHCI_DATA_ALIGN - 1)));
+		else
+			buffer = align_buf;
+		if (usb_pipeout(pipe))
+			memcpy(buffer, orig_buf, length);
+	}
+#endif
 	debug("dev=%p, pipe=%lx, buffer=%p, length=%d, req=%p\n", dev, pipe,
 	      buffer, length, req);
 	if (req != NULL)
@@ -514,9 +542,20 @@ ehci_submit_async(struct usb_device *dev, unsigned long pipe, void *buffer,
 		      ehci_readl(&hcor->or_portsc[1]));
 	}
 
+#ifdef CONFIG_USB_EHCI_DATA_ALIGN
+	if (unaligned) {
+	 	if (usb_pipein(pipe) && dev->act_len)
+			memcpy(orig_buf, buffer, length);
+		free(align_buf);
+	}
+#endif
 	return (dev->status != USB_ST_NOT_PROC) ? 0 : -1;
 
 fail:
+#ifdef CONFIG_USB_EHCI_DATA_ALIGN
+	if (unaligned)
+		free(align_buf);
+#endif
 	td = (void *)hc32_to_cpu(qh->qh_overlay.qt_next);
 	while (td != (void *)QT_NEXT_TERMINATE) {
 		qh->qh_overlay.qt_next = td->qt_next;

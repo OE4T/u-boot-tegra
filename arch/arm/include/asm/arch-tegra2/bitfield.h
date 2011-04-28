@@ -124,7 +124,7 @@
  * readl/writel
  */
 #define bf_writel(field, value, reg) ({		\
-	u32 __reg = (reg);				\
+	u32 *__reg = (u32 *)(reg);			\
 	u32 __oldval = readl(__reg); 			\
 	bf_update(field, __oldval, value);		\
 	writel(__oldval, __reg);				\

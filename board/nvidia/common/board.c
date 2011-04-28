@@ -32,6 +32,7 @@
 #include <asm/arch/clock.h>
 #include <asm/arch/pinmux.h>
 #include <asm/arch/uart.h>
+#include <asm/arch/usb.h>
 #include "board.h"
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -190,6 +191,10 @@ int board_init(void)
 	gd->bd->bi_boot_params = (NV_PA_SDRAM_BASE + 0x100);
 	/* board id for Linux */
 	gd->bd->bi_arch_number = CONFIG_MACH_TYPE;
+
+#ifdef CONFIG_USB_EHCI_TEGRA
+	board_usb_init();
+#endif
 
 	return 0;
 }
