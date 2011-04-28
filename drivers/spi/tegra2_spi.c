@@ -24,8 +24,10 @@
 #include <common.h>
 
 #include <malloc.h>
+#include <ns16550.h> /* for NS16550_drain and NS16550_clear */
 #include <spi.h>
 #include <asm/io.h>
+#include <asm/arch/bitfield.h>
 #include <asm/arch/clk_rst.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/gpio.h>
@@ -114,20 +116,17 @@ void spi_init(void)
 	debug("spi_init: COMMAND = %08x\n", readl(&spi->command));
 
 	/*
-	 * SPI pins on Tegra2 are muxed - change pinmux last due to UART issue
+	 * SPI pins on Tegra2 are muxed - change pinmux last due to UART
+	 * issue. GMD_SEL [31:30] = (3) SFLASH
 	 */
-	reg = readl(&pmt->pmt_ctl_c);
-	reg |= GMD_SEL_SFLASH;		/* GMD_SEL [31:30] = (3) SFLASH */
-	writel(reg, &pmt->pmt_ctl_c);
-	debug("spi_init: PinMuxRegC = %08x\n", reg);
+	bf_writel(GMD_SEL_SFLASH, 3, &pmt->pmt_ctl_c);
 
 	pinmux_tristate_disable(PIN_LSPI);
 
 	/*
 	 * NOTE:
 	 * Don't set PinMux bits 3:2 to SPI here or subsequent UART data
-	 * won't go out! It'll be correctly set in the actual SPI driver
-	 * before/after any transactions (cs_activate/_deactivate).
+	 * won't go out! It'll be correctly set in seaboard_switch_spi_uart().
 	 */
 }
 
@@ -138,64 +137,34 @@ int spi_claim_bus(struct spi_slave *slave)
 
 void spi_release_bus(struct spi_slave *slave)
 {
+	/*
+	 * We can't release UART_DISABLE and set pinmux to UART4 here since
+	 * some code (e,g, spi_flash_probe) uses printf() while the SPI
+	 * bus is held. That is arguably bad, but it has the advantage of
+	 * already being in the source tree.
+	 */
 }
 
 void spi_cs_activate(struct spi_slave *slave)
 {
-	struct pmux_tri_ctlr *pmt = (struct pmux_tri_ctlr *)NV_PA_APB_MISC_BASE;
 	struct spi_tegra *spi = (struct spi_tegra *)TEGRA2_SPI_BASE;
 	u32 val;
 
-	/*
-	 * Delay here to clean up comms - spurious chars seen around SPI xfers.
-	 * Fine-tune later.
-	 */
-	udelay(1000);
-
-	/* We need to dynamically change the pinmux, shared w/UART RXD/CTS */
-	val = readl(&pmt->pmt_ctl_b);
-	val |= GMC_SEL_SFLASH;		/* GMC_SEL [3:2] = (3) SFLASH */
-	writel(val, &pmt->pmt_ctl_b);
-
-	/*
-	 * On Seaboard, MOSI/MISO are shared w/UART.
-	 * Use GPIO I3 (UART_DISABLE) to tristate UART during SPI activity.
-	 * Enable UART later (cs_deactivate) so we can use it for U-Boot comms.
-	 */
-	gpio_direction_output(UART_DISABLE_GPIO, 1);
+	seaboard_switch_spi_uart(SWITCH_SPI);
 
 	/* CS is negated on Tegra, so drive a 1 to get a 0 */
 	val = readl(&spi->command);
-	writel((val |= SPI_CMD_CS_VAL), &spi->command);
+	writel(val | SPI_CMD_CS_VAL, &spi->command);
 }
 
 void spi_cs_deactivate(struct spi_slave *slave)
 {
-	struct pmux_tri_ctlr *pmt = (struct pmux_tri_ctlr *)NV_PA_APB_MISC_BASE;
 	struct spi_tegra *spi = (struct spi_tegra *)TEGRA2_SPI_BASE;
 	u32 val;
 
-	/*
-	 * Delay here to clean up comms - spurious chars seen around SPI xfers.
-	 * Fine-tune later.
-	 */
-	udelay(1000);
-
-	/* We need to dynamically change the pinmux, shared w/UART RXD/CTS */
-	val = readl(&pmt->pmt_ctl_b);
-	val &= ~GMC_SEL_SFLASH;		/* GMC_SEL [3:2] = (0) UARTD */
-	writel(val, &pmt->pmt_ctl_b);
-
-	/*
-	 * On Seaboard, MOSI/MISO are shared w/UART.
-	 * GPIO I3 (UART_DISABLE) is used to tristate UART in cs_activate.
-	 * Enable UART here by setting that GPIO to 0 so we can do U-Boot comms.
-	 */
-	gpio_direction_output(UART_DISABLE_GPIO, 0);
-
 	/* CS is negated on Tegra, so drive a 0 to get a 1 */
 	val = readl(&spi->command);
-	writel((val &= ~SPI_CMD_CS_VAL), &spi->command);
+	writel(val & ~SPI_CMD_CS_VAL, &spi->command);
 }
 
 int spi_xfer(struct spi_slave *slave, unsigned int bitlen, const void *dout,
@@ -235,7 +204,8 @@ int spi_xfer(struct spi_slave *slave, unsigned int bitlen, const void *dout,
 		}
 
 		num_bytes -= bytes;
-		dout     += bytes;
+		if (dout)
+			dout     += bytes;
 		bitlen   -= bits;
 
 		reg = readl(&spi->command);
@@ -281,10 +251,17 @@ int spi_xfer(struct spi_slave *slave, unsigned int bitlen, const void *dout,
 
 				/* swap bytes read in */
 				if (din != NULL) {
+					for (i = bytes - 1; i >= 0; --i) {
+						((u8 *)din)[i] =
+							(tmpdin & 0xff);
+						tmpdin >>= 8;
+					}
+/* this is not the same!
 					for (i = 0; i < bytes; ++i) {
 						((u8 *)din)[i] = (tmpdin >> 24);
 						tmpdin <<= 8;
 					}
+*/
 					din += bytes;
 				}
 			}

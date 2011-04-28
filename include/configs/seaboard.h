@@ -36,6 +36,11 @@
 #define CONFIG_SERIAL_MULTI
 #define CONFIG_TEGRA2_ENABLE_UARTD
 #define CONFIG_SYS_NS16550_COM1		NV_PA_APB_UARTD_BASE
+#define CONFIG_NS16550_BUFFER_READS
+
+/* Seaboard SPI activity corrupts the first UART */
+#define CONFIG_SPI_CORRUPTS_UART	NV_PA_APB_UARTD_BASE
+#define CONFIG_SPI_CORRUPTS_UART_NR	0
 
 #define CONFIG_MACH_TYPE		MACH_TYPE_SEABOARD
 #define CONFIG_SYS_BOARD_ODMDATA	0x300d8011 /* lp1, 1GB */
@@ -66,6 +71,26 @@
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	CONFIG_EXTRA_ENV_SETTINGS_COMMON \
 	"board=seaboard\0" \
+
+/* On Seaboard: GPIO_PI3 = Port I = 8, bit = 3 */
+#define UART_DISABLE_GPIO	GPIO_PI3
+
+#if defined(CONFIG_SPI_CORRUPTS_UART) && !defined(__ASSEMBLY__)
+
+/* position of the UART/SPI select switch */
+enum spi_uart_switch {
+	SWITCH_UNKNOWN,
+	SWITCH_SPI,
+	SWITCH_UART
+};
+
+/* Move the SPI/UART switch - we can only use one at a time! */
+void seaboard_switch_spi_uart(enum spi_uart_switch new_pos);
+
+static inline void uart_enable(void) { seaboard_switch_spi_uart(SWITCH_UART); }
+static inline void spi_enable(void) { seaboard_switch_spi_uart(SWITCH_SPI); }
+
+#endif
 
 
 #endif /* __CONFIG_H */

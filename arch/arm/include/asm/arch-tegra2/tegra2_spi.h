@@ -70,8 +70,8 @@ struct spi_tegra {
 #define SPI_STAT_SEL_TXRX_N	(1 << 16)
 #define SPI_STAT_CUR_BLKCNT	(1 << 15)
 
-#define GMD_SEL_SFLASH		(3 << 30)
-#define GMC_SEL_SFLASH		(3 << 2)
+#define GMD_SEL_SFLASH_RANGE	31 : 30
+#define GMC_SEL_SFLASH_RANGE	3 : 2
 
 #define SPI_TIMEOUT	1000
 

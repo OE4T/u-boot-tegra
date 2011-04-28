@@ -6,6 +6,7 @@
 
 #include <common.h>
 #include <config.h>
+#include <common.h>
 #include <ns16550.h>
 #include <watchdog.h>
 #include <linux/types.h>
@@ -30,6 +31,16 @@ DECLARE_GLOBAL_DATA_PTR;
 #ifndef CONFIG_SYS_NS16550_IER
 #define CONFIG_SYS_NS16550_IER  0x00
 #endif /* CONFIG_SYS_NS16550_IER */
+
+/*
+ * Signal that we are about to use the UART. This unfortunate hack is
+ * required by Seaboard, which cannot use its console and SPI at the same
+ * time. If the board file provides this, the board config will declare it.
+ * Let this be a lesson for others.
+ */
+#ifndef CONFIG_SPI_CORRUPTS_UART
+inline void uart_enable(void) {}
+#endif
 
 void NS16550_init (NS16550_t com_port, int baud_divisor)
 {
@@ -71,10 +82,12 @@ void NS16550_reinit (NS16550_t com_port, int baud_divisor)
 	serial_out((baud_divisor >> 8) & 0xff, &com_port->dlm);
 	serial_out(UART_LCRVAL, &com_port->lcr);
 }
+
 #endif /* CONFIG_NS16550_MIN_FUNCTIONS */
 
 void NS16550_putc (NS16550_t com_port, char c)
 {
+	uart_enable();
 	while ((serial_in(&com_port->lsr) & UART_LSR_THRE) == 0);
 	serial_out(c, &com_port->thr);
 
@@ -92,6 +105,7 @@ void NS16550_putc (NS16550_t com_port, char c)
 
 static char NS16550_raw_getc(NS16550_t regs)
 {
+	uart_enable();
 	while ((serial_in(&regs->lsr) & UART_LSR_DR) == 0) {
 #ifdef CONFIG_USB_TTY
 		extern void usbtty_poll(void);
@@ -106,7 +120,6 @@ static int NS16550_raw_tstc(NS16550_t regs)
 {
 	return ((serial_in(&regs->lsr) & UART_LSR_DR) != 0);
 }
-
 
 #ifdef CONFIG_NS16550_BUFFER_READS
 
@@ -185,8 +198,37 @@ char NS16550_getc(NS16550_t regs, unsigned int port)
 
 int NS16550_tstc(NS16550_t regs, unsigned int port)
 {
+	uart_enable();
 	return NS16550_raw_tstc(regs);
 }
 
 #endif /* CONFIG_NS16550_BUFFER_READS */
+
+/* Clear the UART's RX FIFO */
+
+void NS16550_clear(NS16550_t regs, unsigned port)
+{
+	/* Reset RX fifo */
+	serial_out(UART_FCR_FIFO_EN | UART_FCR_RXSR, &regs->fcr);
+
+	/* Remove any pending characters */
+	while (NS16550_raw_tstc(regs))
+		NS16550_raw_getc(regs);
+}
+
+/* Wait for the UART's output buffer and holding register to drain */
+
+void NS16550_drain(NS16550_t regs, unsigned port)
+{
+	u32 mask = UART_LSR_TEMT | UART_LSR_THRE;
+
+	/* Wait for the UART to finish sending */
+	while ((serial_in(&regs->lsr) & mask) != mask)
+		udelay(100);
+#ifdef CONFIG_NS16550_BUFFER_READS
+	/* Quickly grab any incoming data while we can */
+	fill_rx_buf(regs, port);
+#endif
+}
+
 #endif /* CONFIG_NS16550_MIN_FUNCTIONS */

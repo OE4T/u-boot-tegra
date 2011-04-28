@@ -163,3 +163,5 @@ void	NS16550_putc   (NS16550_t com_port, char c);
 char	NS16550_getc   (NS16550_t regs, unsigned int port);
 int	NS16550_tstc   (NS16550_t regs, unsigned int port);
 void	NS16550_reinit (NS16550_t com_port, int baud_divisor);
+void    NS16550_clear(NS16550_t regs, unsigned port);
+void    NS16550_drain(NS16550_t regs, unsigned port);
