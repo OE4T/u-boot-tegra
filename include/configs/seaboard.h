@@ -53,4 +53,9 @@
 /* Put USB1 in host mode */
 #define CONFIG_TEGRA2_USB1_HOST
 
+#define CONFIG_EXTRA_ENV_SETTINGS \
+	CONFIG_EXTRA_ENV_SETTINGS_COMMON \
+	"board=seaboard\0" \
+
+
 #endif /* __CONFIG_H */

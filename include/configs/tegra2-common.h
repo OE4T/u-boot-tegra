@@ -112,6 +112,9 @@
 #define CONFIG_EFI_PARTITION
 #define CONFIG_CMD_EXT2
 
+/* support USB ethernet adapters */
+#define CONFIG_USB_HOST_ETHER
+#define CONFIG_USB_ETHER_ASIX
 
 /* include default commands */
 #include <config_cmd_default.h>
@@ -122,7 +125,37 @@
 #undef CONFIG_CMD_IMI
 #undef CONFIG_CMD_IMLS
 #undef CONFIG_CMD_NFS		/* NFS support */
-#undef CONFIG_CMD_NET		/* network support */
+
+/*
+ * Ethernet support
+ */
+#define CONFIG_CMD_NET
+#define CONFIG_NET_MULTI
+#define CONFIG_CMD_PING
+#define CONFIG_CMD_DHCP
+
+/*
+ * BOOTP / TFTP options
+ */
+#define CONFIG_BOOTP_SUBNETMASK
+#define CONFIG_BOOTP_GATEWAY
+#define CONFIG_BOOTP_HOSTNAME
+#define CONFIG_BOOTP_BOOTPATH
+#define CONFIG_TFTP_TSIZE
+
+#define CONFIG_IPADDR		10.0.0.2
+#define CONFIG_SERVERIP		10.0.0.1
+#define CONFIG_BOOTFILE		uImage
+
+/*
+ * We decorate the nfsroot name so that multiple users / boards can easily
+ * share an NFS server:
+ *   user - username, e.g. 'frank'
+ *   board - board, e.g. 'seaboard'
+ *   serial - serial number, e.g. '1234'
+ */
+#define CONFIG_ROOTPATH		"/export/nfsroot-${user}-${board}-${serial#}"
+#define CONFIG_TFTPPATH		"/tftpboot/uImage-${user}-${board}-${serial#}"
 
 /* turn on command-line edit/hist/auto */
 #define CONFIG_CMDLINE_EDITING
@@ -132,10 +165,37 @@
 #define CONFIG_SYS_NO_FLASH
 
 /* Environment information */
-#define CONFIG_EXTRA_ENV_SETTINGS \
+#define CONFIG_EXTRA_ENV_SETTINGS_COMMON \
 	"console=ttyS0,115200n8\0" \
-	"mem=" TEGRA2_SYSMEM "\0" \
 	"smpflag=smp\0" \
+	"user=user\0" \
+	"serial#=1\0" \
+	"tftpserverip=172.22.72.144\0" \
+	"nfsserverip=172.22.72.144\0" \
+	"extra_bootargs=\0" \
+	"platform_extras=mem= " TEGRA2_SYSMEM"\0" \
+	"regen_all="\
+		"setenv common_bootargs console=${console} " \
+		"${platform_extras} noinitrd; " \
+		"setenv bootargs ${common_bootargs} ${extra_bootargs} " \
+		"${bootdev_bootargs}\0" \
+	"regen_net_bootargs=setenv bootdev_bootargs " \
+		"dev=/dev/nfs4 rw nfsroot=${nfsserverip}:${rootpath} " \
+		"ip=dhcp; " \
+		"run regen_all\0" \
+	"dhcp_setup=setenv tftppath " CONFIG_TFTPPATH "; " \
+		"setenv rootpath " CONFIG_ROOTPATH "; " \
+		"setenv autoload n; " \
+		"run regen_net_bootargs\0" \
+	"dhcp_boot=run dhcp_setup; " \
+		"bootp; tftpboot ${loadaddr} ${tftpserverip}:${tftppath}; " \
+		"bootm ${loadaddr}\0" \
+
+#define CONFIG_BOOTCOMMAND \
+  "usb start; "\
+  "if test ${ethact} != \"\"; then "\
+    "run dhcp_boot ; " \
+  "fi ; " \
 
 #define CONFIG_LOADADDR		0x408000	/* def. location for kernel */
 #define CONFIG_BOOTDELAY	2		/* -1 to disable auto boot */
