@@ -165,9 +165,11 @@ int BootDeviceWriteLBA(uint64_t lba_start, uint64_t lba_count,
 #undef PREFIX
 #define PREFIX "load_kernel_wrapper: "
 
-int load_kernel_wrapper(LoadKernelParams *params,
-		void *gbb_data, uint64_t gbb_size, uint64_t boot_flags,
-		VbNvContext *nvcxt, uint8_t *shared_data_blob)
+int load_kernel_wrapper_core(LoadKernelParams *params,
+			     void *gbb_data, uint64_t gbb_size,
+			     uint64_t boot_flags, VbNvContext *nvcxt,
+			     uint8_t *shared_data_blob,
+			     int bypass_load_kernel)
 {
 	/*
 	 * TODO(clchiou): Hack for bringing up factory; preserve recovery
@@ -181,10 +183,12 @@ int load_kernel_wrapper(LoadKernelParams *params,
 
 	memset(params, '\0', sizeof(*params));
 
-	dev_desc = get_bootdev();
-	if (!dev_desc) {
-		debug(PREFIX "get_bootdev fail\n");
-		goto EXIT;
+	if (!bypass_load_kernel) {
+		dev_desc = get_bootdev();
+		if (!dev_desc) {
+			debug(PREFIX "get_bootdev fail\n");
+			goto EXIT;
+		}
 	}
 
 	params->gbb_data = gbb_data;
@@ -217,7 +221,12 @@ int load_kernel_wrapper(LoadKernelParams *params,
 	debug(PREFIX "boot_flags:           0x%08x\n",
 			(int) params->boot_flags);
 
-	status = LoadKernel(params);
+	if (!bypass_load_kernel) {
+		status = LoadKernel(params);
+	} else {
+		status = LOAD_KERNEL_SUCCESS;
+		params->partition_number = 2;
+	}
 
 EXIT:
 	debug(PREFIX "LoadKernel status: %d\n", status);
@@ -257,21 +266,19 @@ EXIT:
 			gd->bd->bi_dram[CONFIG_NR_DRAM_BANKS-1].size - SZ_1M;
 
 		struct {
-			uint8_t		signature[16];
+			uint32_t	total_size;
+			uint8_t		signature[12];
+			uint64_t	nvcxt_lba;
+			uint8_t		gpio[11];
+			uint8_t		binf[5];
+			uint8_t		nvcxt_cache[VBNV_BLOCK_SIZE];
 			uint32_t	chsw;
 			uint8_t		hwid[256];
 			uint8_t		fwid[256];
 			uint8_t		frid[256];
-			uint32_t	binf[5];
-			uint32_t	gpio[11];
 			uint32_t	vbnv[2];
-			uint64_t	fmap_start_address;
-			uint64_t	nvcxt_lba;
-			uint8_t		nvcxt_cache[VBNV_BLOCK_SIZE];
+			uint8_t		shared_data_body[CONFIG_LENGTH_FMAP];
 		} __attribute__((packed)) *sd = kernel_shared_data;
-
-		void *kernel_shared_data_body =
-			kernel_shared_data + sizeof(*sd);
 
 		int i;
 
@@ -318,10 +325,10 @@ EXIT:
 		firmware_storage_init(&file);
 		firmware_storage_read(&file,
 				CONFIG_OFFSET_FMAP, CONFIG_LENGTH_FMAP,
-				kernel_shared_data_body);
+				sd->shared_data_body);
 		file.close(file.context);
-		sd->fmap_start_address = (uint32_t) kernel_shared_data_body;
-		kernel_shared_data_body += CONFIG_LENGTH_FMAP;
+
+		sd->total_size = sizeof(*sd);
 
 		sd->nvcxt_lba = get_nvcxt_lba();
 
@@ -344,4 +351,13 @@ EXIT:
 	}
 
 	return status;
+}
+
+int load_kernel_wrapper(LoadKernelParams *params,
+			void *gbb_data, uint64_t gbb_size,
+			uint64_t boot_flags, VbNvContext *nvcxt,
+			uint8_t *shared_data_blob)
+{
+	return load_kernel_wrapper_core(params, gbb_data, gbb_size, boot_flags,
+					nvcxt, shared_data_blob, 0);
 }

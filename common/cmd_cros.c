@@ -531,8 +531,11 @@ int do_load_k(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	printf("boot_flags:       0x%08llx\n", params.boot_flags);
 	printf("shared_data_blob: 0x%p\n", params.shared_data_blob);
 
-	status = load_kernel_wrapper(&params, params.gbb_data, params.gbb_size,
-			params.boot_flags, &nvcxt, params.shared_data_blob);
+	status = load_kernel_wrapper_core(&params,
+					  params.gbb_data, params.gbb_size,
+					  params.boot_flags, &nvcxt,
+					  params.shared_data_blob,
+					  getenv("bypass_load_kernel") != NULL);
 
 	switch (status) {
 	case LOAD_KERNEL_SUCCESS:

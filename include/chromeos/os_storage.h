@@ -48,4 +48,16 @@ int load_kernel_wrapper(LoadKernelParams *params,
 		void *gbb_data, uint64_t gbb_size, uint64_t boot_flags,
 		VbNvContext *nvcxt, uint8_t *shared_data_blob);
 
+/*
+ * Actual wrapper implementation. Most callers invoke it with
+ * 'bypass_load_kernel' set to False. If it is set to True - the shared memory
+ * is intialized, but the actual kernel load function is not invoked. This
+ * facilitates debugging when the kernel is loaded by some other means (for
+ * instance netbooted)
+ */
+int load_kernel_wrapper_core(LoadKernelParams *params, void *gbb_data,
+			     uint64_t gbb_size, uint64_t boot_flags,
+			     VbNvContext *nvcxt, uint8_t *shared_data_blob,
+			     int bypass_load_kernel);
+
 #endif /* __CHROMEOS_BOOT_DEVICE_IMPL_H__ */
