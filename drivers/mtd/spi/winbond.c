@@ -283,7 +283,7 @@ int winbond_erase(struct spi_flash *flash, u32 offset, size_t len)
 
 	for (actual = 0; actual < len; actual++) {
 		winbond_build_address(stm, &cmd[1], offset + actual * sector_size);
-		printf("Erase: %02x %02x %02x %02x\n",
+		debug("Erase: %02x %02x %02x %02x\n",
 				cmd[0], cmd[1], cmd[2], cmd[3]);
 
 		ret = spi_flash_cmd(flash->spi, CMD_W25_WREN, NULL, 0);

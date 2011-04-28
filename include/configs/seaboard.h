@@ -41,8 +41,18 @@
 #define CONFIG_SYS_BOARD_ODMDATA	0x300d8011 /* lp1, 1GB */
 
 #define CONFIG_BOARD_EARLY_INIT_F
+
+/* GPIO */
 #define CONFIG_TEGRA2_GPIO
 #define CONFIG_CMD_TEGRA2_GPIO_INFO
+
+/* SPI */
+#define CONFIG_TEGRA2_SPI
+#define CONFIG_SPI_FLASH
+#define CONFIG_SPI_FLASH_WINBOND
+#define CONFIG_SF_DEFAULT_MODE		SPI_MODE_0
+#define CONFIG_CMD_SPI
+#define CONFIG_CMD_SF
 
 /* To select the order in which U-Boot sees USB ports */
 #define CONFIG_TEGRA2_USB0	NV_PA_USB3_BASE

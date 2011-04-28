@@ -33,6 +33,7 @@
 #include <asm/arch/pinmux.h>
 #include <asm/arch/uart.h>
 #include <asm/arch/usb.h>
+#include <spi.h>
 #include "board.h"
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -198,6 +199,9 @@ int board_init(void)
 
 #ifdef CONFIG_USB_EHCI_TEGRA
 	board_usb_init();
+#endif
+#ifdef CONFIG_TEGRA2_SPI
+	spi_init();
 #endif
 
 	return 0;

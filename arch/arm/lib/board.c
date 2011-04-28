@@ -60,7 +60,6 @@
 #ifdef CONFIG_DRIVER_LAN91C96
 #include "../drivers/net/lan91c96.h"
 #endif
-
 DECLARE_GLOBAL_DATA_PTR;
 
 ulong monitor_flash_len;
@@ -521,12 +520,10 @@ void board_init_r (gd_t *id, ulong dest_addr)
 		hang ();
 	}
 #endif
-
 #if defined(CONFIG_CMD_NAND)
 	puts ("NAND:  ");
 	nand_init();		/* go init the NAND */
 #endif
-
 #if defined(CONFIG_CMD_ONENAND)
 	onenand_init();
 #endif
