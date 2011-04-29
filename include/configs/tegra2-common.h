@@ -47,10 +47,6 @@
 
 #define CONFIG_CMDLINE_TAG		/* enable passing of ATAGs */
 
-/* Environment */
-#define CONFIG_ENV_IS_NOWHERE
-#define CONFIG_ENV_SIZE			0x20000	/* Total Size Environment */
-
 /*
  * Size of malloc() pool
  */
@@ -75,6 +71,8 @@
  * select serial console configuration
  */
 #define CONFIG_CONS_INDEX	1
+
+#define CONFIG_ENV_SIZE         SZ_4K
 
 /* allow to overwrite serial and ethaddr */
 #define CONFIG_ENV_OVERWRITE

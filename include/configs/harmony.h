@@ -48,6 +48,9 @@
 
 #define CONFIG_BOARD_EARLY_INIT_F
 
+/* Environment not stored */
+#define CONFIG_ENV_IS_NOWHERE
+
 #define CONFIG_TEGRA2_GPIO
 #define CONFIG_CMD_TEGRA2_GPIO_INFO
 #endif /* __CONFIG_H */
