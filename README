@@ -1969,6 +1969,15 @@ The following options need to be configured:
 		A better solution is to properly configure the firewall,
 		but sometimes that is not allowed.
 
+- TFTP Speed:
+		CONFIG_TFTP_SPEED
+
+		If this is defined, the approximate download speed of the
+		tftp operation will be displayed after the # progress
+		markers, like this:
+
+		Loading: ########### (more #) ############  3.6 MiB/s
+
 - Show boot progress:
 		CONFIG_SHOW_BOOT_PROGRESS
 
