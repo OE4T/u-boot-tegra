@@ -12,6 +12,7 @@
 #include <malloc.h>
 #include <part.h>
 #include <chromeos/os_storage.h>
+#include <chromeos/hardware_interface.h>
 
 /* TODO For load fmap; remove when not used */
 #include <chromeos/firmware_storage.h>
@@ -30,6 +31,9 @@ extern uint64_t get_nvcxt_lba(void);
 #define PREFIX "boot_device: "
 
 #define BACKUP_LBA_OFFSET 0x20
+
+/* This is used to keep u-boot and kernel in sync */
+#define SHARED_MEM_VERSION 1
 
 static struct {
 	block_dev_desc_t *dev_desc;
@@ -266,18 +270,22 @@ EXIT:
 			gd->bd->bi_dram[CONFIG_NR_DRAM_BANKS-1].size - SZ_1M;
 
 		struct {
-			uint32_t	total_size;
-			uint8_t		signature[12];
-			uint64_t	nvcxt_lba;
-			uint8_t		gpio[11];
-			uint8_t		binf[5];
-			uint8_t		nvcxt_cache[VBNV_BLOCK_SIZE];
-			uint32_t	chsw;
-			uint8_t		hwid[256];
-			uint8_t		fwid[256];
-			uint8_t		frid[256];
-			uint32_t	vbnv[2];
-			uint8_t		shared_data_body[CONFIG_LENGTH_FMAP];
+			uint32_t total_size;
+			uint8_t  signature[10];
+			uint16_t version;
+			uint64_t nvcxt_lba;
+			uint16_t vbnv[2];
+			uint8_t  nvcxt_cache[VBNV_BLOCK_SIZE];
+			uint8_t  write_protect_sw;
+			uint8_t  recovery_sw;
+			uint8_t  developer_sw;
+			uint8_t  binf[5];
+			uint32_t chsw;
+			uint8_t  hwid[256];
+			uint8_t  fwid[256];
+			uint8_t  frid[256];
+			uint32_t fmap_base;
+			uint8_t  shared_data_body[CONFIG_LENGTH_FMAP];
 		} __attribute__((packed)) *sd = kernel_shared_data;
 
 		int i;
@@ -287,6 +295,7 @@ EXIT:
 		memset(sd, '\0', sizeof(*sd));
 
 		strcpy((char*) sd->signature, "CHROMEOS");
+		sd->version = SHARED_MEM_VERSION;
 
 		/*
 		 * chsw bit value
@@ -315,8 +324,10 @@ EXIT:
 		sd->binf[2] = 0; /* active EC firmware */
 		sd->binf[4] = reason;
 
-		/* sd->gpio[i] == 1 if it is active-high */
-		sd->gpio[1] = 1; /* only developer mode gpio is active high */
+		sd->write_protect_sw =
+			is_firmware_write_protect_gpio_asserted();
+		sd->recovery_sw = is_recovery_mode_gpio_asserted();
+		sd->developer_sw = is_developer_mode_gpio_asserted();
 
 		sd->vbnv[0] = 0;
 		sd->vbnv[1] = VBNV_BLOCK_SIZE;
@@ -338,8 +349,6 @@ EXIT:
 		debug(PREFIX "chsw     %08x\n", sd->chsw);
 		for (i = 0; i < 5; i++)
 			debug(PREFIX "binf[%2d] %08x\n", i, sd->binf[i]);
-		for (i = 0; i < 11; i++)
-			debug(PREFIX "gpio[%2d] %08x\n", i, sd->gpio[i]);
 		debug(PREFIX "vbnv[ 0] %08x\n", sd->vbnv[0]);
 		debug(PREFIX "vbnv[ 1] %08x\n", sd->vbnv[1]);
 		debug(PREFIX "fmap     %08llx\n", sd->fmap_start_address);
