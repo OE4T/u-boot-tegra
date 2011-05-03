@@ -94,7 +94,7 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		goto RECOVERY;
 	}
 
-	if (read_nvcontext(&file, &nvcxt) ||
+	if (read_nvcontext(&nvcxt) ||
 			VbNvGet(&nvcxt, VBNV_DEBUG_RESET_MODE,
 				&debug_reset_mode) ||
 			VbNvGet(&nvcxt, VBNV_RECOVERY_REQUEST,
@@ -142,7 +142,7 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	status = load_firmware_wrapper(&file,
 			boot_flags, &nvcxt, NULL, &firmware_data);
 
-	if (nvcxt.raw_changed && write_nvcontext(&file, &nvcxt)) {
+	if (nvcxt.raw_changed && write_nvcontext(&nvcxt)) {
 		debug(PREFIX "fail to write nvcontext\n");
 		reason = VBNV_RECOVERY_US_UNSPECIFIED;
 		goto RECOVERY;
@@ -183,7 +183,7 @@ RECOVERY:
 		debug(PREFIX "error: cannot tear down cookie\n");
 	}
 
-	if (nvcxt.raw_changed && write_nvcontext(&file, &nvcxt)) {
+	if (nvcxt.raw_changed && write_nvcontext(&nvcxt)) {
 		/* FIXME: bring up a sad face? */
 		debug(PREFIX "error: cannot write recovery cookie\n");
 	}

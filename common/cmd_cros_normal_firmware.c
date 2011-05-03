@@ -68,13 +68,12 @@ int initialize_drive(void)
 }
 
 /* This function should never return */
-void reboot_to_recovery_mode(firmware_storage_t *file, VbNvContext *nvcxt,
-		uint32_t reason)
+static void reboot_to_recovery_mode(VbNvContext *nvcxt, uint32_t reason)
 {
 	debug(PREFIX "store recovery cookie in recovery field\n");
 	if (VbNvSet(nvcxt, VBNV_RECOVERY_REQUEST, reason) ||
 			VbNvTeardown(nvcxt) ||
-			(nvcxt->raw_changed && write_nvcontext(file, nvcxt))) {
+			(nvcxt->raw_changed && write_nvcontext(nvcxt))) {
 		/* FIXME: bring up a sad face? */
 		debug(PREFIX "error: cannot write recovery cookie");
 		printf("Please reset and press recovery button when reboot.\n");
@@ -140,7 +139,7 @@ int do_cros_normal_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 		while (1);
 	}
 
-	if (read_nvcontext(&file, &nvcxt)) {
+	if (read_nvcontext(&nvcxt)) {
 		/*
 		 * FIXME: because we don't have a clean state of nvcxt, we
 		 * can't reboot to recovery. Bring up a sad face now?
@@ -152,20 +151,17 @@ int do_cros_normal_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 
 	if (TlclStubInit() != TPM_SUCCESS) {
 		debug(PREFIX "fail to init tpm\n");
-		reboot_to_recovery_mode(&file, &nvcxt,
-				VBNV_RECOVERY_RW_TPM_ERROR);
+		reboot_to_recovery_mode(&nvcxt,	VBNV_RECOVERY_RW_TPM_ERROR);
 	}
 
 	if (initialize_drive()) {
 		debug(PREFIX "error: initialize fixed drive fail\n");
-		reboot_to_recovery_mode(&file, &nvcxt,
-				VBNV_RECOVERY_RW_NO_OS);
+		reboot_to_recovery_mode(&nvcxt, VBNV_RECOVERY_RW_NO_OS);
 	}
 
 	if (load_gbb(&file, &gbb_data, &gbb_size)) {
 		debug(PREFIX "error: cannot read gbb\n");
-		reboot_to_recovery_mode(&file, &nvcxt,
-				VBNV_RECOVERY_RO_SHARED_DATA);
+		reboot_to_recovery_mode(&nvcxt, VBNV_RECOVERY_RO_SHARED_DATA);
 	}
 
 	if (is_developer_mode_gpio_asserted())
@@ -181,7 +177,7 @@ int do_cros_normal_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 		while (1);
 	}
 
-	if (nvcxt.raw_changed && write_nvcontext(&file, &nvcxt)) {
+	if (nvcxt.raw_changed && write_nvcontext(&nvcxt)) {
 		/*
 		 * FIXME: because we can't write to nv context, we can't even
 		 * reboot to recovery firmware! Bring up a sad face now?
@@ -215,7 +211,7 @@ int do_cros_normal_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 		debug(PREFIX "unknown status from LoadKernel(): %d\n", status);
 	}
 
-	reboot_to_recovery_mode(&file, &nvcxt, reason);
+	reboot_to_recovery_mode(&nvcxt, reason);
 
 	/* never reach here */
 	/* free(gbb_data); */

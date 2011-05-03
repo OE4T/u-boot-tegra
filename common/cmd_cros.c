@@ -358,12 +358,6 @@ int do_nvram(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	const char charmap[] = "0123456789abcdef";
 	VbNvContext nvcxt;
 	int rc = 1, status, i, c, d;
-	firmware_storage_t file;
-
-	if (firmware_storage_init(&file)) {
-		printf("error: cannot init firmware storage device\n");
-		return 1;
-	}
 
 	if (!strcmp(argv[1], "read")) {
 		if (argc != 2) {
@@ -372,7 +366,7 @@ int do_nvram(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			goto EXIT;
 		}
 
-		status = read_nvcontext(&file, &nvcxt);
+		status = read_nvcontext(&nvcxt);
 		if (status) {
 			printf("read nvram fail: %d\n", status);
 			goto EXIT;
@@ -432,7 +426,7 @@ int do_nvram(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		}
 		putc('\n');
 
-		status = write_nvcontext(&file, &nvcxt);
+		status = write_nvcontext(&nvcxt);
 		if (status)
 			printf("write nvram fail: %d\n", status);
 		else
@@ -443,11 +437,6 @@ int do_nvram(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	}
 
 EXIT:
-	if (file.close(file.context)) {
-		printf("error: cannot release firmware storage device\n");
-		return 1;
-	}
-
 	return rc;
 }
 
@@ -523,8 +512,6 @@ int do_load_k(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		printf("error: cannot read gbb\n");
 		return 1;
 	}
-
-	file.close(file.context);
 
 	params.boot_flags = (uint64_t) simple_strtoul(argv[1], NULL, 16);
 	params.shared_data_blob = (uint8_t*) simple_strtoul(argv[2], NULL, 16);

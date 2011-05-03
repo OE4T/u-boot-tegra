@@ -23,7 +23,7 @@
  *
  * See vboot_reference/firmware/include/vboot_nvstorage.h
  */
-int read_nvcontext(firmware_storage_t *file, VbNvContext *vnc);
-int write_nvcontext(firmware_storage_t *file, VbNvContext *vnc);
+int read_nvcontext(VbNvContext *vnc);
+int write_nvcontext(VbNvContext *vnc);
 
 #endif /* CHROMEOS_VBOOT_NVSTORAGE_HELPER_H_ */

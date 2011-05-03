@@ -237,7 +237,6 @@ static void clear_ram_not_in_use(void)
 
 static int load_and_boot_kernel(void)
 {
-	firmware_storage_t file;
 	char *devtype;
 	int devnum;
 	uint64_t boot_flags;
@@ -264,7 +263,7 @@ static int load_and_boot_kernel(void)
 		boot_flags |= BOOT_FLAG_DEVELOPER;
 	}
 
-	if (firmware_storage_init(&file) || read_nvcontext(&file, &nvcxt)) {
+	if (read_nvcontext(&nvcxt)) {
 		/*
 		 * If we fail to initialize firmware storage or fail to read
 		 * VbNvContext, we might not be able to clear the recovery
@@ -295,15 +294,13 @@ static int load_and_boot_kernel(void)
 		debug(PREFIX "fail to tear down cookie\n");
 	}
 
-	if (nvcxt.raw_changed && write_nvcontext(&file, &nvcxt)) {
+	if (nvcxt.raw_changed && write_nvcontext(&nvcxt)) {
 		/*
 		 * We might still boot recovery firmware next time we boot for
 		 * the same reason above.
 		 */
 		debug(PREFIX "fail to write nvcontext\n");
 	}
-
-	file.close(file.context);
 
 	switch (status) {
 	case LOAD_KERNEL_SUCCESS:
