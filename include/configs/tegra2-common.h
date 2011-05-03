@@ -127,6 +127,7 @@
 #undef CONFIG_CMD_NFS		/* NFS support */
 
 #define CONFIG_CMD_CACHE
+#define CONFIG_CMD_TIME
 
 /*
  * Ethernet support
