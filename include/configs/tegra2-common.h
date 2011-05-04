@@ -203,7 +203,8 @@
   "fi ; " \
 
 #define CONFIG_LOADADDR		0x408000	/* def. location for kernel */
-#define CONFIG_BOOTDELAY	2		/* -1 to disable auto boot */
+#define CONFIG_BOOTDELAY	0		/* -1 to disable auto boot */
+#define CONFIG_ZERO_BOOTDELAY_CHECK
 
 /*
  * Miscellaneous configurable options
