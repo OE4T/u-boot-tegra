@@ -1237,15 +1237,12 @@ void usb_hub_port_connect_change(struct usb_device *dev, int port)
 		if (!(portstatus & USB_PORT_STAT_CONNECTION))
 			return;
 	}
-	wait_ms(200);
 
 	/* Reset the port */
 	if (hub_port_reset(dev, port, &portstatus) < 0) {
 		printf("cannot reset port %i!?\n", port + 1);
 		return;
 	}
-
-	wait_ms(200);
 
 	/* Allocate a new device struct for it */
 	usb = usb_alloc_new_device();
