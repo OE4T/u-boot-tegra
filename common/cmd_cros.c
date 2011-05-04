@@ -513,6 +513,9 @@ int do_load_k(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		return 1;
 	}
 
+	/* We don't even care if it fails here, just do our best. */
+	read_nvcontext(&nvcxt);
+
 	params.boot_flags = (uint64_t) simple_strtoul(argv[1], NULL, 16);
 	params.shared_data_blob = (uint8_t*) simple_strtoul(argv[2], NULL, 16);
 	printf("boot_flags:       0x%08llx\n", params.boot_flags);

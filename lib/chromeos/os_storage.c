@@ -338,6 +338,7 @@ EXIT:
 				CONFIG_OFFSET_FMAP, CONFIG_LENGTH_FMAP,
 				sd->shared_data_body);
 		file.close(file.context);
+		sd->fmap_base = (uint32_t)sd->shared_data_body;
 
 		sd->total_size = sizeof(*sd);
 
