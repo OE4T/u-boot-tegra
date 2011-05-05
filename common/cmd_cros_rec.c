@@ -247,15 +247,15 @@ static int load_and_boot_kernel(void)
 	devtype = getenv("devtype");
 	devnum = (int)simple_strtoul(getenv("devnum"), NULL, 10);
 
-	/* TODO move to u-boot-config */
-	run_command("setenv console console=ttyS0,115200n8", 0);
-	run_command("setenv bootargs ${console} ${platform_extras}", 0);
-
         debug(PREFIX "set_bootdev %s %x:0\n", devtype, devnum);
         if (set_bootdev(devtype, devnum, 0)) {
                 debug(PREFIX "set_bootdev fail\n");
                 return -1;
         }
+
+	/* TODO move to u-boot-config */
+	run_command("setenv console console=ttyS0,115200n8", 0);
+	run_command("setenv bootargs ${console} ${platform_extras}", 0);
 
 	/* Prepare to load kernel */
 	boot_flags = BOOT_FLAG_RECOVERY;
