@@ -224,8 +224,8 @@ static void clear_ram_not_in_use(void)
 	exclude_mem_region(CONFIG_STACKBASE - CONFIG_SYS_MALLOC_LEN,
 			CONFIG_STACKBASE);
 
-	/* Excludes the used stack. Leave a margin for safe. */
-	exclude_mem_region(stack_top - STACK_MARGIN,
+	/* TODO: Should excludes the in-used stack instead of the whole. */
+	exclude_mem_region(CONFIG_STACKBASE,
 			CONFIG_STACKBASE + CONFIG_STACKSIZE);
 
 	/* Excludes the framebuffer. */
