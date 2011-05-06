@@ -34,6 +34,7 @@
 #define CONFIG_SYS_NO_L2CACHE		/* No L2 cache */
 #define CONFIG_BOOTSTAGE		/* Record boot time */
 #define CONFIG_BOOTSTAGE_REPORT		/* Print a boot time report */
+#define CONFIG_ARCH_CPU_INIT		/* Fire up the A9 core */
 
 #define CONFIG_ENABLE_CORTEXA9		/* enable CPU (A9 complex) */
 

@@ -288,7 +288,7 @@ void board_init_f (ulong bootflag)
 	 * won't return on AVP, since the AVP halts and the A9 CPU wakes up
 	 * and starts at its reset vector, etc.
 	 */
-	board_early_init_f();
+	arch_cpu_init();
 #endif
 	memset ((void*)gd, 0, sizeof (gd_t));
 

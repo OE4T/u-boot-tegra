@@ -42,28 +42,6 @@ const struct tegra2_sysinfo sysinfo = {
 	CONFIG_TEGRA2_BOARD_STRING
 };
 
-#ifdef CONFIG_BOARD_EARLY_INIT_F
-
-/* Note this function is executed by the ARM7TDMI AVP. It does not return. */
-
-int board_early_init_f(void)
-{
-	/* Init UART, scratch regs, and start CPU */
-	tegra2_start();
-
-	/* Initialize periph clocks */
-	clock_init();
-
-	/* Initialize periph pinmuxes */
-	pinmux_init();
-
-	/* Initialize periph GPIOs */
-	gpio_init();
-
-	return 0;
-}
-#endif	/* EARLY_INIT */
-
 /*
  * Routine: timer_init
  * Description: init the timestamp and lastinc value
@@ -163,7 +141,7 @@ static void pin_mux_uart(void)
  * Routine: clock_init
  * Description: Do individual peripheral clock reset/enables
  */
-void clock_init(void)
+static void clock_init(void)
 {
 	clock_init_uart();
 }
@@ -172,7 +150,7 @@ void clock_init(void)
  * Routine: pinmux_init
  * Description: Do individual peripheral pinmux configs
  */
-void pinmux_init(void)
+static void pinmux_init(void)
 {
 	pin_mux_uart();
 }
@@ -181,7 +159,7 @@ void pinmux_init(void)
  * Routine: gpio_init
  * Description: Do individual peripheral GPIO configs
  */
-void gpio_init(void)
+static void gpio_init(void)
 {
 	gpio_config_uart();
 }
@@ -206,3 +184,34 @@ int board_init(void)
 
 	return 0;
 }
+
+#ifdef CONFIG_BOARD_EARLY_INIT_F
+
+int board_early_init_f(void)
+{
+	/* Initialize periph clocks */
+	clock_init();
+
+	/* Initialize periph pinmuxes */
+	pinmux_init();
+
+	/* Initialize periph GPIOs */
+	gpio_init();
+
+	return 0;
+}
+#endif	/* EARLY_INIT */
+
+#ifdef CONFIG_ARCH_CPU_INIT
+/*
+ * Note this function is executed by the ARM7TDMI AVP. It does not return
+ * in this case. It is also called once the A9 starts up, but does nothing in
+ * that case.
+ */
+int arch_cpu_init(void)
+{
+	/* Fire up the Cortex A9 */
+	tegra2_start();
+	return 0;
+}
+#endif
