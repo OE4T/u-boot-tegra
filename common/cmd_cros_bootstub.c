@@ -14,7 +14,7 @@
 #include <command.h>
 #include <malloc.h>
 #include <chromeos/firmware_storage.h>
-#include <chromeos/hardware_interface.h>
+#include <chromeos/gpio.h>
 #include <chromeos/load_firmware_helper.h>
 #include <chromeos/vboot_nvstorage_helper.h>
 
@@ -74,7 +74,6 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	firmware_storage_t file;
 	VbNvContext nvcxt;
 	uint64_t boot_flags = 0;
-	uint32_t debug_reset_mode = 0;
 	uint32_t recovery_request = 0;
 	uint32_t reason = VBNV_RECOVERY_NOT_REQUESTED;
 	uint8_t *firmware_data;
@@ -88,16 +87,7 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	if (is_firmware_write_protect_gpio_asserted())
 		WARN_ON_FAILURE(file.lock_device(file.context));
 
-	if (initialize_tpm()) {
-		debug(PREFIX "init tpm failed\n");
-		reason = VBNV_RECOVERY_RO_TPM_ERROR;
-		goto RECOVERY;
-	}
-
-	if (read_nvcontext(&nvcxt) ||
-			VbNvGet(&nvcxt, VBNV_DEBUG_RESET_MODE,
-				&debug_reset_mode) ||
-			VbNvGet(&nvcxt, VBNV_RECOVERY_REQUEST,
+	if (read_nvcontext(&nvcxt) || VbNvGet(&nvcxt, VBNV_RECOVERY_REQUEST,
 				&recovery_request)) {
 		debug(PREFIX "fail to read nvcontext\n");
 		reason = VBNV_RECOVERY_US_UNSPECIFIED;
@@ -109,19 +99,6 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		debug(PREFIX "fail to write nvcontext\n");
 		reason = VBNV_RECOVERY_US_UNSPECIFIED;
 		goto RECOVERY;
-	}
-
-	if (is_s3_resume() && !debug_reset_mode) {
-		if (lock_tpm()) {
-			debug(PREFIX "lock tpm failed\n");
-			reason = VBNV_RECOVERY_RO_TPM_ERROR;
-			goto RECOVERY;
-		}
-
-		/* TODO Jump to S3 resume pointer and should never return */
-		return 0;
-		/* reason = VBNV_RECOVERY_RO_S3_RESUME; */
-		/* goto RECOVERY; */
 	}
 
 	if (recovery_request != VBNV_RECOVERY_NOT_REQUESTED) {
@@ -147,12 +124,6 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		reason = VBNV_RECOVERY_US_UNSPECIFIED;
 		goto RECOVERY;
         }
-
-	if (lock_tpm_rewritable_firmware_index()) {
-		debug(PREFIX "lock tpm rewritable firmware index failed\n");
-		reason = VBNV_RECOVERY_RO_TPM_ERROR;
-		goto RECOVERY;
-	}
 
 	if (status == LOAD_FIRMWARE_SUCCESS) {
 		jump_to_firmware((void (*)(void)) firmware_data);

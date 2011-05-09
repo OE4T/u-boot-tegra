@@ -11,8 +11,8 @@
 #include <common.h>
 #include <malloc.h>
 #include <part.h>
+#include <chromeos/gpio.h>
 #include <chromeos/os_storage.h>
-#include <chromeos/hardware_interface.h>
 
 /* TODO For load fmap; remove when not used */
 #include <chromeos/firmware_storage.h>

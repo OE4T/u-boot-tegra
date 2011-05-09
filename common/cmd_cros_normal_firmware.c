@@ -16,8 +16,8 @@
 #include <malloc.h>
 #include <mmc.h>
 #include <chromeos/firmware_storage.h>
+#include <chromeos/gpio.h>
 #include <chromeos/load_firmware_helper.h>
-#include <chromeos/hardware_interface.h>
 #include <chromeos/os_storage.h>
 #include <chromeos/vboot_nvstorage_helper.h>
 
