@@ -17,7 +17,7 @@
 #include <vboot_nvstorage.h>
 
 /*
- * Read/write non-volative storage: return zero if success, non-zero if fail.
+ * Read/write non-volatile storage: return zero if success, non-zero if fail.
  *
  * <nvram> must be at least VBNV_BLOCK_SIZE bytes.
  *
@@ -25,5 +25,12 @@
  */
 int read_nvcontext(VbNvContext *vnc);
 int write_nvcontext(VbNvContext *vnc);
+
+/*
+ * Clear the recovery request in the non-volatile storage.
+ *
+ * Return zero if success, non-zero if fail.
+ */
+int clear_recovery_request(void);
 
 #endif /* CHROMEOS_VBOOT_NVSTORAGE_HELPER_H_ */

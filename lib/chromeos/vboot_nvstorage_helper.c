@@ -164,3 +164,27 @@ int write_nvcontext(VbNvContext *nvcxt)
 {
 	return access_nvcontext(nvcxt, 0);
 }
+
+int clear_recovery_request(void)
+{
+	VbNvContext nvcxt;
+
+	if (read_nvcontext(&nvcxt) || VbNvSetup(&nvcxt)) {
+		debug(PREFIX "cannot read nvcxt\n");
+		return 1;
+	}
+
+	if (VbNvSet(&nvcxt, VBNV_RECOVERY_REQUEST,
+				VBNV_RECOVERY_NOT_REQUESTED)) {
+		debug(PREFIX "cannot clear VBNV_RECOVERY_REQUEST\n");
+		return 1;
+	}
+
+	if (VbNvTeardown(&nvcxt) ||
+			(nvcxt.raw_changed && write_nvcontext(&nvcxt))) {
+		debug(PREFIX "cannot write nvcxt\n");
+		return 1;
+	}
+
+	return 0;
+}

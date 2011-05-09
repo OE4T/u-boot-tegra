@@ -408,6 +408,8 @@ int do_cros_rec(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	clear_ram_not_in_use();
 
+	clear_recovery_request();
+
 	WARN_ON_FAILURE(init_gbb_in_ram());
 
 	g_is_dev = is_developer_mode_gpio_asserted();
