@@ -99,8 +99,8 @@ void boot_kernel(LoadKernelParams *params)
 	debug(PREFIX "bootloader_address: 0x%08x\n",
 			(int) params->bootloader_address);
 
-	if (source((ulong) params->bootloader_address, NULL)) {
-		debug(PREFIX "source fail\n");
+	if (load_kernel_config(params->bootloader_address)) {
+		debug(PREFIX "error: load kernel config failed\n");
 		return;
 	}
 

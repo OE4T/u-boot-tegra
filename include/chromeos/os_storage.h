@@ -38,6 +38,12 @@ uint64_t get_bytes_per_lba(void);
 uint64_t get_ending_lba(void);
 
 /*
+ * Given the bootloader_addres, load the kernel config as bootargs.
+ * Return zero if success and non-zero if error.
+ */
+int load_kernel_config(uint64_t bootloader_address);
+
+/*
  * Wrapper of LoadKernel() function. Returns the return value of LoadKernel().
  *
  * See vboot_reference/firmware/include/load_kernel_fw.h for documentation.

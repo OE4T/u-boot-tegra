@@ -363,6 +363,35 @@ EXIT:
 	return status;
 }
 
+/* Maximum kernel command-line size */
+#define CROS_CONFIG_SIZE 4096
+
+/* Size of the x86 zeropage table */
+#define CROS_PARAMS_SIZE 4096
+
+int load_kernel_config(uint64_t bootloader_address)
+{
+	char buf[80 + CROS_CONFIG_SIZE];
+
+	strcpy(buf, "setenv bootargs ${bootargs} ");
+
+	/* Use the bootloader address to find the kernel config location. */
+	strcat(buf, (char *)(bootloader_address - CROS_PARAMS_SIZE -
+			CROS_CONFIG_SIZE));
+
+	/*
+	 * Use run_command instead of setenv because we need variable
+	 * substitutions.
+	 * TODO: Do more variable substitutions for the bug:
+	 * http://crosbug.com/14022
+	 */
+	if (run_command(buf, 0)) {
+		debug(PREFIX "run_command(%s) fail\n", buf);
+		return 1;
+	}
+	return 0;
+}
+
 int load_kernel_wrapper(LoadKernelParams *params,
 			void *gbb_data, uint64_t gbb_size,
 			uint64_t boot_flags, VbNvContext *nvcxt,

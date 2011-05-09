@@ -315,8 +315,10 @@ static int load_and_boot_kernel(void)
 			printf("%02x", par.partition_guid[i]);
 		putc('\n');
 
-		source(CONFIG_LOADADDR + par.bootloader_address -
-			0x100000, NULL);
+		if (load_kernel_config(par.bootloader_address)) {
+			debug(PREFIX "error: load kernel config failed\n");
+			return 1;
+		}
 		run_command("bootm ${loadaddr}", 0);
 		break;
 	case LOAD_KERNEL_NOT_FOUND:
