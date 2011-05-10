@@ -188,3 +188,33 @@ int clear_recovery_request(void)
 
 	return 0;
 }
+
+void reboot_to_recovery_mode(VbNvContext *nvcxt, uint32_t reason)
+{
+	VbNvContext nvcontext;
+
+	if (!nvcxt) {
+		nvcxt = &nvcontext;
+		if (read_nvcontext(nvcxt) || VbNvSetup(nvcxt)) {
+			debug(PREFIX "cannot read nvcxt\n");
+			goto FAIL;
+		}
+	}
+
+	debug(PREFIX "store recovery cookie in recovery field\n");
+	if (VbNvSet(nvcxt, VBNV_RECOVERY_REQUEST, reason) ||
+			VbNvTeardown(nvcxt) ||
+			(nvcxt->raw_changed && write_nvcontext(nvcxt))) {
+		debug(PREFIX "cannot write back nvcxt");
+		goto FAIL;
+	}
+
+	debug(PREFIX "reboot to recovery mode\n");
+	reset_cpu(0);
+
+	debug(PREFIX "error: reset_cpu() returned\n");
+FAIL:
+	/* FIXME: bring up a sad face? */
+	printf("Please reset and press recovery button when reboot.\n");
+	while (1);
+}

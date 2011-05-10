@@ -19,6 +19,7 @@
 #include <usb.h>
 #include <chromeos/firmware_storage.h>
 #include <chromeos/load_firmware_helper.h>
+#include <chromeos/load_kernel_helper.h>
 #include <chromeos/gbb_bmpblk.h>
 #include <chromeos/gpio.h>
 #include <chromeos/os_storage.h>
@@ -91,14 +92,6 @@ static int write_log(void)
 {
 	/* TODO: Implement it when Chrome OS firmware logging is ready. */
 	return 0;
-}
-
-static uint32_t get_cur_stack_addr(void)
-{
-	uint32_t local_var;
-	uint32_t addr = (uint32_t)&local_var;
-
-	return addr;
 }
 
 /*
@@ -203,8 +196,6 @@ static int test_clear_mem_regions(void)
  */
 static void clear_ram_not_in_use(void)
 {
-	uint32_t stack_top = get_cur_stack_addr();
-
 	init_mem_region(0, PHYS_SDRAM_1_SIZE);
 
 	/* Excludes the firmware text + data + bss regions. */

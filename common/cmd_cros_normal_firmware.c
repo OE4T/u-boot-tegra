@@ -18,6 +18,7 @@
 #include <chromeos/firmware_storage.h>
 #include <chromeos/gpio.h>
 #include <chromeos/load_firmware_helper.h>
+#include <chromeos/load_kernel_helper.h>
 #include <chromeos/os_storage.h>
 #include <chromeos/vboot_nvstorage_helper.h>
 
@@ -28,12 +29,6 @@
 #include <vboot_struct.h>
 
 #define PREFIX "cros_normal_firmware: "
-
-/* defined in common/cmd_source.c */
-int source(ulong addr, const char *fit_uname);
-
-/* defined in common/cmd_bootm.c */
-int do_bootm(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 
 #define DEVICE_TYPE		"mmc"
 #define DEVICE_NAME		"mmcblk" DEVICE_NUMBER_STRING "p"
@@ -65,57 +60,6 @@ int initialize_drive(void)
 	}
 
 	return 0;
-}
-
-/* This function should never return */
-static void reboot_to_recovery_mode(VbNvContext *nvcxt, uint32_t reason)
-{
-	debug(PREFIX "store recovery cookie in recovery field\n");
-	if (VbNvSet(nvcxt, VBNV_RECOVERY_REQUEST, reason) ||
-			VbNvTeardown(nvcxt) ||
-			(nvcxt->raw_changed && write_nvcontext(nvcxt))) {
-		/* FIXME: bring up a sad face? */
-		debug(PREFIX "error: cannot write recovery cookie");
-		printf("Please reset and press recovery button when reboot.\n");
-		while (1);
-	}
-
-	debug(PREFIX "reboot to recovery mode\n");
-	reset_cpu(0);
-
-	debug(PREFIX "error: reset_cpu() returned\n");
-	while (1);
-}
-
-/* This function should never return */
-void boot_kernel(LoadKernelParams *params)
-{
-	char load_address[32];
-	char *argv[2] = { "bootm", load_address };
-
-	debug(PREFIX "boot_kernel\n");
-	debug(PREFIX "kernel_buffer:      0x%p\n",
-			params->kernel_buffer);
-	debug(PREFIX "bootloader_address: 0x%08x\n",
-			(int) params->bootloader_address);
-
-	if (load_kernel_config(params->bootloader_address)) {
-		debug(PREFIX "error: load kernel config failed\n");
-		return;
-	}
-
-	/*
-	 * FIXME: So far bootloader in kernel partition isn't really a
-	 * bootloader; instead, it is merely a u-boot scripts that sets kernel
-	 * parameters. And therefore we still have to boot kernel to here
-	 * by calling do_bootm.
-	 */
-	sprintf(load_address, "0x%p", params->kernel_buffer);
-	debug(PREFIX "run command: %s %s\n", argv[0], argv[1]);
-	do_bootm(NULL, 0, sizeof(argv)/sizeof(*argv), argv);
-
-	debug(PREFIX "error: do_bootm() returned\n");
-	while (1);
 }
 
 int do_cros_normal_firmware(cmd_tbl_t *cmdtp, int flag, int argc,

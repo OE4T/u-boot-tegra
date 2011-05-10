@@ -23,14 +23,21 @@
  *
  * See vboot_reference/firmware/include/vboot_nvstorage.h
  */
-int read_nvcontext(VbNvContext *vnc);
-int write_nvcontext(VbNvContext *vnc);
+int read_nvcontext(VbNvContext *nvcxt);
+int write_nvcontext(VbNvContext *nvcxt);
 
 /*
- * Clear the recovery request in the non-volatile storage.
+ * Set the recovery request in the non-volatile storage.
  *
  * Return zero if success, non-zero if fail.
  */
 int clear_recovery_request(void);
+
+/*
+ * Set the recovery request to <reason> and reboot. This function never returns.
+ *
+ * If <nvcxt> is NULL, this function loads the nvcxt from non-volatile storage.
+ */
+void reboot_to_recovery_mode(VbNvContext *nvcxt, uint32_t reason);
 
 #endif /* CHROMEOS_VBOOT_NVSTORAGE_HELPER_H_ */
