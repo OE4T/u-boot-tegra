@@ -60,7 +60,7 @@ static struct tag *params;
 #endif /* CONFIG_SETUP_MEMORY_TAGS || CONFIG_CMDLINE_TAG || CONFIG_INITRD_TAG */
 
 static ulong get_sp(void);
-#if defined(CONFIG_OF_LIBFDT)
+#if defined(CONFIG_OF_LIBFDT) && !defined(CONFIG_OF_NO_KERNEL)
 static int bootm_linux_fdt(int machid, bootm_headers_t *images);
 #endif
 
@@ -125,7 +125,7 @@ int do_bootm_linux(int flag, int argc, char *argv[], bootm_headers_t *images)
 
 	show_boot_progress (15);
 
-#ifdef CONFIG_OF_LIBFDT
+#if defined(CONFIG_OF_LIBFDT) && !defined(CONFIG_OF_NO_KERNEL)
 	if (images->ft_len)
 		return bootm_linux_fdt(machid, images);
 #endif
@@ -173,7 +173,7 @@ int do_bootm_linux(int flag, int argc, char *argv[], bootm_headers_t *images)
 	return 1;
 }
 
-#if defined(CONFIG_OF_LIBFDT)
+#if defined(CONFIG_OF_LIBFDT) && !defined(CONFIG_OF_NO_KERNEL)
 static int fixup_memory_node(void *blob)
 {
 	bd_t	*bd = gd->bd;

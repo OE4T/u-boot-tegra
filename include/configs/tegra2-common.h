@@ -25,6 +25,12 @@
 #define __TEGRA2_COMMON_H
 #include <asm/sizes.h>
 
+/* FDT support */
+#define CONFIG_OF_LIBFDT	/* Device tree support */
+#define CONFIG_OF_NO_KERNEL	/* Don't pass device tree to kernel */
+#define CONFIG_OF_CONTROL	/* Use the device tree to set up U-Boot */
+#define CONFIG_OF_EMBED		/* Embed the device tree in U-Boot */
+
 /*
  * High Level Configuration Options
  */
