@@ -292,6 +292,7 @@ _dynsym_start_ofs:
  *
  *************************************************************************/
 cpu_init_crit:
+	.globl cpu_init_crit
 	/*
 	 * Invalidate L1 I/D
 	 */

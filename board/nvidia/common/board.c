@@ -189,6 +189,11 @@ int board_init(void)
 
 int board_early_init_f(void)
 {
+	extern void cpu_init_crit(void);
+
+	/* We didn't do this init in start.S, so do it now */
+	cpu_init_crit();
+
 	/* Initialize periph clocks */
 	clock_init();
 

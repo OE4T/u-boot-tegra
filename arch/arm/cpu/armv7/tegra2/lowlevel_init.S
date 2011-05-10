@@ -50,13 +50,7 @@ rstctl:
 
 .globl lowlevel_init
 lowlevel_init:
-	ldr	sp, SRAM_STACK
-	str	ip, [sp]
-	mov	ip, lr
-	bl	s_init				@ go setup pll, mux & memory
-	ldr	ip, [sp]
-	mov	lr, ip
-
+	@ Nothing to do here on Tegra2
 	mov	pc, lr				@ back to arch calling code
 
 
