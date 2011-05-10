@@ -433,7 +433,7 @@ int do_cros_rec(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 				is_usb = is_usb_storage_present();
 			}
 			if (!is_mmc && !is_usb) {
-				show_screen(SCREEN_RECOVERY_NO_OS);
+				show_screen(SCREEN_RECOVERY_MISSING_OS);
 				wait_ms(WAIT_MS_BETWEEN_PROBING);
 			}
 		} while (!is_mmc && !is_usb);
@@ -444,14 +444,14 @@ int do_cros_rec(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			WARN_ON_FAILURE(boot_recovery_image_in_mmc());
 			/* Wait for user to unplug SD card */
 			do {
-				show_screen(SCREEN_RECOVERY_MISSING_OS);
+				show_screen(SCREEN_RECOVERY_NO_OS);
 				wait_ms(WAIT_MS_SHOW_ERROR);
 			} while (is_mmc_storage_present());
 		} else if (is_usb) {
 			WARN_ON_FAILURE(boot_recovery_image_in_usb());
 			/* Wait for user to unplug USB storage device */
 			do {
-				show_screen(SCREEN_RECOVERY_MISSING_OS);
+				show_screen(SCREEN_RECOVERY_NO_OS);
 				wait_ms(WAIT_MS_SHOW_ERROR);
 			} while (is_usb_storage_present());
 		}
