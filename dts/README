@@ -1,0 +1,39 @@
+#
+# Copyright (c) 2011 The Chromium OS Authors.
+#
+# See file CREDITS for list of people who contributed to this
+# project.
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as
+# published by the Free Software Foundatio; either version 2 of
+# the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+# MA 02111-1307 USA
+#
+
+Emebdded Device Tree Support in U-Boot
+======================================
+
+This directory contains a Makefile for building the device tree blob and
+embedding it in your U-Boot image. This is useful since it allows U-Boot to
+configure itself according to what it finds there. If you have a number of
+similar boards with different peripherals, you can describe the features of
+each board in the device tree file, and have a single generic source base.
+
+Put your device tree file in board/<vendor>/dts/<soc>_<board>.dts. It will be
+picked up and built into the image.
+
+
+To do
+=====
+- Provide a way for U-Boot to find a device tree somewhere in memory on startup,
+similar to how the environment works.

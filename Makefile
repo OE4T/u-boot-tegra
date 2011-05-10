@@ -194,6 +194,9 @@ endif
 ifeq ($(CPU),ixp)
 LIBS += arch/arm/cpu/ixp/npe/libnpe.o
 endif
+ifeq ($(CONFIG_OF_EMBED),y)
+LIBS += dts/dt.o
+endif
 LIBS += arch/$(ARCH)/lib/lib$(ARCH).o
 LIBS += fs/cramfs/libcramfs.o fs/fat/libfat.o fs/fdos/libfdos.o fs/jffs2/libjffs2.o \
 	fs/reiserfs/libreiserfs.o fs/ext2/libext2fs.o fs/yaffs2/libyaffs2.o \
@@ -1149,6 +1152,7 @@ clean:
 	@rm -f $(ONENAND_BIN)
 	@rm -f $(obj)onenand_ipl/u-boot.lds
 	@rm -f $(TIMESTAMP_FILE) $(VERSION_FILE)
+	@rm -f $(obj)dts/dt.dtb
 	@find $(OBJTREE) -type f \
 		\( -name 'core' -o -name '*.bak' -o -name '*~' \
 		-o -name '*.o'	-o -name '*.a' -o -name '*.exe'	\) -print \

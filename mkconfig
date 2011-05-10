@@ -127,7 +127,10 @@ echo "BOARD  = ${board}" >> config.mk
 
 [ "${vendor}" ] && echo "VENDOR = ${vendor}" >> config.mk
 
-[ "${soc}"    ] && echo "SOC    = ${soc}"    >> config.mk
+if [ -n "${soc}" ] ; then
+	echo "SOC    = ${soc}" >> config.mk
+	echo "DEVICE_TREE = ${soc}-${board}" >> config.mk
+fi
 
 # Assign board directory to BOARDIR variable
 if [ -z "${vendor}" ] ; then

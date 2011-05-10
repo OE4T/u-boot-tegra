@@ -273,6 +273,9 @@ void board_init_f (ulong bootflag)
 	init_fnc_t **init_fnc_ptr;
 	gd_t *id;
 	ulong addr, addr_sp;
+#ifdef CONFIG_OF_EMBED
+	extern u8 _binary_dt_dtb_start[];
+#endif
 
 #ifdef CONFIG_TEGRA2
 	/*
@@ -293,6 +296,10 @@ void board_init_f (ulong bootflag)
 	memset ((void*)gd, 0, sizeof (gd_t));
 
 	gd->mon_len = _bss_end_ofs;
+#ifdef CONFIG_OF_EMBED
+	/* Get a pointer to the FDT */
+	gd->blob = _binary_dt_dtb_start;
+#endif
 
 	for (init_fnc_ptr = init_sequence; *init_fnc_ptr; ++init_fnc_ptr) {
 		if ((*init_fnc_ptr)() != 0) {
