@@ -33,6 +33,7 @@
 #include <asm/arch/gpio.h>
 #include <asm/arch/pinmux.h>
 #include <asm/arch/tegra2_spi.h>
+#include "uart-spi-fix.h"
 
 int spi_cs_is_valid(unsigned int bus, unsigned int cs)
 {
@@ -77,9 +78,6 @@ void spi_init(void)
 	struct clk_rst_ctlr *clkrst = (struct clk_rst_ctlr *)NV_PA_CLK_RST_BASE;
 	struct spi_tegra *spi = (struct spi_tegra *)TEGRA2_SPI_BASE;
 	u32 reg;
-
-	/* Enable UART via GPIO_PI3 so serial console works */
-	gpio_direction_output(UART_DISABLE_GPIO, 0);
 
 	/*
 	 * SPI reset/clocks init - reset SPI, set clocks, release from reset
@@ -148,7 +146,7 @@ void spi_cs_activate(struct spi_slave *slave)
 	struct spi_tegra *spi = (struct spi_tegra *)TEGRA2_SPI_BASE;
 	u32 val;
 
-	seaboard_switch_spi_uart(SWITCH_SPI);
+	spi_enable();
 
 	/* CS is negated on Tegra, so drive a 1 to get a 0 */
 	val = readl(&spi->command);

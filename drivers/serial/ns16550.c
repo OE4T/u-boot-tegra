@@ -11,6 +11,7 @@
 #include <watchdog.h>
 #include <linux/types.h>
 #include <asm/io.h>
+#include "uart-spi-fix.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -31,16 +32,6 @@ DECLARE_GLOBAL_DATA_PTR;
 #ifndef CONFIG_SYS_NS16550_IER
 #define CONFIG_SYS_NS16550_IER  0x00
 #endif /* CONFIG_SYS_NS16550_IER */
-
-/*
- * Signal that we are about to use the UART. This unfortunate hack is
- * required by Seaboard, which cannot use its console and SPI at the same
- * time. If the board file provides this, the board config will declare it.
- * Let this be a lesson for others.
- */
-#ifndef CONFIG_SPI_CORRUPTS_UART
-inline void uart_enable(void) {}
-#endif
 
 void NS16550_init (NS16550_t com_port, int baud_divisor)
 {
@@ -85,11 +76,11 @@ void NS16550_reinit (NS16550_t com_port, int baud_divisor)
 
 #endif /* CONFIG_NS16550_MIN_FUNCTIONS */
 
-void NS16550_putc (NS16550_t com_port, char c)
+void NS16550_putc(NS16550_t regs, char c)
 {
-	uart_enable();
-	while ((serial_in(&com_port->lsr) & UART_LSR_THRE) == 0);
-	serial_out(c, &com_port->thr);
+	uart_enable(regs);
+	while ((serial_in(&regs->lsr) & UART_LSR_THRE) == 0);
+	serial_out(c, &regs->thr);
 
 	/*
 	 * Call watchdog_reset() upon newline. This is done here in putc
@@ -105,7 +96,7 @@ void NS16550_putc (NS16550_t com_port, char c)
 
 static char NS16550_raw_getc(NS16550_t regs)
 {
-	uart_enable();
+	uart_enable(regs);
 	while ((serial_in(&regs->lsr) & UART_LSR_DR) == 0) {
 #ifdef CONFIG_USB_TTY
 		extern void usbtty_poll(void);
@@ -118,6 +109,7 @@ static char NS16550_raw_getc(NS16550_t regs)
 
 static int NS16550_raw_tstc(NS16550_t regs)
 {
+	uart_enable(regs);
 	return ((serial_in(&regs->lsr) & UART_LSR_DR) != 0);
 }
 
@@ -156,6 +148,7 @@ static int dequeue(unsigned int port, char *ch)
 
 static void fill_rx_buf(NS16550_t regs, unsigned int port)
 {
+	uart_enable(regs);
 	while ((serial_in(&regs->lsr) & UART_LSR_DR) != 0)
 		enqueue(port, serial_in(&regs->rbr));
 }
@@ -198,7 +191,6 @@ char NS16550_getc(NS16550_t regs, unsigned int port)
 
 int NS16550_tstc(NS16550_t regs, unsigned int port)
 {
-	uart_enable();
 	return NS16550_raw_tstc(regs);
 }
 

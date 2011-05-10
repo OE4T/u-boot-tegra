@@ -153,7 +153,9 @@ static void pinmux_init(void)
  */
 static void gpio_init(void)
 {
-	gpio_config_uart();
+#ifdef CONFIG_SPI_UART_SWITCH
+	gpio_early_init_uart();
+#endif
 }
 
 /*
@@ -167,6 +169,9 @@ int board_init(void)
 	/* board id for Linux */
 	gd->bd->bi_arch_number = CONFIG_MACH_TYPE;
 
+#ifdef CONFIG_SPI_UART_SWITCH
+	gpio_config_uart();
+#endif
 #ifdef CONFIG_USB_EHCI_TEGRA
 	board_usb_init();
 #endif

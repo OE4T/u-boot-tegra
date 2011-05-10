@@ -26,5 +26,6 @@
 
 void tegra2_start(void);
 void gpio_config_uart(void);
+void gpio_early_init_uart(void);
 
 #endif	/* BOARD_H */

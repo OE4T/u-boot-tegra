@@ -27,6 +27,7 @@ LIB	= $(obj)lib$(VENDOR).o
 
 COBJS-y += board.o
 COBJS-$(CONFIG_USB_EHCI_TEGRA) += usb.o
+COBJS-$(CONFIG_SPI_UART_SWITCH) += uart-spi-fix.o
 
 COBJS	:= $(COBJS-y)
 SRCS	:= $(SOBJS:.o=.S) $(COBJS:.o=.c)

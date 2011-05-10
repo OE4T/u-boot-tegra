@@ -1,7 +1,5 @@
 /*
- *  (C) Copyright 2010,2011
- *  NVIDIA Corporation <www.nvidia.com>
- *
+ * Copyright (c) 2011 The Chromium OS Authors.
  * See file CREDITS for list of people who contributed to this
  * project.
  *
@@ -12,7 +10,7 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
@@ -21,7 +19,28 @@
  * MA 02111-1307 USA
  */
 
-#include <common.h>
-#include <asm/io.h>
-#include <asm/arch/tegra2.h>
 
+#if defined(CONFIG_SPI_UART_SWITCH)
+
+#ifndef __ASSEMBLY__
+#include <ns16550.h>
+/*
+ * Signal that we are about to use the UART. This unfortunate hack is
+ * required by Seaboard, which cannot use its console and SPI at the same
+ * time! If the board file provides this, the board config will declare it.
+ * Let this be a lesson for others.
+ */
+void uart_enable(NS16550_t regs);
+
+/*
+ * Signal that we are about the use the SPI bus.
+ */
+void spi_enable(void);
+#endif
+
+#else /* not CONFIG_SPI_UART_SWITCH */
+
+static inline void uart_enable(NS16550_t regs) {}
+static inline void spi_enable(void) {}
+
+#endif

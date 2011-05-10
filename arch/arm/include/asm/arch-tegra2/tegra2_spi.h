@@ -75,7 +75,4 @@ struct spi_tegra {
 
 #define SPI_TIMEOUT	1000
 
-/* On Seaboard: GPIO_PI3 = Port I = 8, bit = 3 */
-#define UART_DISABLE_GPIO	GPIO_PI3
-
 #endif	/* _TEGRA2_SPI_H_ */
