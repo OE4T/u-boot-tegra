@@ -73,6 +73,7 @@ typedef	struct	global_data {
 #if !(defined(CONFIG_SYS_NO_ICACHE) && defined(CONFIG_SYS_NO_DCACHE))
 	unsigned long	tlb_addr;
 #endif
+	const void	*blob;		/* Our device tree, NULL if none */
 	void		**jt;		/* jump table */
 	char		env_buf[32];	/* buffer for getenv() before reloc. */
 } gd_t;
