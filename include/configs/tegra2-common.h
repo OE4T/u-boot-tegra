@@ -36,8 +36,6 @@
 #define CONFIG_BOOTSTAGE_REPORT		/* Print a boot time report */
 #define CONFIG_ARCH_CPU_INIT		/* Fire up the A9 core */
 
-#define CONFIG_ENABLE_CORTEXA9		/* enable CPU (A9 complex) */
-
 #include <asm/arch/tegra2.h>		/* get chip and board defs */
 
 /*
@@ -89,7 +87,6 @@
  */
 #define CONFIG_USB_EHCI
 #define CONFIG_USB_EHCI_TEGRA
-#define CONFIG_USB_CONTROLLER_INSTANCES	2
 
 /* Tegra2 requires USB buffers to be aligned to a word boundary */
 #define CONFIG_USB_EHCI_DATA_ALIGN	4
