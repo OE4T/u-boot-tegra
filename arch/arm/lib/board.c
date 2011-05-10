@@ -274,13 +274,6 @@ void board_init_f (ulong bootflag)
 	gd_t *id;
 	ulong addr, addr_sp;
 
-	bootstage_mark(BOOTSTAGE_START_UBOOT, "start_armboot");
-
-	/* Pointer is writable since we allocated a register for it */
-	gd = (gd_t *) ((CONFIG_SYS_INIT_SP_ADDR) & ~0x07);
-	/* compiler optimization barrier needed for GCC >= 3.4 */
-	__asm__ __volatile__("": : :"memory");
-
 #ifdef CONFIG_TEGRA2
 	/*
 	 * Call this now in case we are running on the AVP, since it doesn't
@@ -290,6 +283,13 @@ void board_init_f (ulong bootflag)
 	 */
 	arch_cpu_init();
 #endif
+	bootstage_mark(BOOTSTAGE_START_UBOOT, "start_armboot");
+
+	/* Pointer is writable since we allocated a register for it */
+	gd = (gd_t *) ((CONFIG_SYS_INIT_SP_ADDR) & ~0x07);
+	/* compiler optimization barrier needed for GCC >= 3.4 */
+	__asm__ __volatile__("": : :"memory");
+
 	memset ((void*)gd, 0, sizeof (gd_t));
 
 	gd->mon_len = _bss_end_ofs;
