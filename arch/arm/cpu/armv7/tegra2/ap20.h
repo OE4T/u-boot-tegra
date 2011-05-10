@@ -94,11 +94,3 @@
 #define HALT_COP_EVENT_JTAG		(1 << 28)
 #define HALT_COP_EVENT_IRQ_1		(1 << 11)
 #define HALT_COP_EVENT_FIQ_1		(1 << 9)
-
-/* Prototypes */
-
-void tegra2_start(void);
-void uart_init(void);
-void udelay(unsigned long);
-void cold_boot(void);
-void cache_configure(void);
