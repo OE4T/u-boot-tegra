@@ -1,0 +1,55 @@
+/dts-v1/;
+
+/memreserve/ 0x1c000000 0x04000000;
+/include/ "../../../arch/arm/cpu/armv7/tegra2/tegra250.dtsi"
+
+/ {
+	model = "NVIDIA Seaboard";
+	compatible = "nvidia,seaboard", "nvidia,tegra250";
+
+	aliases {
+		console = "/serial@70006300";
+
+		/*
+		 * Number the serial ports so the U-Boot NS16550 driver can
+		 * maintain an output buffer for each.
+		 */
+		serial3 = "/serial@70006300";
+	};
+
+	chosen {
+		bootargs = "";
+	};
+
+	memory {
+		device_type = "memory";
+		reg = < 0x00000000 0x40000000 >;
+	};
+
+	serial@70006300 {
+		status = "ok";
+		clock-frequency = < 216000000 >;
+	};
+
+	/*
+	 * Seaboard has a switch on GPIO67 which affects this UART. Until
+	 * pinmux support is added it is not clear how to do this, so this
+	 * is a stop-gap.
+	 */
+	switch {
+		compatible = "nvidia,spi-uart-switch";
+		uart = "serial3";
+		gpios = <&gpio 67 0>; /* Port I = 8 bit = 3: 8 * 8 + 3 */
+	};
+
+	sdhci@c8000400 {
+		status = "ok";
+		gpios = <&gpio 69 0>, /* cd, gpio PI5 */
+			<&gpio 57 0>, /* wp, gpio PH1 */
+			<&gpio 70 0>; /* power, gpio PI6 */
+	};
+
+	sdhci@c8000600 {
+		status = "ok";
+	};
+};
