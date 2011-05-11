@@ -32,10 +32,7 @@
 #define PREFIX "cros_normal_firmware: "
 
 #define DEVICE_TYPE		"mmc"
-#define DEVICE_NAME		"mmcblk" DEVICE_NUMBER_STRING "p"
-#define DEVICE_NUMBER_STRING	"0"
 #define DEVICE_NUMBER		0
-#define DEVICE_PART		0xc
 
 /* Return 0 if success, non-zero on error */
 int initialize_drive(void)
@@ -44,15 +41,6 @@ int initialize_drive(void)
 		debug(PREFIX "mmc %d init fail\n", DEVICE_NUMBER);
 		return -1;
 	}
-
-	/* Environment variables used by u-boot scripts in kernel partition */
-	setenv("devtype", DEVICE_TYPE);
-	setenv("devname", DEVICE_NAME);
-	setenv("devnum",  DEVICE_NUMBER_STRING);
-
-	/* TODO move to u-boot-config */
-	run_command("setenv console console=ttyS0,115200n8", 0);
-	run_command("setenv bootargs ${console} ${platform_extras}", 0);
 
 	debug(PREFIX "set_bootdev %s %x:0\n", DEVICE_TYPE, DEVICE_NUMBER);
 	if (set_bootdev(DEVICE_TYPE, DEVICE_NUMBER, 0)) {
@@ -103,6 +91,8 @@ int do_cros_normal_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 		debug(PREFIX "error: initialize fixed drive fail\n");
 		reboot_to_recovery_mode(&nvcxt, VBNV_RECOVERY_RW_NO_OS);
 	}
+
+	prepare_bootargs();
 
 	if (load_gbb(&file, &gbb_data, &gbb_size)) {
 		debug(PREFIX "error: cannot read gbb\n");

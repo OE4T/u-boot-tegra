@@ -15,8 +15,6 @@
 #include <fat.h>
 #include <lcd.h>
 #include <malloc.h>
-#include <mmc.h>
-#include <usb.h>
 #include <chromeos/firmware_storage.h>
 #include <chromeos/load_firmware_helper.h>
 #include <chromeos/load_kernel_helper.h>
@@ -45,9 +43,11 @@ DECLARE_GLOBAL_DATA_PTR;
 #define WARN_ON_FAILURE(action) action
 #endif
 
-/* MMC dev number of SD card */
+/*
+ * MMC dev number of SD card
+ * TODO(waihong): Find this number via FDT?
+ */
 #define MMC_DEV_NUM_SD		1
-#define MMC_DEV_NUM_SD_STR	"1"
 
 #define WAIT_MS_BETWEEN_PROBING	400
 #define WAIT_MS_SHOW_ERROR	2000
@@ -66,27 +66,6 @@ uint8_t *g_gbb_base = NULL;
 uint64_t g_gbb_size = 0;
 int g_is_dev = 0;
 ScreenIndex g_cur_scr = SCREEN_BLANK;
-
-static int is_mmc_storage_present(void)
-{
-	return mmc_legacy_init(MMC_DEV_NUM_SD) == 0;
-}
-
-static int is_usb_storage_present(void)
-{
-	int i;
-
-	/* TODO: Seek a better way to probe USB instead of restart it */
-	usb_stop();
-	i = usb_init();
-#ifdef CONFIG_USB_STORAGE
-	if (i >= 0) {
-		/* Scanning bus for storage devices, mode = 1. */
-		return usb_stor_scan(1) == 0;
-	}
-#endif
-	return 1;
-}
 
 static int write_log(void)
 {
@@ -228,25 +207,12 @@ static void clear_ram_not_in_use(void)
 
 static int load_and_boot_kernel(void)
 {
-	char *devtype;
-	int devnum;
 	uint64_t boot_flags;
 	LoadKernelParams par;
 	VbNvContext nvcxt;
 	int i, status;
 
-	devtype = getenv("devtype");
-	devnum = (int)simple_strtoul(getenv("devnum"), NULL, 10);
-
-        debug(PREFIX "set_bootdev %s %x:0\n", devtype, devnum);
-        if (set_bootdev(devtype, devnum, 0)) {
-                debug(PREFIX "set_bootdev fail\n");
-                return -1;
-        }
-
-	/* TODO move to u-boot-config */
-	run_command("setenv console console=ttyS0,115200n8", 0);
-	run_command("setenv bootargs ${console} ${platform_extras}", 0);
+	prepare_bootargs();
 
 	/* Prepare to load kernel */
 	boot_flags = BOOT_FLAG_RECOVERY;
@@ -335,21 +301,31 @@ static int load_and_boot_kernel(void)
 
 static int boot_recovery_image_in_mmc(void)
 {
-	char buffer[CONFIG_SYS_CBSIZE];
+	char devtype[] = "mmc";
 
-        setenv("devtype", "mmc");
-	sprintf(buffer, "mmcblk%dp", MMC_DEV_NUM_SD);
-	setenv("devname", buffer);
-	setenv("devnum", MMC_DEV_NUM_SD_STR);
+	debug(PREFIX "set_bootdev %s %x:0\n", devtype, MMC_DEV_NUM_SD);
+	if (set_bootdev(devtype, MMC_DEV_NUM_SD, 0)) {
+		debug(PREFIX "set_bootdev fail\n");
+		return -1;
+	}
+
 	return load_and_boot_kernel();
 }
 
 static int boot_recovery_image_in_usb(void)
 {
-	/* TODO: Find the correct dev num of USB storage instead of always 0 */
-        setenv("devtype", "usb");
-	setenv("devname", "sda");
-	setenv("devnum", "0");
+	char devtype[] = "usb";
+
+	/*
+	 * TODO(waihong): Find the correct dev num of USB storage instead of
+	 * always 0.
+	 */
+	debug(PREFIX "set_bootdev %s %x:0\n", devtype, 0);
+	if (set_bootdev(devtype, 0, 0)) {
+		debug(PREFIX "set_bootdev fail\n");
+		return -1;
+	}
+
 	return load_and_boot_kernel();
 }
 
@@ -409,7 +385,8 @@ int do_cros_rec(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	if (!g_is_dev) {
 		/* Wait for user to unplug SD card and USB storage device */
-		while (is_mmc_storage_present() || is_usb_storage_present()) {
+		while (is_mmc_storage_present(MMC_DEV_NUM_SD) ||
+				is_usb_storage_present()) {
 			show_screen(SCREEN_RECOVERY_MODE);
 			wait_ms(WAIT_MS_BETWEEN_PROBING);
 		}
@@ -419,7 +396,7 @@ int do_cros_rec(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		/* Wait for user to plug in SD card or USB storage device */
 		is_mmc = is_usb = 0;
 		do {
-			is_mmc = is_mmc_storage_present();
+			is_mmc = is_mmc_storage_present(MMC_DEV_NUM_SD);
 			if (!is_mmc) {
 				is_usb = is_usb_storage_present();
 			}
@@ -437,7 +414,7 @@ int do_cros_rec(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			do {
 				show_screen(SCREEN_RECOVERY_NO_OS);
 				wait_ms(WAIT_MS_SHOW_ERROR);
-			} while (is_mmc_storage_present());
+			} while (is_mmc_storage_present(MMC_DEV_NUM_SD));
 		} else if (is_usb) {
 			WARN_ON_FAILURE(boot_recovery_image_in_usb());
 			/* Wait for user to unplug USB storage device */

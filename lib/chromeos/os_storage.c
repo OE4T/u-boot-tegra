@@ -10,8 +10,15 @@
 
 #include <common.h>
 #include <malloc.h>
+#ifdef CONFIG_MMC
+#include <mmc.h>
+#endif
 #include <part.h>
+#ifdef CONFIG_USB_STORAGE
+#include <usb.h>
+#endif
 #include <chromeos/os_storage.h>
+#include <linux/string.h> /* for strcmp */
 
 #include <boot_device.h>
 
@@ -84,6 +91,24 @@ EXIT:
 	return ret;
 }
 
+/* TODO(clchiou): This will be deprecated when we fix crosbug:14022 */
+static void setup_envvar(char *ifname, int dev)
+{
+	char buf[32];
+
+	setenv("devtype", ifname);
+
+	if (!strcmp(ifname, "usb")) {
+		setenv("devname", "sda");
+	} else { /* assert ifname == "mmc" */
+		sprintf(buf, "mmcblk%dp", dev);
+		setenv("devname", buf);
+	}
+
+	sprintf(buf, "%d", dev);
+	setenv("devnum", buf);
+}
+
 int set_bootdev(char *ifname, int dev, int part)
 {
 	disk_partition_t part_info;
@@ -94,6 +119,7 @@ int set_bootdev(char *ifname, int dev, int part)
 	if (part == 0) {
 		bootdev_config.offset = 0;
 		bootdev_config.limit = bootdev_config.dev_desc->lba;
+		setup_envvar(ifname, dev);
 		return 0;
 	}
 
@@ -102,7 +128,7 @@ int set_bootdev(char *ifname, int dev, int part)
 
 	bootdev_config.offset = part_info.start;
 	bootdev_config.limit = part_info.size;
-
+	setup_envvar(ifname, dev);
 	return 0;
 
 cleanup:
@@ -148,4 +174,34 @@ int BootDeviceWriteLBA(uint64_t lba_start, uint64_t lba_count,
 		return 1; /* error reading blocks */
 
 	return 0;
+}
+
+int is_mmc_storage_present(int mmc_device_number)
+{
+#ifdef CONFIG_MMC
+	/* TODO(waihong): Better way to probe MMC than restart it */
+	return initialize_mmc_device(mmc_device_number) == 0;
+#else
+	printf("MMC storage is not enabled\n");
+	return 0;
+#endif
+}
+
+int is_usb_storage_present(void)
+{
+#ifdef CONFIG_USB_STORAGE
+	int i;
+
+	/* TODO(waihong): Better way to probe USB than restart it */
+	usb_stop();
+	i = usb_init();
+	if (i >= 0) {
+		/* Scanning bus for storage devices, mode = 1. */
+		return usb_stor_scan(1) == 0;
+	}
+	return 1;
+#else
+	printf("USB storage is not enabled\n");
+	return 0;
+#endif
 }

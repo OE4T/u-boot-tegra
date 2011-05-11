@@ -36,6 +36,14 @@ int do_bootm(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 #undef PREFIX
 #define PREFIX "load_kernel_wrapper: "
 
+void prepare_bootargs(void)
+{
+	/* TODO move to u-boot-config */
+	run_command("setenv console console=ttyS0,115200n8", 0);
+	run_command("setenv bootargs "
+			"${bootargs} ${console} ${platform_extras}", 0);
+}
+
 int load_kernel_wrapper_core(LoadKernelParams *params,
 			     void *gbb_data, uint64_t gbb_size,
 			     uint64_t boot_flags, VbNvContext *nvcxt,
@@ -219,7 +227,6 @@ EXIT:
 			debug(PREFIX "binf[%2d] %08x\n", i, sd->binf[i]);
 		debug(PREFIX "vbnv[ 0] %08x\n", sd->vbnv[0]);
 		debug(PREFIX "vbnv[ 1] %08x\n", sd->vbnv[1]);
-		debug(PREFIX "fmap     %08llx\n", sd->fmap_start_address);
 		debug(PREFIX "nvcxt    %08llx\n", sd->nvcxt_lba);
 		debug(PREFIX "nvcxt_c  ");
 		for (i = 0; i < VBNV_BLOCK_SIZE; i++)

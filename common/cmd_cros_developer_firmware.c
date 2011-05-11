@@ -24,6 +24,14 @@
 
 #define PREFIX "cros_developer_firmware: "
 
+/* TODO(clchiou): get this number from FDT? */
+#define MMC_SD_DEVNUM 1
+
+/* ASCII codes of characters */
+#define CTRL_D 0x04
+#define CTRL_U 0x15
+#define ESCAPE 0x1b
+
 int do_cros_normal_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 		char * const argv[]);
 
@@ -33,29 +41,55 @@ static void beep(void)
 	debug(PREFIX "beep\n");
 }
 
-static int is_ctrlu(int c)
+static int unblocked_getc(int *c)
 {
-	return 0;
+	/* TODO(crosbug/15243): Cannot read control-* from keyboard */
+
+	/* does not check whether we have console or not */
+	if (tstc()) {
+		*c = getc();
+		return 1;
+	} else
+		return 0;
 }
 
-static int is_ctrld(int c)
+/* This function only returns when verification failed */
+static void load_and_boot_kernel(void *gbb_data, uint64_t gbb_size)
 {
-	return 0;
-}
+	LoadKernelParams params;
+	VbNvContext nvcxt;
+	uint64_t boot_flags = BOOT_FLAG_DEV_FIRMWARE;
+	int status;
 
-static int is_escape(int c)
-{
-	return 0;
-}
+	if (is_developer_mode_gpio_asserted())
+		boot_flags |= BOOT_FLAG_DEVELOPER;
 
-static int is_space(int c)
-{
-	return 0;
-}
+	if (read_nvcontext(&nvcxt)) {
+		/*
+		 * Even if we can't read nvcxt, we continue anyway because this
+		 * is developer firmware
+		 */
+		debug(PREFIX "fail to read nvcontext\n");
+	}
 
-static int is_enter(int c)
-{
-	return 0;
+	prepare_bootargs();
+
+	status = load_kernel_wrapper(&params, gbb_data, gbb_size,
+			boot_flags, &nvcxt, NULL);
+
+	debug(PREFIX "load_kernel_wrapper returns %d\n", status);
+
+	if (VbNvTeardown(&nvcxt) ||
+			(nvcxt.raw_changed && write_nvcontext(&nvcxt))) {
+		/*
+		 * Even if we can't read nvcxt, we continue anyway because this
+		 * is developer firmware
+		 */
+		debug(PREFIX "fail to write nvcontext\n");
+	}
+
+	if (status == LOAD_KERNEL_SUCCESS)
+		boot_kernel(&params); /* this function never returns */
 }
 
 int do_cros_developer_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
@@ -64,7 +98,7 @@ int do_cros_developer_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 	firmware_storage_t file;
 	void *gbb_data = NULL;
 	uint64_t gbb_size = 0;
-	ulong start = 0, time = 0;
+	ulong start = 0, time = 0, last_time = 0;
 	int c, is_after_20_seconds = 0;
 
 	if (firmware_storage_init(&file) ||
@@ -78,7 +112,9 @@ int do_cros_developer_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 	}
 
 	/* we don't care whether close operation fails */
-	file.close(file.context);
+	if (file.close(file.context)) {
+		debug(PREFIX "close firmware storage failed\n");
+	}
 
 	if (display_screen_in_bmpblk(gbb_data, SCREEN_DEVELOPER_MODE)) {
 		debug(PREFIX "cannot display stuff on LCD screen\n");
@@ -86,7 +122,15 @@ int do_cros_developer_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 
 	start = get_timer(0);
 	while (1) {
+		udelay(100);
+
+		last_time = time;
 		time = get_timer(start);
+#ifdef DEBUG
+		/* only output when time advances at least 1 second */
+		if (time / CONFIG_SYS_HZ > last_time / CONFIG_SYS_HZ)
+			debug(PREFIX "time ~ %d sec\n", time / CONFIG_SYS_HZ);
+#endif
 
 		/* Beep twice when time > 20 seconds */
 		if (!is_after_20_seconds && time > 20 * CONFIG_SYS_HZ) {
@@ -99,24 +143,44 @@ int do_cros_developer_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 		if (time > 30 * CONFIG_SYS_HZ)
 			break;
 
-		c = getc();
-		debug(PREFIX "getc() == 0x%x\n", c);
+		if (!unblocked_getc(&c))
+			continue;
 
-		if (is_ctrlu(c)) {
-			/* TODO: load and boot kernel from USB or SD card */
+		debug(PREFIX "unblocked_getc() == 0x%x\n", c);
+
+		/* Load and boot kernel from USB or SD card */
+		if (CTRL_U == c) {
+			/*
+			 * TODO(waihong): Find the correct dev num of USB
+			 * storage instead of always 0.
+			 */
+			if (is_usb_storage_present() &&
+					!set_bootdev("usb", 0, 0)) {
+				debug(PREFIX "Probed usb\n");
+				load_and_boot_kernel(gbb_data, gbb_size);
+			} else if (is_mmc_storage_present(MMC_SD_DEVNUM) &&
+					!set_bootdev("mmc", MMC_SD_DEVNUM, 0)) {
+				debug(PREFIX "Probed mmc\n");
+				load_and_boot_kernel(gbb_data, gbb_size);
+			} else {
+				debug(PREFIX "Fail to probe usb and mmc\n");
+			}
+
+			beep();
 		}
 
 		/* Fall back to normal firmware when user pressed Ctrl-D */
-		if (is_ctrld(c))
+		if (CTRL_D == c)
 			break;
 
-		if (is_space(c) || is_enter(c) || is_escape(c))
+		if (c == ' ' || c == '\r' || c == '\n' || c == ESCAPE) {
+			debug(PREFIX "reboot to recovery mode\n");
 			reboot_to_recovery_mode(NULL,
 					VBNV_RECOVERY_RW_DEV_SCREEN);
-
-		udelay(100);
+		}
 	}
 
+	debug(PREFIX "fall back to normal firmware\n");
 	return do_cros_normal_firmware(NULL, 0, 0, NULL);
 }
 

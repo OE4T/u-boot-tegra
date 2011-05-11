@@ -16,6 +16,9 @@
 #include <load_kernel_fw.h>
 #include <vboot_nvstorage.h>
 
+/* Prepare bootargs environment variable that holds kernel parameter */
+void prepare_bootargs(void);
+
 /*
  * Given the bootloader_addres, load the kernel config as bootargs.
  * Return zero if success and non-zero if error.

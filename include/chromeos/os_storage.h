@@ -34,4 +34,8 @@ ulong get_limit(void);
 uint64_t get_bytes_per_lba(void);
 uint64_t get_ending_lba(void);
 
+/* Probe whether external storage device presents */
+int is_mmc_storage_present(int mmc_device_number);
+int is_usb_storage_present(void);
+
 #endif /* CHROMEOS_OS_STORAGE_H_ */
