@@ -20,6 +20,7 @@
 #include <chromeos/load_firmware_helper.h>
 #include <chromeos/load_kernel_helper.h>
 #include <chromeos/os_storage.h>
+#include <chromeos/power_management.h>
 #include <chromeos/vboot_nvstorage_helper.h>
 
 #include <boot_device.h>
@@ -138,8 +139,8 @@ int do_cros_normal_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 
 	if (status == LOAD_KERNEL_REBOOT) {
 		debug(PREFIX "internal error: reboot to current mode\n");
-		reset_cpu(0);
-		debug(PREFIX "error: reset_cpu() returns\n");
+		cold_reboot();
+		debug(PREFIX "error: cold_reboot() returns\n");
 		while (1);
 	}
 

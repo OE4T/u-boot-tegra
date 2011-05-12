@@ -16,6 +16,7 @@
 #include <chromeos/firmware_storage.h>
 #include <chromeos/gpio.h>
 #include <chromeos/load_firmware_helper.h>
+#include <chromeos/power_management.h>
 #include <chromeos/vboot_nvstorage_helper.h>
 
 /* Verify Boot interface */
@@ -128,7 +129,7 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	if (status == LOAD_FIRMWARE_SUCCESS) {
 		jump_to_firmware((void (*)(void)) firmware_data);
 	} else if (status == LOAD_FIRMWARE_REBOOT) {
-		reset_cpu(0);
+		cold_reboot();
 	}
 
 	/* assert(status == LOAD_FIRMWARE_RECOVERY) */

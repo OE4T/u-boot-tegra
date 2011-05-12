@@ -15,6 +15,7 @@
 #include <config.h>
 #include <common.h>
 #include <malloc.h>
+#include <chromeos/power_management.h>
 
 /* HACK: Get rid of U-Boots debug and assert macros */
 #undef error
@@ -35,7 +36,7 @@ int memcmp(const void *cs, const void *ct, size_t count);
  */
 void _abort(void)
 {
-	reset_cpu(0);
+	cold_reboot();
 }
 
 #define exit(retcode) _abort()
