@@ -42,6 +42,12 @@ const struct tegra2_sysinfo sysinfo = {
 	CONFIG_TEGRA2_BOARD_STRING
 };
 
+enum {
+	/* UARTs which we can enable */
+	UARTA	= 1 << 0,
+	UARTD	= 1 << 3,
+};
+
 /*
  * Routine: timer_init
  * Description: init the timestamp and lastinc value
@@ -52,11 +58,31 @@ int timer_init(void)
 	return 0;
 }
 
+static void enable_uart(enum periph_id pid, u32 *addr)
+{
+	u32 reg;
+
+	/* Assert UART reset and enable clock */
+	reset_set_enable(pid, 1);
+	clock_enable(pid);
+
+	/* Enable pllp_out0 to UART */
+	reg = readl(addr);
+	reg &= 0x3FFFFFFF;	/* UARTA_CLK_SRC = 00, PLLP_OUT0 */
+	writel(reg, addr);
+
+	/* wait for 2us */
+	udelay(2);
+
+	/* De-assert reset to UART */
+	reset_set_enable(pid, 0);
+}
+
 /*
  * Routine: clock_init_uart
  * Description: init the PLL and clock for the UART(s)
  */
-static void clock_init_uart(void)
+static void clock_init_uart(int uart_ids)
 {
 	struct clk_rst_ctlr *clkrst = (struct clk_rst_ctlr *)NV_PA_CLK_RST_BASE;
 	struct clk_pll *pll = &clkrst->crc_pll[CLOCK_PLL_ID_PERIPH];
@@ -77,74 +103,46 @@ static void clock_init_uart(void)
 		writel(reg, &pll->pll_base);
 	}
 
-#if defined(CONFIG_TEGRA2_ENABLE_UARTA)
-	/* Assert UART reset and enable clock */
-	reset_set_enable(PERIPH_ID_UART1, 1);
-	clock_enable(PERIPH_ID_UART1);
-
-	/* Enable pllp_out0 to UART */
-	reg = readl(&clkrst->crc_clk_src_uarta);
-	reg &= 0x3FFFFFFF;	/* UARTA_CLK_SRC = 00, PLLP_OUT0 */
-	writel(reg, &clkrst->crc_clk_src_uarta);
-
-	/* wait for 2us */
-	udelay(2);
-
-	/* De-assert reset to UART */
-	reset_set_enable(PERIPH_ID_UART1, 0);
-#endif	/* CONFIG_TEGRA2_ENABLE_UARTA */
-#if defined(CONFIG_TEGRA2_ENABLE_UARTD)
-	/* Assert UART reset and enable clock */
-	reset_set_enable(PERIPH_ID_UART4, 1);
-	clock_enable(PERIPH_ID_UART4);
-
-	/* Enable pllp_out0 to UART */
-	reg = readl(&clkrst->crc_clk_src_uartd);
-	reg &= 0x3FFFFFFF;	/* UARTD_CLK_SRC = 00, PLLP_OUT0 */
-	writel(reg, &clkrst->crc_clk_src_uartd);
-
-	/* wait for 2us */
-	udelay(2);
-
-	/* De-assert reset to UART */
-	reset_set_enable(PERIPH_ID_UART4, 0);
-#endif	/* CONFIG_TEGRA2_ENABLE_UARTD */
+	if (uart_ids & UARTA)
+		enable_uart(PERIPH_ID_UART1, &clkrst->crc_clk_src_uarta);
+	if (uart_ids & UARTD)
+		enable_uart(PERIPH_ID_UART4, &clkrst->crc_clk_src_uartd);
 }
 
 /*
  * Routine: pin_mux_uart
  * Description: setup the pin muxes/tristate values for the UART(s)
  */
-static void pin_mux_uart(void)
+static void pin_mux_uart(int uart_ids)
 {
-#if defined(CONFIG_TEGRA2_ENABLE_UARTA)
-	pinmux_set_func(PINGRP_IRRX, PMUX_FUNC_UARTA);
-	pinmux_set_func(PINGRP_IRTX, PMUX_FUNC_UARTA);
-	pinmux_tristate_disable(PINGRP_IRRX);
-	pinmux_tristate_disable(PINGRP_IRTX);
-#endif	/* CONFIG_TEGRA2_ENABLE_UARTA */
-#if defined(CONFIG_TEGRA2_ENABLE_UARTD)
-	pinmux_set_func(PINGRP_GMC, PMUX_FUNC_UARTD);
-	pinmux_tristate_disable(PINGRP_GMC);
-#endif	/* CONFIG_TEGRA2_ENABLE_UARTD */
+	if (uart_ids & UARTA) {
+		pinmux_set_func(PINGRP_IRRX, PMUX_FUNC_UARTA);
+		pinmux_set_func(PINGRP_IRTX, PMUX_FUNC_UARTA);
+		pinmux_tristate_disable(PINGRP_IRRX);
+		pinmux_tristate_disable(PINGRP_IRTX);
+	}
+	if (uart_ids & UARTD) {
+		pinmux_set_func(PINGRP_GMC, PMUX_FUNC_UARTD);
+		pinmux_tristate_disable(PINGRP_GMC);
+	}
 }
 
 /*
  * Routine: clock_init
  * Description: Do individual peripheral clock reset/enables
  */
-static void clock_init(void)
+static void clock_init(int uart_ids)
 {
-	clock_init_uart();
+	clock_init_uart(uart_ids);
 }
 
 /*
  * Routine: pinmux_init
  * Description: Do individual peripheral pinmux configs
  */
-static void pinmux_init(void)
+static void pinmux_init(int uart_ids)
 {
-	pin_mux_uart();
+	pin_mux_uart(uart_ids);
 }
 
 /*
@@ -187,15 +185,23 @@ int board_init(void)
 int board_early_init_f(void)
 {
 	extern void cpu_init_crit(void);
+	int uart_ids = 0;	/* bit mask of which UART ids to enable */
+
+#ifdef CONFIG_TEGRA2_ENABLE_UARTA
+	uart_ids |= UARTA;
+#endif
+#ifdef CONFIG_TEGRA2_ENABLE_UARTD
+	uart_ids |= UARTD;
+#endif
 
 	/* We didn't do this init in start.S, so do it now */
 	cpu_init_crit();
 
 	/* Initialize periph clocks */
-	clock_init();
+	clock_init(uart_ids);
 
 	/* Initialize periph pinmuxes */
-	pinmux_init();
+	pinmux_init(uart_ids);
 
 	/* Initialize periph GPIOs */
 	gpio_init();
