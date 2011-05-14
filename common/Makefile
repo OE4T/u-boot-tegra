@@ -174,6 +174,7 @@ COBJS-$(CONFIG_USB_KEYBOARD) += usb_kbd.o
 COBJS-$(CONFIG_BOOTSTAGE) += bootstage.o
 COBJS-$(CONFIG_CMD_GETTIME) += cmd_gettime.o
 COBJS-$(CONFIG_CMD_RAMCONFIG) += cmd_ramconfig.o
+COBJS-$(CONFIG_OF_CONTROL) += fdt_decode.o
 
 
 COBJS	:= $(sort $(COBJS-y))
