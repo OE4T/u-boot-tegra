@@ -25,6 +25,14 @@
 #include <fdt_support.h>
 #include <fdt_decode.h>
 
+/*
+ * Here are the type we know about. One day we might allow drivers to
+ * register. For now we just put them here.
+ */
+static struct fdt_compat compat_types[] = {
+	{ COMPAT_UNKNOWN, "<none>" },
+};
+
 /**
  * Look in the FDT for an alias with the given name and return its node.
  *
@@ -122,7 +130,7 @@ void fdt_decode_uart_calc_divisor(struct fdt_uart *uart)
 int fdt_decode_uart_console(const void *blob, struct fdt_uart *uart,
 		int default_baudrate)
 {
-	int node, i;
+	int node;
 
 	node = find_alias_node(blob, "console");
 	if (node < 0)
@@ -137,9 +145,22 @@ int fdt_decode_uart_console(const void *blob, struct fdt_uart *uart,
 	uart->enabled = get_is_enabled(blob, node, 1);
 	uart->interrupt = get_int(blob, node, "interrupts", -1);
 	uart->silent = get_int(blob, node, "silent", 0);
+	uart->compat = fdt_decode_lookup(blob, node);
 
 	/* Calculate divisor if required */
 	if (uart->divisor == -1)
 		fdt_decode_uart_calc_divisor(uart);
 	return 0;
+}
+
+enum fdt_compat_id fdt_decode_lookup(const void *blob, int node)
+{
+	enum fdt_compat_id id;
+
+	/* Search our drivers */
+	for (id = COMPAT_UNKNOWN; id < COMPAT_COUNT; id++)
+		if (0 == fdt_node_check_compatible(blob, node,
+				compat_types[id].name))
+			return id;
+	return COMPAT_UNKNOWN;
 }

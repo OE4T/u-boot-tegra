@@ -39,6 +39,23 @@ typedef u32 addr_t;
 #define addr_to_cpu(reg) be32_to_cpu(reg)
 #endif
 
+/**
+ * Compat types that we know about and for which we might have drivers.
+ * Each is named COMPAT_<dir>_<filename> where <dir> is the directory
+ * within drivers.
+ */
+enum fdt_compat_id {
+	COMPAT_UNKNOWN,
+
+	COMPAT_COUNT,
+};
+
+/** compat items that we know about and might have drivers for */
+struct fdt_compat {
+	enum fdt_compat_id id;
+	const char *name;
+};
+
 /* Information obtained about a UART from the FDT */
 struct fdt_uart {
 	addr_t reg;	/* address of registers in physical memory */
@@ -51,6 +68,7 @@ struct fdt_uart {
 	int enabled;	/* 1 to enable, 0 to disable */
 	int interrupt;	/* interrupt line */
 	int silent;	/* 1 for silent UART (supresses output by default) */
+	enum fdt_compat_id compat; /* our selected driver */
 };
 
 /**
@@ -90,3 +108,10 @@ int fdt_decode_uart_console(const void *blob, struct fdt_uart *uart,
  * @param uart	uart structure to examine and update
  */
 void fdt_decode_uart_calc_divisor(struct fdt_uart *uart);
+
+/**
+ * Find the compat id for a node. This looks at the 'compat' property of
+ * the node and looks up the corresponding ftp_compat_id. This is used for
+ * determining which driver will implement the decide described by the node.
+ */
+enum fdt_compat_id fdt_decode_lookup(const void *blob, int node);
