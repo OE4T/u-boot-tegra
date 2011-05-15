@@ -67,17 +67,22 @@
 /*
  * NS16550 Configuration
  */
+#define CONFIG_SERIAL_MULTI
+#define CONFIG_NS16550_BUFFER_READS
+#define CONFIG_SYS_NS16550
+#define CONFIG_SYS_NS16550_REG_SIZE	(-4)
+
+#ifndef CONFIG_OF_CONTROL
 #define V_NS16550_CLK			216000000	/* 216MHz (pllp_out0) */
 
-#define CONFIG_SYS_NS16550
 #define CONFIG_SYS_NS16550_SERIAL
-#define CONFIG_SYS_NS16550_REG_SIZE	(-4)
 #define CONFIG_SYS_NS16550_CLK		V_NS16550_CLK
 
 /*
  * select serial console configuration
  */
 #define CONFIG_CONS_INDEX	1
+#endif /* CONFIG_OF_CONTROL */
 
 #define CONFIG_ENV_SIZE         SZ_4K
 

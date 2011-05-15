@@ -28,21 +28,18 @@
 
 #define CONFIG_SPI_UART_SWITCH
 
-#include "tegra2-common.h"
-
 /* High-level configuration options */
 #define TEGRA2_SYSMEM		"mem=384M@0M nvmem=128M@384M mem=512M@512M"
 #define V_PROMPT		"Tegra2 (SeaBoard) # "
 #define CONFIG_TEGRA2_BOARD_STRING	"NVIDIA Seaboard"
 
-/* Board-specific serial config */
-#define CONFIG_SERIAL_MULTI
-#define CONFIG_TEGRA2_ENABLE_UARTD
-#define CONFIG_SYS_NS16550_COM1		NV_PA_APB_UARTD_BASE
-#define CONFIG_NS16550_BUFFER_READS
+#include "tegra2-common.h"
 
 #ifndef CONFIG_OF_CONTROL
 /* Things in here are defined by the device tree now. Let it grow! */
+
+#define CONFIG_TEGRA2_ENABLE_UARTD
+#define CONFIG_SYS_NS16550_COM1		NV_PA_APB_UARTD_BASE
 
 /* Seaboard SPI activity corrupts the first UART */
 #define CONFIG_SPI_CORRUPTS_UART	NV_PA_APB_UARTD_BASE
