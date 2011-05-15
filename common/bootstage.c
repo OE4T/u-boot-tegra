@@ -29,6 +29,7 @@
 
 #include <common.h>
 
+DECLARE_GLOBAL_DATA_PTR;
 
 struct bootstage_record {
 	uint32_t time_us;
@@ -80,7 +81,10 @@ void bootstage_report(void)
 {
 	int id;
 	uint32_t prev;
+	u32 flags = gd->flags;
 
+	/* Force this information to display even on silent console */
+	gd->flags &= ~GD_FLG_SILENT;
 	puts("Timer summary in microseconds:\n");
 	printf("%11s%11s  %s\n", "Mark", "Elapsed", "Stage");
 
@@ -94,5 +98,7 @@ void bootstage_report(void)
 		if (id == BOOTSTAGE_AWAKE || rec->time_us != 0)
 			prev = print_time_record(id, rec, prev);
 	}
+	if (flags & GD_FLG_SILENT)
+		gd->flags |= GD_FLG_SILENT;
 }
 
