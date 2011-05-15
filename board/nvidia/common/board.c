@@ -34,6 +34,7 @@
 #include <asm/arch/uart.h>
 #include <asm/arch/usb.h>
 #include <spi.h>
+#include <fdt_decode.h>
 #include "board.h"
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -188,12 +189,19 @@ int board_early_init_f(void)
 	extern void cpu_init_crit(void);
 	int uart_ids = 0;	/* bit mask of which UART ids to enable */
 
+#ifdef CONFIG_OF_CONTROL
+	struct fdt_uart uart;
+
+	if (!fdt_decode_uart_console(gd->blob, &uart, gd->baudrate))
+		uart_ids = 1 << uart.id;
+#else
 #ifdef CONFIG_TEGRA2_ENABLE_UARTA
 	uart_ids |= UARTA;
 #endif
 #ifdef CONFIG_TEGRA2_ENABLE_UARTD
 	uart_ids |= UARTD;
 #endif
+#endif /* CONFIG_OF_CONTROL */
 
 	/* We didn't do this init in start.S, so do it now */
 	cpu_init_crit();
