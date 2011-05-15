@@ -49,6 +49,7 @@ typedef u32 addr_t;
 enum fdt_compat_id {
 	COMPAT_UNKNOWN,
 	COMPAT_SPI_UART_SWITCH,		/* SPI / UART switch */
+	COMPAT_SERIAL_NS16550,		/* NS16550 UART */
 
 	COMPAT_COUNT,
 };

@@ -32,6 +32,7 @@
 static struct fdt_compat compat_types[] = {
 	{ COMPAT_UNKNOWN, "<none>" },
 	{ COMPAT_SPI_UART_SWITCH, "spi-uart-select" },
+	{ COMPAT_SERIAL_NS16550, "ns16550" },
 };
 
 /**

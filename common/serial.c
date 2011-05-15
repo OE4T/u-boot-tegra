@@ -24,6 +24,8 @@
 #include <common.h>
 #include <serial.h>
 #include <stdio_dev.h>
+#include <serial_fdt.h>
+
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -33,7 +35,9 @@ static struct serial_device *serial_current = NULL;
 #if !defined(CONFIG_LWMON) && !defined(CONFIG_PXA250) && !defined(CONFIG_PXA27X)
 struct serial_device *__default_serial_console (void)
 {
-#if defined(CONFIG_8xx_CONS_SMC1) || defined(CONFIG_8xx_CONS_SMC2)
+#ifdef CONFIG_OF_CONTROL
+	return serial_fdt_get_console_f();
+#elif defined(CONFIG_8xx_CONS_SMC1) || defined(CONFIG_8xx_CONS_SMC2)
 	return &serial_smc_device;
 #elif defined(CONFIG_8xx_CONS_SCC1) || defined(CONFIG_8xx_CONS_SCC2) \
    || defined(CONFIG_8xx_CONS_SCC3) || defined(CONFIG_8xx_CONS_SCC4)
@@ -117,6 +121,9 @@ int serial_register (struct serial_device *dev)
 
 void serial_initialize (void)
 {
+#ifdef CONFIG_OF_CONTROL
+	serial_register(serial_fdt_get_console_r());
+#endif
 #if defined(CONFIG_8xx_CONS_SMC1) || defined(CONFIG_8xx_CONS_SMC2)
 	serial_register (&serial_smc_device);
 #endif
