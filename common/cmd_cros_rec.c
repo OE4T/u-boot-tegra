@@ -43,12 +43,6 @@ DECLARE_GLOBAL_DATA_PTR;
 #define WARN_ON_FAILURE(action) action
 #endif
 
-/*
- * MMC dev number of SD card
- * TODO(waihong): Find this number via FDT?
- */
-#define MMC_DEV_NUM_SD		1
-
 #define WAIT_MS_BETWEEN_PROBING	400
 #define WAIT_MS_SHOW_ERROR	2000
 
@@ -299,36 +293,6 @@ static int load_and_boot_kernel(void)
 	return 0;
 }
 
-static int boot_recovery_image_in_mmc(void)
-{
-	char devtype[] = "mmc";
-
-	debug(PREFIX "set_bootdev %s %x:0\n", devtype, MMC_DEV_NUM_SD);
-	if (set_bootdev(devtype, MMC_DEV_NUM_SD, 0)) {
-		debug(PREFIX "set_bootdev fail\n");
-		return -1;
-	}
-
-	return load_and_boot_kernel();
-}
-
-static int boot_recovery_image_in_usb(void)
-{
-	char devtype[] = "usb";
-
-	/*
-	 * TODO(waihong): Find the correct dev num of USB storage instead of
-	 * always 0.
-	 */
-	debug(PREFIX "set_bootdev %s %x:0\n", devtype, 0);
-	if (set_bootdev(devtype, 0, 0)) {
-		debug(PREFIX "set_bootdev fail\n");
-		return -1;
-	}
-
-	return load_and_boot_kernel();
-}
-
 static int init_gbb_in_ram(void)
 {
 	firmware_storage_t file;
@@ -367,8 +331,6 @@ static int show_screen(ScreenIndex scr)
 
 int do_cros_rec(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
-	int is_mmc, is_usb;
-
 	WARN_ON_FAILURE(write_log());
 
 #ifdef TEST_CLEAR_MEM_REGIONS
@@ -385,8 +347,7 @@ int do_cros_rec(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	if (!g_is_dev) {
 		/* Wait for user to unplug SD card and USB storage device */
-		while (is_mmc_storage_present(MMC_DEV_NUM_SD) ||
-				is_usb_storage_present()) {
+		while (is_any_storage_device_plugged(NOT_BOOT_PROBED_DEVICE)) {
 			show_screen(SCREEN_RECOVERY_MODE);
 			wait_ms(WAIT_MS_BETWEEN_PROBING);
 		}
@@ -394,34 +355,18 @@ int do_cros_rec(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	for (;;) {
 		/* Wait for user to plug in SD card or USB storage device */
-		is_mmc = is_usb = 0;
-		do {
-			is_mmc = is_mmc_storage_present(MMC_DEV_NUM_SD);
-			if (!is_mmc) {
-				is_usb = is_usb_storage_present();
-			}
-			if (!is_mmc && !is_usb) {
-				show_screen(SCREEN_RECOVERY_MISSING_OS);
-				wait_ms(WAIT_MS_BETWEEN_PROBING);
-			}
-		} while (!is_mmc && !is_usb);
+		while (!is_any_storage_device_plugged(BOOT_PROBED_DEVICE)) {
+			show_screen(SCREEN_RECOVERY_MISSING_OS);
+			wait_ms(WAIT_MS_BETWEEN_PROBING);
+		}
 
 		clear_screen();
 
-		if (is_mmc) {
-			WARN_ON_FAILURE(boot_recovery_image_in_mmc());
-			/* Wait for user to unplug SD card */
-			do {
-				show_screen(SCREEN_RECOVERY_NO_OS);
-				wait_ms(WAIT_MS_SHOW_ERROR);
-			} while (is_mmc_storage_present(MMC_DEV_NUM_SD));
-		} else if (is_usb) {
-			WARN_ON_FAILURE(boot_recovery_image_in_usb());
-			/* Wait for user to unplug USB storage device */
-			do {
-				show_screen(SCREEN_RECOVERY_NO_OS);
-				wait_ms(WAIT_MS_SHOW_ERROR);
-			} while (is_usb_storage_present());
+		load_and_boot_kernel();
+
+		while (is_any_storage_device_plugged(NOT_BOOT_PROBED_DEVICE)) {
+			show_screen(SCREEN_RECOVERY_NO_OS);
+			wait_ms(WAIT_MS_SHOW_ERROR);
 		}
 	}
 

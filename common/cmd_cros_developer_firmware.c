@@ -22,6 +22,7 @@
 #include <chromeos/vboot_nvstorage_helper.h>
 
 #include <bmpblk_header.h>
+#include <tlcl_stub.h>
 
 #define PREFIX "cros_developer_firmware: "
 
@@ -106,6 +107,11 @@ int do_cros_developer_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 		reboot_to_recovery_mode(NULL, VBNV_RECOVERY_RW_DEV_MISMATCH);
 	}
 
+	if (TlclStubInit() != TPM_SUCCESS) {
+		debug(PREFIX "fail to init tpm\n");
+		reboot_to_recovery_mode(NULL, VBNV_RECOVERY_RW_TPM_ERROR);
+	}
+
 	if (firmware_storage_init(&file) ||
 			load_gbb(&file, &gbb_data, &gbb_size)) {
 		/*
@@ -155,24 +161,11 @@ int do_cros_developer_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 
 		/* Load and boot kernel from USB or SD card */
 		if (CTRL_U == c) {
-			/*
-			 * TODO(waihong): Find the correct dev num of USB
-			 * storage instead of always 0.
-			 */
-			if (is_usb_storage_present() &&
-					!set_bootdev("usb", 0, 0)) {
-				debug(PREFIX "Probed usb\n");
+			if (is_any_storage_device_plugged(BOOT_PROBED_DEVICE))
 				load_and_boot_kernel(gbb_data, gbb_size,
 						boot_flags);
-			} else if (is_mmc_storage_present(MMC_SD_DEVNUM) &&
-					!set_bootdev("mmc", MMC_SD_DEVNUM, 0)) {
-				debug(PREFIX "Probed mmc\n");
-				load_and_boot_kernel(gbb_data, gbb_size,
-						boot_flags);
-			} else {
-				debug(PREFIX "Fail to probe usb and mmc\n");
-			}
 
+			debug(PREFIX "Fail to probe usb and mmc\n");
 			beep();
 		}
 

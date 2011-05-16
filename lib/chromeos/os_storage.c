@@ -22,7 +22,13 @@
 
 #include <boot_device.h>
 
-#define PREFIX "boot_device: "
+#define PREFIX "os_storage: "
+
+/*
+ * MMC dev number of SD card
+ * TODO(waihong): Find this number via FDT?
+ */
+#define MMC_DEV_NUM_SD 1
 
 #define BACKUP_LBA_OFFSET 0x20
 
@@ -113,8 +119,10 @@ int set_bootdev(char *ifname, int dev, int part)
 {
 	disk_partition_t part_info;
 
-	if ((bootdev_config.dev_desc = get_dev(ifname, dev)) == NULL)
-		goto cleanup; /* block device not supported */
+	if ((bootdev_config.dev_desc = get_dev(ifname, dev)) == NULL) {
+		debug(PREFIX "block device not supported\n");
+		goto cleanup;
+	}
 
 	if (part == 0) {
 		bootdev_config.offset = 0;
@@ -123,8 +131,10 @@ int set_bootdev(char *ifname, int dev, int part)
 		return 0;
 	}
 
-	if (get_partition_info(bootdev_config.dev_desc, part, &part_info))
-		goto cleanup; /* cannot find partition */
+	if (get_partition_info(bootdev_config.dev_desc, part, &part_info)) {
+		debug(PREFIX "cannot find partition\n");
+		goto cleanup;
+	}
 
 	bootdev_config.offset = part_info.start;
 	bootdev_config.limit = part_info.size;
@@ -176,32 +186,87 @@ int BootDeviceWriteLBA(uint64_t lba_start, uint64_t lba_count,
 	return 0;
 }
 
+#ifdef CONFIG_MMC
 int is_mmc_storage_present(int mmc_device_number)
 {
-#ifdef CONFIG_MMC
+	if (mmc_device_number >= MMC_DEV_INSTANCES) {
+		debug(PREFIX "%d >= MMC_DEV_INSTANCES\n", mmc_device_number);
+		return 0;
+	}
+
 	/* TODO(waihong): Better way to probe MMC than restart it */
 	return initialize_mmc_device(mmc_device_number) == 0;
+}
 #else
+int is_mmc_storage_present(int mmc_device_number)
+{
 	printf("MMC storage is not enabled\n");
 	return 0;
-#endif
 }
+#endif
 
-int is_usb_storage_present(void)
-{
 #ifdef CONFIG_USB_STORAGE
-	int i;
+int is_usb_storage_present(int usb_controller_number)
+{
+	if (usb_controller_number >= CONFIG_USB_CONTROLLER_INSTANCES) {
+		debug(PREFIX "%d >= CONFIG_USB_CONTROLLER_INSTANCES\n",
+				usb_controller_number);
+		return 0;
+	}
 
 	/* TODO(waihong): Better way to probe USB than restart it */
 	usb_stop();
-	i = usb_init();
-	if (i >= 0) {
+
+#ifdef CONFIG_TEGRA2
+	extern int USB_EHCI_TEGRA_BASE_ADDR;
+	extern int USB_base_addr[];
+	if (!USB_base_addr[usb_controller_number]) {
+		debug(PREFIX "unknown USB controller: %d\n",
+				usb_controller_number);
+		return 0;
+	}
+	USB_EHCI_TEGRA_BASE_ADDR = USB_base_addr[usb_controller_number];
+#endif /* CONFIG_TEGRA2 */
+
+	if (usb_init() >= 0) {
 		/* Scanning bus for storage devices, mode = 1. */
 		return usb_stor_scan(1) == 0;
 	}
+
 	return 1;
+}
 #else
+int is_usb_storage_present(int usb_controller_number)
+{
 	printf("USB storage is not enabled\n");
 	return 0;
+}
+#endif /* CONFIG_USB_STORAGE */
+
+int is_any_storage_device_plugged(int boot_probed_device)
+{
+	int bus;
+
+#ifdef CONFIG_MMC
+	if (is_mmc_storage_present(MMC_DEV_NUM_SD)) {
+		if (boot_probed_device == NOT_BOOT_PROBED_DEVICE ||
+				!set_bootdev("mmc", MMC_DEV_NUM_SD, 0))
+			return 1;
+	}
+#else
+	debug(PREFIX "MMC storage is not enabled\n");
 #endif
+
+#ifdef CONFIG_USB_STORAGE
+	for (bus = 0; bus < CONFIG_USB_CONTROLLER_INSTANCES; bus ++) {
+		if (is_usb_storage_present(bus))
+			if (boot_probed_device == NOT_BOOT_PROBED_DEVICE ||
+					!set_bootdev("usb", 0, 0))
+				return 1;
+	}
+#else
+	debug(PREFIX "USB storage is not enabled\n");
+#endif
+
+	return 0;
 }

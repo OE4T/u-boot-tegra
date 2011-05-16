@@ -36,6 +36,21 @@ uint64_t get_ending_lba(void);
 
 /* Probe whether external storage device presents */
 int is_mmc_storage_present(int mmc_device_number);
-int is_usb_storage_present(void);
+int is_usb_storage_present(int usb_controller_number);
+
+/*
+ * When BOOT_PROBED_DEVICE is passed to is_any_storage_device_plugged(), the
+ * function will also call set_bootdev() on the successfully-probed device, and
+ * returns true if set_bootdev() also succeeds.
+ *
+ * When NOT_BOOT_PROBED_DEVICE is passed to is_any_storage_device_plugged(), the
+ * function simply returns true after a storage device is successfully probed.
+ */
+enum {
+	NOT_BOOT_PROBED_DEVICE,
+	BOOT_PROBED_DEVICE
+};
+
+int is_any_storage_device_plugged(int boot_probed_device);
 
 #endif /* CHROMEOS_OS_STORAGE_H_ */
