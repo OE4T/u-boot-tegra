@@ -16,15 +16,6 @@
 #include <load_kernel_fw.h>
 #include <vboot_nvstorage.h>
 
-/* Prepare bootargs environment variable that holds kernel parameter */
-void prepare_bootargs(void);
-
-/*
- * Given the bootloader_addres, load the kernel config as bootargs.
- * Return zero if success and non-zero if error.
- */
-int load_kernel_config(uint64_t bootloader_address);
-
 /*
  * Wrapper of LoadKernel() function. Returns the return value of LoadKernel().
  *
@@ -49,9 +40,10 @@ int load_kernel_wrapper_core(LoadKernelParams *params, void *gbb_data,
 			     int bypass_load_kernel);
 
 /*
- * Boot kernel specified at the address in <params>. This function never
- * returns.
+ * Call load_kernel_wrapper and boot the loaded kernel if load_kernel_wrapper
+ * returns non-success.
  */
-void boot_kernel(LoadKernelParams *params);
+int load_and_boot_kernel(void *gbb_data, uint64_t gbb_size,
+		uint64_t boot_flags);
 
 #endif /* CHROMEOS_LOAD_KERNEL_HELPER_H_ */

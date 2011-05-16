@@ -190,16 +190,14 @@ int clear_recovery_request(void)
 	return 0;
 }
 
-void reboot_to_recovery_mode(VbNvContext *nvcxt, uint32_t reason)
+void reboot_to_recovery_mode(uint32_t reason)
 {
-	VbNvContext nvcontext;
+	VbNvContext *nvcxt, nvcontext;
 
-	if (!nvcxt) {
-		nvcxt = &nvcontext;
-		if (read_nvcontext(nvcxt) || VbNvSetup(nvcxt)) {
-			debug(PREFIX "cannot read nvcxt\n");
-			goto FAIL;
-		}
+	nvcxt = &nvcontext;
+	if (read_nvcontext(nvcxt) || VbNvSetup(nvcxt)) {
+		debug(PREFIX "cannot read nvcxt\n");
+		goto FAIL;
 	}
 
 	debug(PREFIX "store recovery cookie in recovery field\n");

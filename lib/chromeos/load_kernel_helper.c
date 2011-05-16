@@ -14,6 +14,7 @@
 #include <chromeos/kernel_shared_data.h>
 #include <chromeos/load_kernel_helper.h>
 #include <chromeos/os_storage.h>
+#include <chromeos/vboot_nvstorage_helper.h>
 
 /* TODO For load fmap; remove when not used */
 #include <chromeos/firmware_storage.h>
@@ -39,14 +40,6 @@ int do_bootm(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 
 #undef PREFIX
 #define PREFIX "load_kernel_wrapper: "
-
-void prepare_bootargs(void)
-{
-	/* TODO move to u-boot-config */
-	run_command("setenv console console=ttyS0,115200n8", 0);
-	run_command("setenv bootargs "
-			"${bootargs} ${console} ${platform_extras}", 0);
-}
 
 int load_kernel_wrapper_core(LoadKernelParams *params,
 			     void *gbb_data, uint64_t gbb_size,
@@ -239,13 +232,22 @@ EXIT:
 	return status;
 }
 
+int load_kernel_wrapper(LoadKernelParams *params,
+			void *gbb_data, uint64_t gbb_size,
+			uint64_t boot_flags, VbNvContext *nvcxt,
+			uint8_t *shared_data_blob)
+{
+	return load_kernel_wrapper_core(params, gbb_data, gbb_size, boot_flags,
+					nvcxt, shared_data_blob, 0);
+}
+
 /* Maximum kernel command-line size */
 #define CROS_CONFIG_SIZE 4096
 
 /* Size of the x86 zeropage table */
 #define CROS_PARAMS_SIZE 4096
 
-int load_kernel_config(uint64_t bootloader_address)
+static int load_kernel_config(uint64_t bootloader_address)
 {
 	char buf[80 + CROS_CONFIG_SIZE];
 
@@ -268,16 +270,7 @@ int load_kernel_config(uint64_t bootloader_address)
 	return 0;
 }
 
-int load_kernel_wrapper(LoadKernelParams *params,
-			void *gbb_data, uint64_t gbb_size,
-			uint64_t boot_flags, VbNvContext *nvcxt,
-			uint8_t *shared_data_blob)
-{
-	return load_kernel_wrapper_core(params, gbb_data, gbb_size, boot_flags,
-					nvcxt, shared_data_blob, 0);
-}
-
-void boot_kernel(LoadKernelParams *params)
+static void boot_kernel(LoadKernelParams *params)
 {
 	char load_address[32];
 	char *argv[2] = { "bootm", load_address };
@@ -305,4 +298,49 @@ void boot_kernel(LoadKernelParams *params)
 
 	debug(PREFIX "error: do_bootm() returned\n");
 	while (1);
+}
+
+static void prepare_bootargs(void)
+{
+	/* TODO move to u-boot-config */
+	run_command("setenv console console=ttyS0,115200n8", 0);
+	run_command("setenv bootargs "
+			"${bootargs} ${console} ${platform_extras}", 0);
+}
+
+int load_and_boot_kernel(void *gbb_data, uint64_t gbb_size,
+		uint64_t boot_flags)
+{
+	LoadKernelParams params;
+	VbNvContext nvcxt;
+	int status;
+
+	if (read_nvcontext(&nvcxt)) {
+		/*
+		 * Even if we can't read nvcxt, we continue anyway because this
+		 * is developer firmware
+		 */
+		debug(PREFIX "fail to read nvcontext\n");
+	}
+
+	prepare_bootargs();
+
+	status = load_kernel_wrapper(&params, gbb_data, gbb_size,
+			boot_flags, &nvcxt, NULL);
+
+	debug(PREFIX "load_kernel_wrapper returns %d\n", status);
+
+	if (VbNvTeardown(&nvcxt) ||
+			(nvcxt.raw_changed && write_nvcontext(&nvcxt))) {
+		/*
+		 * Even if we can't read nvcxt, we continue anyway because this
+		 * is developer firmware
+		 */
+		debug(PREFIX "fail to write nvcontext\n");
+	}
+
+	if (status == LOAD_KERNEL_SUCCESS)
+		boot_kernel(&params); /* this function never returns */
+
+	return status;
 }

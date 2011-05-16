@@ -35,9 +35,7 @@ int clear_recovery_request(void);
 
 /*
  * Set the recovery request to <reason> and reboot. This function never returns.
- *
- * If <nvcxt> is NULL, this function loads the nvcxt from non-volatile storage.
  */
-void reboot_to_recovery_mode(VbNvContext *nvcxt, uint32_t reason);
+void reboot_to_recovery_mode(uint32_t reason);
 
 #endif /* CHROMEOS_VBOOT_NVSTORAGE_HELPER_H_ */

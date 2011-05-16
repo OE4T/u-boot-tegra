@@ -15,6 +15,7 @@
 #include <fat.h>
 #include <lcd.h>
 #include <malloc.h>
+#include <usb.h> /* for wait_ms() */
 #include <chromeos/firmware_storage.h>
 #include <chromeos/load_firmware_helper.h>
 #include <chromeos/load_kernel_helper.h>
@@ -199,100 +200,6 @@ static void clear_ram_not_in_use(void)
 	clear_mem_regions();
 }
 
-static int load_and_boot_kernel(void)
-{
-	uint64_t boot_flags;
-	LoadKernelParams par;
-	VbNvContext nvcxt;
-	int i, status;
-
-	prepare_bootargs();
-
-	/* Prepare to load kernel */
-	boot_flags = BOOT_FLAG_RECOVERY;
-	if (g_is_dev) {
-		boot_flags |= BOOT_FLAG_DEVELOPER;
-	}
-
-	if (read_nvcontext(&nvcxt)) {
-		/*
-		 * If we fail to initialize firmware storage or fail to read
-		 * VbNvContext, we might not be able to clear the recovery
-		 * cookie. As a result, next time we will still boot recovery
-		 * firmware!
-		 */
-		debug(PREFIX "init firmware storage or clear recovery cookie "
-				"failed\n");
-	}
-
-        debug(PREFIX "call load_kernel_wrapper with boot_flags: %lld\n",
-			boot_flags);
-        status = load_kernel_wrapper(&par, g_gbb_base, g_gbb_size,
-			boot_flags, &nvcxt, NULL);
-
-	/* Should only clear recovery cookie if successfully load kernel */
-	if (status == LOAD_KERNEL_SUCCESS &&
-			VbNvSet(&nvcxt, VBNV_RECOVERY_REQUEST,
-				VBNV_RECOVERY_NOT_REQUESTED)) {
-		/*
-		 * We might still boot recovery firmware next time we boot for
-		 * the same reason above.
-		 */
-		debug(PREFIX "fail to clear recovery cookie\n");
-	}
-
-	if (VbNvTeardown(&nvcxt)) {
-		debug(PREFIX "fail to tear down cookie\n");
-	}
-
-	if (nvcxt.raw_changed && write_nvcontext(&nvcxt)) {
-		/*
-		 * We might still boot recovery firmware next time we boot for
-		 * the same reason above.
-		 */
-		debug(PREFIX "fail to write nvcontext\n");
-	}
-
-	switch (status) {
-	case LOAD_KERNEL_SUCCESS:
-		printf(PREFIX "Success; good kernel found on device\n");
-		printf(PREFIX "partition_number: %lld\n",
-				par.partition_number);
-		printf(PREFIX "bootloader_address: 0x%llx\n",
-				par.bootloader_address);
-		printf(PREFIX "bootloader_size: 0x%llx\n", par.bootloader_size);
-		printf(PREFIX "partition_guid: ");
-		for (i = 0; i < 16; i++)
-			printf("%02x", par.partition_guid[i]);
-		putc('\n');
-
-		if (load_kernel_config(par.bootloader_address)) {
-			debug(PREFIX "error: load kernel config failed\n");
-			return 1;
-		}
-		run_command("bootm ${loadaddr}", 0);
-		break;
-	case LOAD_KERNEL_NOT_FOUND:
-		printf(PREFIX "No kernel found on device\n");
-		break;
-	case LOAD_KERNEL_INVALID:
-		printf(PREFIX "Only invalid kernels found on device\n");
-		break;
-	case LOAD_KERNEL_RECOVERY:
-		printf(PREFIX "Internal error; reboot to recovery mode\n");
-		break;
-	case LOAD_KERNEL_REBOOT:
-		printf(PREFIX "Internal error; reboot to current mode\n");
-		break;
-	default:
-		printf(PREFIX "Unexpected return status from LoadKernel: %d\n",
-				status);
-		return 1;
-	}
-
-	return 0;
-}
-
 static int init_gbb_in_ram(void)
 {
 	firmware_storage_t file;
@@ -331,6 +238,8 @@ static int show_screen(ScreenIndex scr)
 
 int do_cros_rec(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
+	uint64_t boot_flags = BOOT_FLAG_RECOVERY;
+
 	WARN_ON_FAILURE(write_log());
 
 #ifdef TEST_CLEAR_MEM_REGIONS
@@ -344,6 +253,8 @@ int do_cros_rec(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	WARN_ON_FAILURE(init_gbb_in_ram());
 
 	g_is_dev = is_developer_mode_gpio_asserted();
+	if (g_is_dev)
+		boot_flags |= BOOT_FLAG_DEVELOPER;
 
 	if (!g_is_dev) {
 		/* Wait for user to unplug SD card and USB storage device */
@@ -362,7 +273,8 @@ int do_cros_rec(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 		clear_screen();
 
-		load_and_boot_kernel();
+		load_and_boot_kernel((void*) g_gbb_base, g_gbb_size,
+				boot_flags);
 
 		while (is_any_storage_device_plugged(NOT_BOOT_PROBED_DEVICE)) {
 			show_screen(SCREEN_RECOVERY_NO_OS);

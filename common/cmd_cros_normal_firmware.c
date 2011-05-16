@@ -54,95 +54,40 @@ int do_cros_normal_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 		char * const argv[])
 {
 	int status;
-	LoadKernelParams params;
 	firmware_storage_t file;
-	VbNvContext nvcxt;
 	void *gbb_data = NULL;
 	uint64_t gbb_size = 0;
-	uint64_t boot_flags = 0;
 	uint32_t reason = VBNV_RECOVERY_RW_UNSPECIFIED;
-
-	if (firmware_storage_init(&file)) {
-		/*
-		 * FIXME: because we can't write to nv context, we can't even
-		 * reboot to recovery firmware! Bring up a sad face now?
-		 */
-		debug(PREFIX "init firmware storage failed\n");
-		while (1);
-	}
-
-	if (read_nvcontext(&nvcxt)) {
-		/*
-		 * FIXME: because we don't have a clean state of nvcxt, we
-		 * can't reboot to recovery. Bring up a sad face now?
-		 */
-		debug(PREFIX "fail to read nvcontext\n");
-		printf("Please reset and press recovery button when reboot.\n");
-		while (1);
-	}
 
 	if (TlclStubInit() != TPM_SUCCESS) {
 		debug(PREFIX "fail to init tpm\n");
-		reboot_to_recovery_mode(&nvcxt,	VBNV_RECOVERY_RW_TPM_ERROR);
+		reboot_to_recovery_mode(VBNV_RECOVERY_RW_TPM_ERROR);
 	}
 
 	if (initialize_drive()) {
 		debug(PREFIX "error: initialize fixed drive fail\n");
-		reboot_to_recovery_mode(&nvcxt, VBNV_RECOVERY_RW_NO_OS);
+		reboot_to_recovery_mode(VBNV_RECOVERY_RW_NO_OS);
 	}
 
-	prepare_bootargs();
-
-	if (load_gbb(&file, &gbb_data, &gbb_size)) {
+	if (firmware_storage_init(&file) ||
+			load_gbb(&file, &gbb_data, &gbb_size)) {
 		debug(PREFIX "error: cannot read gbb\n");
-		reboot_to_recovery_mode(&nvcxt, VBNV_RECOVERY_RO_SHARED_DATA);
+		reboot_to_recovery_mode(VBNV_RECOVERY_RO_SHARED_DATA);
 	}
 
-	debug(PREFIX "call load_kernel_wrapper with boot_flags: %d\n",
-			(int) boot_flags);
-	status = load_kernel_wrapper(&params, gbb_data, gbb_size,
-			boot_flags, &nvcxt, NULL);
-
-	if (VbNvTeardown(&nvcxt)) {
-		debug(PREFIX "fail to tear down cookie\n");
-		while (1);
-	}
-
-	if (nvcxt.raw_changed && write_nvcontext(&nvcxt)) {
-		/*
-		 * FIXME: because we can't write to nv context, we can't even
-		 * reboot to recovery firmware! Bring up a sad face now?
-		 */
-		debug(PREFIX "fail to write nvcontext\n");
-		printf("Please reset and press recovery button when reboot.\n");
-		while (1);
-        }
-
-	if (status == LOAD_KERNEL_SUCCESS) {
-		debug(PREFIX "success: good kernel found on device\n");
-		boot_kernel(&params);
-	}
+	status = load_and_boot_kernel(gbb_data, gbb_size, 0ULL);
+	debug(PREFIX "status == %d\n", status);
 
 	if (status == LOAD_KERNEL_REBOOT) {
 		debug(PREFIX "internal error: reboot to current mode\n");
 		cold_reboot();
-		debug(PREFIX "error: cold_reboot() returns\n");
-		while (1);
 	}
 
-	if (status == LOAD_KERNEL_RECOVERY) {
-		debug(PREFIX "internal error: reboot to recovery mode\n");
-	} else if (status == LOAD_KERNEL_NOT_FOUND) {
-		debug(PREFIX "no kernel found on device\n");
+	if (status == LOAD_KERNEL_NOT_FOUND)
 		reason = VBNV_RECOVERY_RW_NO_OS;
-	} else if (status == LOAD_KERNEL_INVALID) {
-		debug(PREFIX "only invalid kernels found on device\n");
+	else if (status == LOAD_KERNEL_INVALID)
 		reason = VBNV_RECOVERY_RW_INVALID_OS;
-	} else {
-		debug(PREFIX "unknown status from LoadKernel(): %d\n", status);
-	}
-
-	reboot_to_recovery_mode(&nvcxt, reason);
+	reboot_to_recovery_mode(reason);
 
 	/* never reach here */
 	/* free(gbb_data); */

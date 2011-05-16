@@ -56,42 +56,6 @@ static int unblocked_getc(int *c)
 		return 0;
 }
 
-/* This function only returns when verification failed */
-static void load_and_boot_kernel(void *gbb_data, uint64_t gbb_size,
-		uint64_t boot_flags)
-{
-	LoadKernelParams params;
-	VbNvContext nvcxt;
-	int status;
-
-	if (read_nvcontext(&nvcxt)) {
-		/*
-		 * Even if we can't read nvcxt, we continue anyway because this
-		 * is developer firmware
-		 */
-		debug(PREFIX "fail to read nvcontext\n");
-	}
-
-	prepare_bootargs();
-
-	status = load_kernel_wrapper(&params, gbb_data, gbb_size,
-			boot_flags, &nvcxt, NULL);
-
-	debug(PREFIX "load_kernel_wrapper returns %d\n", status);
-
-	if (VbNvTeardown(&nvcxt) ||
-			(nvcxt.raw_changed && write_nvcontext(&nvcxt))) {
-		/*
-		 * Even if we can't read nvcxt, we continue anyway because this
-		 * is developer firmware
-		 */
-		debug(PREFIX "fail to write nvcontext\n");
-	}
-
-	if (status == LOAD_KERNEL_SUCCESS)
-		boot_kernel(&params); /* this function never returns */
-}
-
 int do_cros_developer_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 		char * const argv[])
 {
@@ -104,12 +68,12 @@ int do_cros_developer_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 
 	if (!is_developer_mode_gpio_asserted()) {
 		debug(PREFIX "developer switch is off; reboot to recovery!\n");
-		reboot_to_recovery_mode(NULL, VBNV_RECOVERY_RW_DEV_MISMATCH);
+		reboot_to_recovery_mode(VBNV_RECOVERY_RW_DEV_MISMATCH);
 	}
 
 	if (TlclStubInit() != TPM_SUCCESS) {
 		debug(PREFIX "fail to init tpm\n");
-		reboot_to_recovery_mode(NULL, VBNV_RECOVERY_RW_TPM_ERROR);
+		reboot_to_recovery_mode(VBNV_RECOVERY_RW_TPM_ERROR);
 	}
 
 	if (firmware_storage_init(&file) ||
@@ -175,8 +139,7 @@ int do_cros_developer_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 
 		if (c == ' ' || c == '\r' || c == '\n' || c == ESCAPE) {
 			debug(PREFIX "reboot to recovery mode\n");
-			reboot_to_recovery_mode(NULL,
-					VBNV_RECOVERY_RW_DEV_SCREEN);
+			reboot_to_recovery_mode(VBNV_RECOVERY_RW_DEV_SCREEN);
 		}
 	}
 
