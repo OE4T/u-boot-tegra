@@ -28,6 +28,8 @@
  * changes to support FDT are minimized.
  */
 
+#include <ns16550.h>
+
 /* A typedef for a physical address. We should move it to a generic place */
 #ifdef CONFIG_PHYS_64BIT
 typedef u64 addr_t;
@@ -46,6 +48,7 @@ typedef u32 addr_t;
  */
 enum fdt_compat_id {
 	COMPAT_UNKNOWN,
+	COMPAT_SPI_UART_SWITCH,		/* SPI / UART switch */
 
 	COMPAT_COUNT,
 };
@@ -69,6 +72,13 @@ struct fdt_uart {
 	int interrupt;	/* interrupt line */
 	int silent;	/* 1 for silent UART (supresses output by default) */
 	enum fdt_compat_id compat; /* our selected driver */
+};
+
+/* Information about the spi/uart switch */
+struct fdt_spi_uart {
+	int gpio;			/* GPIO to control switch */
+	NS16550_t regs;			/* Address of UART affected */
+	u32 port;			/* Port number of UART affected */
 };
 
 /**
@@ -115,3 +125,13 @@ void fdt_decode_uart_calc_divisor(struct fdt_uart *uart);
  * determining which driver will implement the decide described by the node.
  */
 enum fdt_compat_id fdt_decode_lookup(const void *blob, int node);
+
+/**
+ * Returns information from the FDT about the SPI / UART switch on tegra
+ * platforms.
+ *
+ * @param blob		FDT blob to use
+ * @param config	structure to use to return information
+ * @returns 0 on success, -ve on error, in which case config is unchanged
+ */
+int fdt_decode_get_spi_switch(const void *blob, struct fdt_spi_uart *config);

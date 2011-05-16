@@ -24,6 +24,7 @@
 #include <asm/io.h>
 #include <ns16550.h>
 #include <libfdt.h>
+#include <fdt_decode.h>
 #include <fdt_support.h>
 #include <asm/arch/bitfield.h>
 #include <asm/arch/gpio.h>
@@ -41,20 +42,14 @@ enum spi_uart_switch {
 	SWITCH_BOTH
 };
 
-/* Information about the spi/uart switch */
-struct spi_uart {
-	int gpio;			/* GPIO to control switch */
-	NS16550_t regs;			/* Address of UART affected */
-	u32 port;			/* Port number of UART affected */
-};
-
-static struct spi_uart local;
+static struct fdt_spi_uart local;
 static enum spi_uart_switch switch_pos; /* Current switch position */
 
-
-static void get_config(struct spi_uart *config)
+static void get_config(const void *blob, struct fdt_spi_uart *config)
 {
-#if defined CONFIG_SPI_CORRUPTS_UART
+#ifdef CONFIG_OF_CONTROL
+	fdt_decode_get_spi_switch(blob, config);
+#elif defined CONFIG_SPI_CORRUPTS_UART
 	config->gpio = UART_DISABLE_GPIO;
 	config->regs = (NS16550_t)CONFIG_SPI_CORRUPTS_UART;
 	config->port = CONFIG_SPI_CORRUPTS_UART_NR;
@@ -67,11 +62,11 @@ static void get_config(struct spi_uart *config)
  * Init the UART / SPI switch. This can be called before relocation so we must
  * not access BSS.
  */
-void gpio_early_init_uart(void)
+void gpio_early_init_uart(const void *blob)
 {
-	struct spi_uart config;
+	struct fdt_spi_uart config;
 
-	get_config(&config);
+	get_config(blob, &config);
 	if (config.gpio != -1)
 		gpio_direction_output(config.gpio, 0);
 	switch_pos = SWITCH_BOTH;
@@ -80,9 +75,9 @@ void gpio_early_init_uart(void)
 /*
  * Configure the UART / SPI switch.
  */
-void gpio_config_uart(void)
+void gpio_config_uart(const void *blob)
 {
-	get_config(&local);
+	get_config(blob, &local);
 	switch_pos = SWITCH_BOTH;
 	if (local.gpio != -1) {
 		gpio_direction_output(local.gpio, 0);
@@ -92,7 +87,7 @@ void gpio_config_uart(void)
 
 #ifdef CONFIG_SPI_UART_SWITCH
 
-static void spi_uart_switch(struct spi_uart *config,
+static void spi_uart_switch(struct fdt_spi_uart *config,
 			      enum spi_uart_switch new_pos)
 {
 	if (switch_pos == SWITCH_BOTH || new_pos == switch_pos)

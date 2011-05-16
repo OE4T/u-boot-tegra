@@ -145,14 +145,15 @@ static void pinmux_init(int uart_ids)
 	pin_mux_uart(uart_ids);
 }
 
-/*
- * Routine: gpio_init
- * Description: Do individual peripheral GPIO configs
+/**
+ * Do individual peripheral GPIO configs
+ *
+ * @param blob	FDT blob with configuration information
  */
-static void gpio_init(void)
+static void gpio_init(const void *blob)
 {
 #ifdef CONFIG_SPI_UART_SWITCH
-	gpio_early_init_uart();
+	gpio_early_init_uart(blob);
 #endif
 }
 
@@ -168,7 +169,7 @@ int board_init(void)
 	gd->bd->bi_arch_number = CONFIG_MACH_TYPE;
 
 #ifdef CONFIG_SPI_UART_SWITCH
-	gpio_config_uart();
+	gpio_config_uart(gd->blob);
 #endif
 #ifdef CONFIG_USB_EHCI_TEGRA
 	board_usb_init();
@@ -204,7 +205,7 @@ int board_early_init_f(void)
 	pinmux_init(uart_ids);
 
 	/* Initialize periph GPIOs */
-	gpio_init();
+	gpio_init(gd->blob);
 
 	return 0;
 }

@@ -31,6 +31,7 @@
  */
 static struct fdt_compat compat_types[] = {
 	{ COMPAT_UNKNOWN, "<none>" },
+	{ COMPAT_SPI_UART_SWITCH, "spi-uart-select" },
 };
 
 /**
@@ -99,6 +100,28 @@ static s32 get_int(const void *blob, int node, const char *prop_name,
 }
 
 /**
+ * Look up a phandle and follow it to its node. Then return the offset
+ * of that node.
+ *
+ * @param blob		FDT blob
+ * @param node		node to examine
+ * @param prop_name	name of property to find
+ * @return node offset if found, -ve error code on error
+ */
+static int lookup_phandle(const void *blob, int node, const char *prop_name)
+{
+	const u32 *phandle;
+	int lookup;
+
+	phandle = fdt_getprop(blob, node, prop_name, NULL);
+	if (!phandle)
+		return -FDT_ERR_NOTFOUND;
+
+	lookup = fdt_node_offset_by_phandle(blob, fdt32_to_cpu(*phandle));
+	return lookup;
+}
+
+/**
  * Checks whether a node is enabled.
  * This looks for a 'status' property. If this exists, then returns 1 if
  * the status is 'ok' and 0 otherwise. If there is no status property,
@@ -163,4 +186,28 @@ enum fdt_compat_id fdt_decode_lookup(const void *blob, int node)
 				compat_types[id].name))
 			return id;
 	return COMPAT_UNKNOWN;
+}
+
+int fdt_decode_get_spi_switch(const void *blob, struct fdt_spi_uart *config)
+{
+	int node, uart_node;
+	const u32 *gpio;
+
+	node = fdt_node_offset_by_compatible(blob, 0,
+					     "nvidia,spi-uart-switch");
+	if (node < 0)
+		return node;
+
+	uart_node = lookup_phandle(blob, node, "uart");
+	if (uart_node < 0)
+		return uart_node;
+	config->port = get_int(blob, uart_node, "id", -1);
+	if (config->port == -1)
+		return -FDT_ERR_NOTFOUND;
+	config->gpio = -1;
+	config->regs = (NS16550_t)get_addr(blob, uart_node, "reg");
+	gpio = fdt_getprop(blob, node, "gpios", NULL);
+	if (gpio)
+		config->gpio = fdt32_to_cpu(gpio[1]);
+	return 0;
 }
