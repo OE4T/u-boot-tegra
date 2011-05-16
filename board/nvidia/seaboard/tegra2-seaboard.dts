@@ -7,6 +7,10 @@
 	model = "NVIDIA Seaboard";
 	compatible = "nvidia,seaboard", "nvidia,tegra250";
 
+	config {
+		silent_console = <0>;
+	};
+
 	aliases {
 		console = "/serial@70006300";
 	};
