@@ -15,6 +15,7 @@
 #include <mmc.h>
 #include <chromeos/firmware_storage.h>
 #include <chromeos/gbb_bmpblk.h>
+#include <chromeos/gpio.h>
 #include <chromeos/load_firmware_helper.h>
 #include <chromeos/load_kernel_helper.h>
 #include <chromeos/os_storage.h>
@@ -25,7 +26,8 @@
 #define PREFIX "cros_developer_firmware: "
 
 /* TODO(clchiou): get this number from FDT? */
-#define MMC_SD_DEVNUM 1
+#define MMC_EMMC_DEVNUM	0
+#define MMC_SD_DEVNUM	1
 
 /* ASCII codes of characters */
 #define CTRL_D 0x04
@@ -54,15 +56,12 @@ static int unblocked_getc(int *c)
 }
 
 /* This function only returns when verification failed */
-static void load_and_boot_kernel(void *gbb_data, uint64_t gbb_size)
+static void load_and_boot_kernel(void *gbb_data, uint64_t gbb_size,
+		uint64_t boot_flags)
 {
 	LoadKernelParams params;
 	VbNvContext nvcxt;
-	uint64_t boot_flags = BOOT_FLAG_DEV_FIRMWARE;
 	int status;
-
-	if (is_developer_mode_gpio_asserted())
-		boot_flags |= BOOT_FLAG_DEVELOPER;
 
 	if (read_nvcontext(&nvcxt)) {
 		/*
@@ -97,9 +96,15 @@ int do_cros_developer_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 {
 	firmware_storage_t file;
 	void *gbb_data = NULL;
-	uint64_t gbb_size = 0;
+	uint64_t gbb_size = 0,
+		 boot_flags = BOOT_FLAG_DEV_FIRMWARE | BOOT_FLAG_DEVELOPER;
 	ulong start = 0, time = 0, last_time = 0;
 	int c, is_after_20_seconds = 0;
+
+	if (!is_developer_mode_gpio_asserted()) {
+		debug(PREFIX "developer switch is off; reboot to recovery!\n");
+		reboot_to_recovery_mode(NULL, VBNV_RECOVERY_RW_DEV_MISMATCH);
+	}
 
 	if (firmware_storage_init(&file) ||
 			load_gbb(&file, &gbb_data, &gbb_size)) {
@@ -139,7 +144,7 @@ int do_cros_developer_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 			continue;
 		}
 
-		/* Fall back to normal firmware when time > 30 seconds */
+		/* Boot from internal storage after 30 seconds */
 		if (time > 30 * CONFIG_SYS_HZ)
 			break;
 
@@ -157,11 +162,13 @@ int do_cros_developer_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 			if (is_usb_storage_present() &&
 					!set_bootdev("usb", 0, 0)) {
 				debug(PREFIX "Probed usb\n");
-				load_and_boot_kernel(gbb_data, gbb_size);
+				load_and_boot_kernel(gbb_data, gbb_size,
+						boot_flags);
 			} else if (is_mmc_storage_present(MMC_SD_DEVNUM) &&
 					!set_bootdev("mmc", MMC_SD_DEVNUM, 0)) {
 				debug(PREFIX "Probed mmc\n");
-				load_and_boot_kernel(gbb_data, gbb_size);
+				load_and_boot_kernel(gbb_data, gbb_size,
+						boot_flags);
 			} else {
 				debug(PREFIX "Fail to probe usb and mmc\n");
 			}
@@ -169,7 +176,7 @@ int do_cros_developer_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 			beep();
 		}
 
-		/* Fall back to normal firmware when user pressed Ctrl-D */
+		/* Boot from internal storage when user pressed Ctrl-D */
 		if (CTRL_D == c)
 			break;
 
@@ -180,8 +187,15 @@ int do_cros_developer_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 		}
 	}
 
-	debug(PREFIX "fall back to normal firmware\n");
-	return do_cros_normal_firmware(NULL, 0, 0, NULL);
+	debug(PREFIX "boot from internal storage\n");
+	if (is_mmc_storage_present(MMC_EMMC_DEVNUM) &&
+			!set_bootdev("mmc", MMC_EMMC_DEVNUM, 0))
+		load_and_boot_kernel(gbb_data, gbb_size, boot_flags);
+
+	printf(PREFIX "cannot boot from internal storage!\n");
+	while (1);
+
+	return 0;
 }
 
 U_BOOT_CMD(cros_developer_firmware, 1, 1, do_cros_developer_firmware,

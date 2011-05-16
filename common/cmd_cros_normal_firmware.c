@@ -16,7 +16,6 @@
 #include <malloc.h>
 #include <mmc.h>
 #include <chromeos/firmware_storage.h>
-#include <chromeos/gpio.h>
 #include <chromeos/load_firmware_helper.h>
 #include <chromeos/load_kernel_helper.h>
 #include <chromeos/os_storage.h>
@@ -98,9 +97,6 @@ int do_cros_normal_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 		debug(PREFIX "error: cannot read gbb\n");
 		reboot_to_recovery_mode(&nvcxt, VBNV_RECOVERY_RO_SHARED_DATA);
 	}
-
-	if (is_developer_mode_gpio_asserted())
-		boot_flags |= BOOT_FLAG_DEVELOPER;
 
 	debug(PREFIX "call load_kernel_wrapper with boot_flags: %d\n",
 			(int) boot_flags);
