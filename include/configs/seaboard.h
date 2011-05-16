@@ -41,12 +41,16 @@
 #define CONFIG_SYS_NS16550_COM1		NV_PA_APB_UARTD_BASE
 #define CONFIG_NS16550_BUFFER_READS
 
+#ifndef CONFIG_OF_CONTROL
+/* Things in here are defined by the device tree now. Let it grow! */
+
 /* Seaboard SPI activity corrupts the first UART */
 #define CONFIG_SPI_CORRUPTS_UART	NV_PA_APB_UARTD_BASE
 #define CONFIG_SPI_CORRUPTS_UART_NR	3
 
 /* On Seaboard: GPIO_PI3 = Port I = 8, bit = 3 */
 #define UART_DISABLE_GPIO	GPIO_PI3
+#endif
 
 #define CONFIG_MACH_TYPE		MACH_TYPE_SEABOARD
 #define CONFIG_SYS_BOARD_ODMDATA	0x300d8011 /* lp1, 1GB */
