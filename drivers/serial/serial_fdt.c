@@ -62,6 +62,11 @@ static int fserial_init(void)
 	default:
 		break;
 	}
+#ifdef CONFIG_SILENT_CONSOLE
+	/* if the console UART wants to be silent, do this now */
+	if (uart->silent)
+		gd->flags |= GD_FLG_SILENT;
+#endif
 	return 0;
 }
 

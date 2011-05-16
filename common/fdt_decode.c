@@ -133,6 +133,27 @@ static int get_int_array(const void *blob, int node, const char *prop_name,
 }
 
 /**
+ * Look in the FDT for a config item with the given name and return its value
+ * as a 32-bit integer. The property must have at least 4 bytes of data. The
+ * value of the first cell is returned.
+ *
+ * @param blob		FDT blob
+ * @param prop_name	property name to look up
+ * @param default_val	default value to return if the property is not found
+ * @return integer value, if found, or default_val if not
+ */
+static s32 get_config_int(const void *blob, const char *prop_name,
+		s32 default_val)
+{
+	int config_node;
+
+	config_node = fdt_path_offset(blob, "/config");
+	if (config_node < 0)
+		return default_val;
+	return get_int(blob, config_node, prop_name, default_val);
+}
+
+/**
  * Look up a phandle and follow it to its node. Then return the offset
  * of that node.
  *
@@ -221,7 +242,7 @@ int fdt_decode_uart_console(const void *blob, struct fdt_uart *uart,
 	uart->divisor = get_int(blob, node, "divisor", -1);
 	uart->enabled = get_is_enabled(blob, node, 1);
 	uart->interrupt = get_int(blob, node, "interrupts", -1);
-	uart->silent = get_int(blob, node, "silent", 0);
+	uart->silent = get_config_int(blob, "silent_console", 0);
 	uart->compat = fdt_decode_lookup(blob, node);
 
 	/* Calculate divisor if required */
