@@ -52,15 +52,15 @@
 
 int is_firmware_write_protect_gpio_asserted(void)
 {
-	GPIO_ACCESSOR(TEGRA_GPIO_PH3, GPIO_ACTIVE_LOW)
+	GPIO_ACCESSOR(TEGRA_GPIO_PH3, GPIO_ACTIVE_HIGH);
 }
 
 int is_recovery_mode_gpio_asserted(void)
 {
-	GPIO_ACCESSOR(TEGRA_GPIO_PH0, GPIO_ACTIVE_LOW)
+	GPIO_ACCESSOR(TEGRA_GPIO_PH0, GPIO_ACTIVE_LOW);
 }
 
 int is_developer_mode_gpio_asserted(void)
 {
-	GPIO_ACCESSOR(TEGRA_GPIO_PV0, GPIO_ACTIVE_HIGH)
+	GPIO_ACCESSOR(TEGRA_GPIO_PV0, GPIO_ACTIVE_HIGH);
 }

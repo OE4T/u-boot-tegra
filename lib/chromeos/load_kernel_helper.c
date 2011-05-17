@@ -20,6 +20,9 @@
 /* TODO For strcpy; remove when not used */
 #include <linux/string.h>
 
+/* TODO For GoogleBinaryBlockHeader; remove when not used */
+#include <gbb_header.h>
+
 /* TODO remove when not used */
 extern uint64_t get_nvcxt_lba(void);
 
@@ -163,6 +166,8 @@ EXIT:
 			uint8_t  shared_data_body[CONFIG_LENGTH_FMAP];
 		} __attribute__((packed)) *sd = kernel_shared_data;
 
+		GoogleBinaryBlockHeader *gbbh =
+			(GoogleBinaryBlockHeader*) gbb_data;
 		int i;
 
 		debug(PREFIX "kernel shared data at %p\n", kernel_shared_data);
@@ -182,21 +187,35 @@ EXIT:
 			sd->chsw |= 0x002;
 		if (params->boot_flags & BOOT_FLAG_DEVELOPER)
 			sd->chsw |= 0x020;
-		sd->chsw |= 0x200; /* so far write protect is disabled */
+		if (!is_firmware_write_protect_gpio_asserted())
+			sd->chsw |= 0x200; /* write protect is disabled */
 
-		strcpy((char*) sd->hwid, CONFIG_CHROMEOS_HWID);
+		strncpy((char*) sd->hwid,
+				gbb_data + gbbh->hwid_offset, gbbh->hwid_size);
 		strcpy((char*) sd->fwid, "ARM Firmware ID");
 		strcpy((char*) sd->frid, "ARM Read-Only Firmware ID");
 
-		sd->binf[0] = 0; /* boot reason; always 0 */
-		if (params->boot_flags & BOOT_FLAG_RECOVERY) {
-			sd->binf[1] = 0; /* active main firmware */
-			sd->binf[3] = 0; /* active firmware type */
-		} else {
-			sd->binf[1] = 1; /* active main firmware */
-			sd->binf[3] = 1; /* active firmware type */
-		}
-		sd->binf[2] = 0; /* active EC firmware */
+		/* boot reason; always 0 */
+		sd->binf[0] = 0;
+
+		/* active main firmware; TODO: rewritable B (=2) */
+		if (params->boot_flags & BOOT_FLAG_RECOVERY)
+			sd->binf[1] = 0;
+		else
+			sd->binf[1] = 1; /* rewritable A */
+
+		/* active EC firmware; TODO: rewritable (=1) */
+		sd->binf[2] = 0;
+
+		/* active firmware type */
+		if (params->boot_flags & BOOT_FLAG_RECOVERY)
+			sd->binf[3] = 0;
+		else if (params->boot_flags & BOOT_FLAG_DEVELOPER)
+			sd->binf[3] = 2;
+		else
+			sd->binf[3] = 1;
+
+		/* recovery reason */
 		sd->binf[4] = reason;
 
 		sd->write_protect_sw =
@@ -222,6 +241,7 @@ EXIT:
 		memcpy(sd->nvcxt_cache,
 				params->nv_context->raw, VBNV_BLOCK_SIZE);
 
+		debug(PREFIX "version  %08x\n", sd->version);
 		debug(PREFIX "chsw     %08x\n", sd->chsw);
 		for (i = 0; i < 5; i++)
 			debug(PREFIX "binf[%2d] %08x\n", i, sd->binf[i]);
@@ -232,6 +252,13 @@ EXIT:
 		for (i = 0; i < VBNV_BLOCK_SIZE; i++)
 			debug("%02x", sd->nvcxt_cache[i]);
 		putc('\n');
+		debug(PREFIX "write_protect_sw %d\n", sd->write_protect_sw);
+		debug(PREFIX "recovery_sw      %d\n", sd->recovery_sw);
+		debug(PREFIX "developer_sw     %d\n", sd->developer_sw);
+		debug(PREFIX "hwid     \"%s\"\n", sd->hwid);
+		debug(PREFIX "fwid     \"%s\"\n", sd->fwid);
+		debug(PREFIX "frid     \"%s\"\n", sd->frid);
+		debug(PREFIX "fmap     %08x\n", sd->fmap_base);
 	}
 
 	return status;
