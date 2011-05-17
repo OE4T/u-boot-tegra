@@ -15,6 +15,7 @@
 #include <malloc.h>
 #include <chromeos/firmware_storage.h>
 #include <chromeos/gpio.h>
+#include <chromeos/kernel_shared_data.h>
 #include <chromeos/load_firmware_helper.h>
 #include <chromeos/power_management.h>
 #include <chromeos/vboot_nvstorage_helper.h>
@@ -88,6 +89,12 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	if (is_firmware_write_protect_gpio_asserted())
 		WARN_ON_FAILURE(file.lock_device(file.context));
 
+	clear_kernel_shared_data();
+
+	/* Fill in the RO firmware ID */
+	KernelSharedDataType *sd = get_kernel_shared_data();
+	strncpy((char*) sd->frid, version_string, ID_LEN);
+
 	if (read_nvcontext(&nvcxt) || VbNvGet(&nvcxt, VBNV_RECOVERY_REQUEST,
 				&recovery_request)) {
 		debug(PREFIX "fail to read nvcontext\n");
@@ -124,7 +131,7 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		debug(PREFIX "fail to write nvcontext\n");
 		reason = VBNV_RECOVERY_US_UNSPECIFIED;
 		goto RECOVERY;
-        }
+	}
 
 	if (status == LOAD_FIRMWARE_SUCCESS) {
 		jump_to_firmware((void (*)(void)) firmware_data);

@@ -11,6 +11,7 @@
 #include <common.h>
 #include <part.h>
 #include <chromeos/gpio.h>
+#include <chromeos/kernel_shared_data.h>
 #include <chromeos/load_kernel_helper.h>
 #include <chromeos/os_storage.h>
 
@@ -141,38 +142,13 @@ EXIT:
 	 * Chrome OS firmware and kernel is finalized.
 	 */
 	if (status == LOAD_KERNEL_SUCCESS) {
-		DECLARE_GLOBAL_DATA_PTR;
-
-		void *kernel_shared_data = (void*)
-			gd->bd->bi_dram[CONFIG_NR_DRAM_BANKS-1].start +
-			gd->bd->bi_dram[CONFIG_NR_DRAM_BANKS-1].size - SZ_1M;
-
-		struct {
-			uint32_t total_size;
-			uint8_t  signature[10];
-			uint16_t version;
-			uint64_t nvcxt_lba;
-			uint16_t vbnv[2];
-			uint8_t  nvcxt_cache[VBNV_BLOCK_SIZE];
-			uint8_t  write_protect_sw;
-			uint8_t  recovery_sw;
-			uint8_t  developer_sw;
-			uint8_t  binf[5];
-			uint32_t chsw;
-			uint8_t  hwid[256];
-			uint8_t  fwid[256];
-			uint8_t  frid[256];
-			uint32_t fmap_base;
-			uint8_t  shared_data_body[CONFIG_LENGTH_FMAP];
-		} __attribute__((packed)) *sd = kernel_shared_data;
+		KernelSharedDataType *sd = get_kernel_shared_data();
 
 		GoogleBinaryBlockHeader *gbbh =
 			(GoogleBinaryBlockHeader*) gbb_data;
 		int i;
 
-		debug(PREFIX "kernel shared data at %p\n", kernel_shared_data);
-
-		memset(sd, '\0', sizeof(*sd));
+		debug(PREFIX "kernel shared data at %p\n", sd);
 
 		strcpy((char*) sd->signature, "CHROMEOS");
 		sd->version = SHARED_MEM_VERSION;
@@ -192,8 +168,7 @@ EXIT:
 
 		strncpy((char*) sd->hwid,
 				gbb_data + gbbh->hwid_offset, gbbh->hwid_size);
-		strcpy((char*) sd->fwid, "ARM Firmware ID");
-		strcpy((char*) sd->frid, "ARM Read-Only Firmware ID");
+		strncpy((char*) sd->fwid, version_string, ID_LEN);
 
 		/* boot reason; always 0 */
 		sd->binf[0] = 0;
