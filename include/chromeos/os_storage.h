@@ -25,6 +25,9 @@ int set_bootdev(char *ifname, int dev, int part);
 /* Return block device descriptor that was set by calls to set_bootdev(). */
 block_dev_desc_t *get_bootdev(void);
 
+/* Return the device number */
+int get_device_number(void);
+
 /* Return the offset (in blocks) of the partition or zero if part=0. */
 ulong get_offset(void);
 
