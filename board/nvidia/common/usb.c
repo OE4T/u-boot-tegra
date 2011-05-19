@@ -124,7 +124,7 @@ void usb1_set_host_mode(void)
 	gpio_direction_output(GPIO_PD0, 1);
 
 	/* Z_SLXK = 0, normal, not tristate */
-	pinmux_tristate_disable(PIN_SLXK);
+	pinmux_tristate_disable(PINGRP_SLXK);
 }
 
 void usbf_reset_controller(enum periph_id id, struct usb_ctlr *usbctlr)

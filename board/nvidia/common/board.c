@@ -125,15 +125,15 @@ static void pin_mux_uart(void)
 	reg &= 0xFFF0FFFF;	/* IRRX_/IRTX_SEL [19:16] = 00 UARTA */
 	writel(reg, &pmt->pmt_ctl_c);
 
-	pinmux_tristate_disable(PIN_IRRX);
-	pinmux_tristate_disable(PIN_IRTX);
+	pinmux_tristate_disable(PINGRP_IRRX);
+	pinmux_tristate_disable(PINGRP_IRTX);
 #endif	/* CONFIG_TEGRA2_ENABLE_UARTA */
 #if defined(CONFIG_TEGRA2_ENABLE_UARTD)
 	reg = readl(&pmt->pmt_ctl_b);
 	reg &= 0xFFFFFFF3;	/* GMC_SEL [3:2] = 00, UARTD */
 	writel(reg, &pmt->pmt_ctl_b);
 
-	pinmux_tristate_disable(PIN_GMC);
+	pinmux_tristate_disable(PINGRP_GMC);
 #endif	/* CONFIG_TEGRA2_ENABLE_UARTD */
 }
 

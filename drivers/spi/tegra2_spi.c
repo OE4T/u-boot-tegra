@@ -121,7 +121,7 @@ void spi_init(void)
 	 */
 	bf_writel(GMD_SEL_SFLASH, 3, &pmt->pmt_ctl_c);
 
-	pinmux_tristate_disable(PIN_LSPI);
+	pinmux_tristate_disable(PINGRP_LSPI);
 
 	/*
 	 * NOTE:
