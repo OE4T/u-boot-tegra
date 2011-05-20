@@ -26,6 +26,7 @@
 #include <malloc.h>
 #include <ns16550.h> /* for NS16550_drain and NS16550_clear */
 #include <spi.h>
+#include <asm/clocks.h>
 #include <asm/io.h>
 #include <asm/arch/bitfield.h>
 #include <asm/arch/clk_rst.h>
@@ -75,30 +76,13 @@ void spi_free_slave(struct spi_slave *slave)
 
 void spi_init(void)
 {
-	struct clk_rst_ctlr *clkrst = (struct clk_rst_ctlr *)NV_PA_CLK_RST_BASE;
 	struct spi_tegra *spi = (struct spi_tegra *)TEGRA2_SPI_BASE;
 	u32 reg;
 
-	/*
-	 * SPI reset/clocks init - reset SPI, set clocks, release from reset
-	 */
-	reset_set_enable(PERIPH_ID_SPI1, 1);
-	clock_enable(PERIPH_ID_SPI1);
-
 	/* Change SPI clock to 24MHz, PLLP_OUT0 source */
-	reg = readl(&clkrst->crc_clk_src_spi1);
-	reg &= 0x3FFFFF00;		/* src = PLLP_OUT0 */
-	reg |= ((9-1) << 1);		/* div = 9 in 7.1 format */
-	writel(reg, &clkrst->crc_clk_src_spi1);
-	debug("spi_init: ClkSrc = %08x\n", reg);
-
-	/* wait for 2us */
-	udelay(2);
-
-	reset_set_enable(PERIPH_ID_SPI1, 0);
+	clock_start_periph_pll(PERIPH_ID_SPI1, CLOCK_ID_PERIPH, CLK_24M);
 
 	/* Clear stale status here */
-
 	reg = SPI_STAT_RDY | SPI_STAT_RXF_FLUSH | SPI_STAT_TXF_FLUSH | \
 		SPI_STAT_RXF_UNR | SPI_STAT_TXF_OVF;
 	writel(reg, &spi->status);
@@ -109,7 +93,7 @@ void spi_init(void)
 	 */
 
 	reg = readl(&spi->command);
-	writel((reg | SPI_CMD_CS_SOFT), &spi->command);
+	writel(reg | SPI_CMD_CS_SOFT, &spi->command);
 	debug("spi_init: COMMAND = %08x\n", readl(&spi->command));
 
 	/*

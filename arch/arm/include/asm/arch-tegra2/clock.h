@@ -23,7 +23,6 @@
 
 #ifndef _CLOCK_H
 
-
 /* Set of oscillator frequencies supported in the internal API. */
 enum clock_osc_freq {
 	/* All in MHz, so 13_0 is 13.0MHz */
@@ -36,7 +35,7 @@ enum clock_osc_freq {
 };
 
 /* The PLLs supported by the hardware */
-enum clock_pll_id {
+enum clock_id {
 	CLOCK_ID_FIRST,
 	CLOCK_ID_CGENERAL = CLOCK_ID_FIRST,
 	CLOCK_ID_MEMORY,
@@ -51,7 +50,16 @@ enum clock_pll_id {
 	CLOCK_ID_EPCI,
 	CLOCK_ID_SFROM32KHZ,
 
-	CLOCK_ID_COUNT,
+	/*
+	 * Not really a PLL, but a clock. Let's put these in here so we
+	 * don't have two number ranges.
+	 * TODO: rename all the CLOCK_PLL_ID_... to CLOCK_ID_... also.
+	 */
+	CLOCK_ID_32KHZ,
+	CLOCK_ID_OSC,
+
+	CLOCK_ID_COUNT,	/* number of PLLs */
+	CLOCK_ID_NONE = -1,
 };
 
 /* The clocks supported by the hardware */
@@ -80,7 +88,7 @@ enum periph_id {
 
 	/* 16 */
 	PERIPH_ID_TWC,
-	PERIPH_ID_PWC,
+	PERIPH_ID_PWM,
 	PERIPH_ID_I2S2,
 	PERIPH_ID_EPP,
 	PERIPH_ID_VI,
@@ -181,8 +189,7 @@ enum periph_id {
 #define PERIPH_MASK(id) (1 << ((id) & 0x1f))
 
 /* return 1 if a PLL ID is in range */
-#define clock_pll_id_isvalid(id) ((id) >= CLOCK_ID_FIRST && \
-		(id) < CLOCK_ID_COUNT)
+#define clock_id_isvalid(id) ((id) >= CLOCK_ID_FIRST && (id) < CLOCK_ID_COUNT)
 
 /* return 1 if a peripheral ID is in range */
 #define clock_periph_id_isvalid(id) ((id) >= PERIPH_ID_FIRST && \
@@ -194,7 +201,7 @@ enum periph_id {
 /* return the current oscillator clock frequency */
 enum clock_osc_freq clock_get_osc_freq(void);
 
-/*
+/**
  * Start PLL using the provided configuration parameters.
  *
  * @param id	clock id
@@ -206,7 +213,7 @@ enum clock_osc_freq clock_get_osc_freq(void);
  *
  * @returns monotonic time in us that the PLL will be stable
  */
-unsigned long clock_start_pll(enum clock_pll_id id, u32 divm, u32 divn,
+unsigned long clock_start_pll(enum clock_id id, u32 divm, u32 divn,
 		u32 divp, u32 cpcon, u32 lfcon);
 
 /*
@@ -216,7 +223,7 @@ unsigned long clock_start_pll(enum clock_pll_id id, u32 divm, u32 divn,
  */
 void clock_enable(enum periph_id clkid);
 
-/*
+/**
  * Set whether a clock is enabled or disabled.
  *
  * @param id		clock id
@@ -224,7 +231,7 @@ void clock_enable(enum periph_id clkid);
  */
 void clock_set_enable(enum periph_id clkid, int enable);
 
-/*
+/**
  * Reset a peripheral. This puts it in reset, waits for a delay, then takes
  * it out of reset and waits for th delay again.
  *
@@ -233,7 +240,7 @@ void clock_set_enable(enum periph_id clkid, int enable);
  */
 void reset_periph(enum periph_id periph_id, int us_delay);
 
-/*
+/**
  * Put a peripheral into or out of reset.
  *
  * @param periph_id	peripheral to reset
@@ -251,7 +258,7 @@ enum crc_reset_id {
 	crc_rst_debug = 1 << 4,
 };
 
-/*
+/**
  * Put parts of the CPU complex into or out of reset.\
  *
  * @param cpu		cpu number (0 or 1 on Tegra2)
@@ -259,6 +266,61 @@ enum crc_reset_id {
  * @param reset		1 to assert reset, 0 to de-assert
  */
 void reset_cmplx_set_enable(int cpu, int which, int reset);
+
+/**
+ * Set the source for a peripheral clock. This plus the divisor sets the
+ * clock rate. You need to look up the datasheet to see the meaning of the
+ * source parameter as it changes for each peripheral.
+ *
+ * Warning: This function is only for use pre-relocation. Please use
+ * clock_start_periph_pll() instead.
+ *
+ * @param periph_id	peripheral to adjust
+ * @param source	source clock (0, 1, 2 or 3)
+ */
+void clock_ll_set_source(enum periph_id periph_id, int source);
+
+/**
+ * Set the source and divisor for a peripheral clock. This sets the
+ * clock rate. You need to look up the datasheet to see the meaning of the
+ * source parameter as it changes for each peripheral.
+ *
+ * Warning: This function is only for use pre-relocation. Please use
+ * clock_start_periph_pll() instead.
+ *
+ * @param periph_id	peripheral to adjust
+ * @param source	source clock (0, 1, 2 or 3)
+ * @param divisor	divisor value to use
+ */
+void clock_ll_set_source_divisor(enum periph_id periph_id, int source,
+		unsigned rate);
+
+/**
+ * Start a peripheral PLL clock at the given rate
+ *
+ * @param periph_id	peripheral to start
+ * @param parent	PLL id of required parent clock
+ * @param rate		Required clock rate in Hz
+ * @return rate selected, or -1U if something went wrong
+ */
+unsigned clock_start_periph_pll(enum periph_id periph_id,
+		enum clock_id parent, unsigned rate);
+
+/**
+ * Returns the rate of a peripheral clock in Hz. Since the caller almost
+ * certainly knows the parent clock (having just set it) we require that
+ * this be passed in so we don't need to work it out.
+ *
+ * @param periph_id	peripheral to start
+ * @param parent	PLL id of parent clock (used to calculate rate, you
+ *			must know this!)
+ * @return clock rate of peripheral in Hz
+ */
+unsigned long clock_get_periph_rate(enum periph_id periph_id,
+		enum clock_id parent);
+
+/* Initialize the clocks */
+void clock_init(void);
 
 #endif
 

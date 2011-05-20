@@ -23,6 +23,7 @@
 #include <mmc.h>
 #include <asm/io.h>
 #include <asm/arch/clk_rst.h>
+#include <asm/arch/clock.h>
 #include "tegra2_mmc.h"
 
 /* support 4 mmc hosts */
@@ -277,8 +278,9 @@ static void mmc_change_clock(struct mmc_host *host, uint clock)
 	int div, hw_div;
 	unsigned short clk;
 	unsigned long timeout;
-	unsigned int reg, hostbase;
-	struct clk_rst_ctlr *clkrst = (struct clk_rst_ctlr *)NV_PA_CLK_RST_BASE;
+	unsigned int hostbase;
+	enum periph_id mmc_id = PERIPH_ID_SDMMC1;
+
 	debug(" mmc_change_clock called\n");
 
 	/* Change Tegra2 SDMMCx clock divisor here */
@@ -305,27 +307,16 @@ static void mmc_change_clock(struct mmc_host *host, uint clock)
 	hostbase = readl(&host->base);
 	debug("mmc_change_clock: hostbase = %08X\n", hostbase);
 
-	if (hostbase == TEGRA2_SDMMC1_BASE) {
-		reg = readl(&clkrst->crc_clk_src_sdmmc1);
-		reg &= 0xFFFFFF00;	/* divisor (7.1) = 00 */
-		reg |= hw_div;		/* n-1 */
-		writel(reg, &clkrst->crc_clk_src_sdmmc1);
-	} else if (hostbase == TEGRA2_SDMMC2_BASE) {
-		reg = readl(&clkrst->crc_clk_src_sdmmc2);
-		reg &= 0xFFFFFF00;	/* divisor (7.1) = 00 */
-		reg |= hw_div;		/* n-1 */
-		writel(reg, &clkrst->crc_clk_src_sdmmc2);
-	} else if (hostbase == TEGRA2_SDMMC3_BASE) {
-		reg = readl(&clkrst->crc_clk_src_sdmmc3);
-		reg &= 0xFFFFFF00;	/* divisor (7.1) = 00 */
-		reg |= hw_div;		/* n-1 */
-		writel(reg, &clkrst->crc_clk_src_sdmmc3);
-	} else {
-		reg = readl(&clkrst->crc_clk_src_sdmmc4);
-		reg &= 0xFFFFFF00;	/* divisor (7.1) = 00 */
-		reg |= hw_div;		/* n-1 */
-		writel(reg, &clkrst->crc_clk_src_sdmmc4);
-	}
+	/* TODO: We need to record the PERIPH_ID, not the hostbase */
+	if (hostbase == TEGRA2_SDMMC1_BASE)
+		mmc_id = PERIPH_ID_SDMMC1;
+	else if (hostbase == TEGRA2_SDMMC2_BASE)
+		mmc_id = PERIPH_ID_SDMMC2;
+	else if (hostbase == TEGRA2_SDMMC3_BASE)
+		mmc_id = PERIPH_ID_SDMMC3;
+	else if (hostbase == TEGRA2_SDMMC4_BASE)
+		mmc_id = PERIPH_ID_SDMMC4;
+	clock_ll_set_source_divisor(mmc_id, CLOCK_ID_PERIPH, hw_div);
 
 	writew(0, &host->reg->clkcon);
 

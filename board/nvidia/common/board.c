@@ -23,6 +23,7 @@
 
 #include <common.h>
 #include <ns16550.h>
+#include <asm/clocks.h>
 #include <asm/io.h>
 #include <asm/arch/bitfield.h>
 #include <asm/arch/tegra2.h>
@@ -64,18 +65,12 @@ int timer_init(void)
 	return 0;
 }
 
-static void enable_uart(enum periph_id pid, u32 *addr)
+static void enable_uart(enum periph_id pid)
 {
-	u32 reg;
-
 	/* Assert UART reset and enable clock */
 	reset_set_enable(pid, 1);
 	clock_enable(pid);
-
-	/* Enable pllp_out0 to UART */
-	reg = readl(addr);
-	reg &= 0x3FFFFFFF;	/* UARTA_CLK_SRC = 00, PLLP_OUT0 */
-	writel(reg, addr);
+	clock_ll_set_source(pid, 0);	/* UARTA_CLK_SRC = 00, PLLP_OUT0 */
 
 	/* wait for 2us */
 	udelay(2);
@@ -110,9 +105,9 @@ static void clock_init_uart(int uart_ids)
 	}
 
 	if (uart_ids & UARTA)
-		enable_uart(PERIPH_ID_UART1, &clkrst->crc_clk_src_uarta);
+		enable_uart(PERIPH_ID_UART1);
 	if (uart_ids & UARTD)
-		enable_uart(PERIPH_ID_UART4, &clkrst->crc_clk_src_uartd);
+		enable_uart(PERIPH_ID_UART4);
 }
 
 /*
@@ -139,44 +134,9 @@ static void pin_mux_uart(int uart_ids)
  */
 static void clock_init_mmc(void)
 {
-	struct clk_rst_ctlr *clkrst = (struct clk_rst_ctlr *)NV_PA_CLK_RST_BASE;
-	u32 reg;
-
 	/* Do the SDMMC resets/clock enables */
-
-	/* Assert Reset to SDMMC4 and enable clock */
-	reset_set_enable(PERIPH_ID_SDMMC4, 1);
-	clock_enable(PERIPH_ID_SDMMC4);
-
-	/* Enable pllp_out0 to SDMMC4 */
-	reg = readl(&clkrst->crc_clk_src_sdmmc4);
-	reg &= 0x3FFFFF00;	/* SDMMC4_CLK_SRC = 00, PLLP_OUT0 */
-	reg |= (10 << 1);	/* n-1, 11-1 shl 1 */
-	writel(reg, &clkrst->crc_clk_src_sdmmc4);
-
-	/*
-	 * As per the Tegra2 TRM, section 5.3.4:
-	 * 'Wait 2 us for the clock to flush through the pipe/logic'
-	 */
-	udelay(2);
-
-	/* De-assert reset to SDMMC4 */
-	reset_set_enable(PERIPH_ID_SDMMC4, 0);
-
-	/* Assert Reset to SDMMC3 and enable clock */
-	reset_set_enable(PERIPH_ID_SDMMC3, 1);
-	clock_enable(PERIPH_ID_SDMMC3);
-
-	/* Enable pllp_out0 to SDMMC4, set divisor to 11 for 20MHz */
-	reg = readl(&clkrst->crc_clk_src_sdmmc3);
-	reg &= 0x3FFFFF00;	/* SDMMC3_CLK_SRC = 00, PLLP_OUT0 */
-	reg |= (10 << 1);	/* n-1, 11-1 shl 1 */
-	writel(reg, &clkrst->crc_clk_src_sdmmc3);
-
-	udelay(2);
-
-	/* De-assert reset to SDMMC3 */
-	reset_set_enable(PERIPH_ID_SDMMC3, 0);
+	clock_start_periph_pll(PERIPH_ID_SDMMC4, CLOCK_ID_PERIPH, CLK_20M);
+	clock_start_periph_pll(PERIPH_ID_SDMMC3, CLOCK_ID_PERIPH, CLK_20M);
 }
 
 /*
@@ -202,15 +162,6 @@ static void pin_mux_mmc(void)
 	pinmux_tristate_disable(PINGRP_SDC);
 	pinmux_tristate_disable(PINGRP_SDD);
 	pinmux_tristate_disable(PINGRP_SDB);
-}
-
-/*
- * Routine: clock_init
- * Description: Do individual peripheral clock reset/enables
- */
-static void clock_init(int uart_ids)
-{
-	clock_init_uart(uart_ids);
 }
 
 /*
@@ -258,6 +209,7 @@ int board_init(void)
 	/* board id for Linux */
 	gd->bd->bi_arch_number = CONFIG_MACH_TYPE;
 
+	clock_init();
 #ifdef CONFIG_SPI_UART_SWITCH
 	gpio_config_uart(gd->blob);
 #endif
@@ -296,8 +248,8 @@ int board_early_init_f(void)
 	/* We didn't do this init in start.S, so do it now */
 	cpu_init_crit();
 
-	/* Initialize periph clocks */
-	clock_init(uart_ids);
+	/* Initialize essential periph clocks */
+	clock_init_uart(uart_ids);
 
 	/* Initialize periph pinmuxes */
 	pinmux_init(uart_ids);
