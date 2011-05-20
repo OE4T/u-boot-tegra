@@ -69,6 +69,18 @@
 #define CONFIG_CMD_SPI
 #define CONFIG_CMD_SF
 
+/* SD/MMC */
+#define CONFIG_MMC
+#define CONFIG_GENERIC_MMC
+#define CONFIG_TEGRA2_MMC
+#define CONFIG_CMD_MMC
+
+#define CONFIG_DOS_PARTITION
+#define CONFIG_EFI_PARTITION
+#define CONFIG_CMD_EXT2
+#define CONFIG_CMD_FAT
+#define CONFIG_SYS_NO_DCACHE	//temp fix for DMA / dcache interaction
+
 /* Environment in SPI */
 #define CONFIG_ENV_IS_IN_SPI_FLASH
 

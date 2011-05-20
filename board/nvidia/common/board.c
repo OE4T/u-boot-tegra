@@ -37,6 +37,10 @@
 #include <fdt_decode.h>
 #include "board.h"
 
+#ifdef CONFIG_TEGRA2_MMC
+#include <mmc.h>
+#endif
+
 DECLARE_GLOBAL_DATA_PTR;
 
 const struct tegra2_sysinfo sysinfo = {
@@ -126,6 +130,77 @@ static void pin_mux_uart(int uart_ids)
 		pinmux_set_func(PINGRP_GMC, PMUX_FUNC_UARTD);
 		pinmux_tristate_disable(PINGRP_GMC);
 	}
+}
+
+/*
+ * Routine: clock_init_mmc
+ * Description: init the PLL and clocks for the SDMMC controllers
+ */
+static void clock_init_mmc(void)
+{
+	struct clk_rst_ctlr *clkrst = (struct clk_rst_ctlr *)NV_PA_CLK_RST_BASE;
+	u32 reg;
+
+	/* Do the SDMMC resets/clock enables */
+
+	/* Assert Reset to SDMMC4 and enable clock */
+	reset_set_enable(PERIPH_ID_SDMMC4, 1);
+	clock_enable(PERIPH_ID_SDMMC4);
+
+	/* Enable pllp_out0 to SDMMC4 */
+	reg = readl(&clkrst->crc_clk_src_sdmmc4);
+	reg &= 0x3FFFFF00;	/* SDMMC4_CLK_SRC = 00, PLLP_OUT0 */
+	reg |= (10 << 1);	/* n-1, 11-1 shl 1 */
+	writel(reg, &clkrst->crc_clk_src_sdmmc4);
+
+	/*
+	 * As per the Tegra2 TRM, section 5.3.4:
+	 * 'Wait 2 us for the clock to flush through the pipe/logic'
+	 */
+	udelay(2);
+
+	/* De-assert reset to SDMMC4 */
+	reset_set_enable(PERIPH_ID_SDMMC4, 0);
+
+	/* Assert Reset to SDMMC3 and enable clock */
+	reset_set_enable(PERIPH_ID_SDMMC3, 1);
+	clock_enable(PERIPH_ID_SDMMC3);
+
+	/* Enable pllp_out0 to SDMMC4, set divisor to 11 for 20MHz */
+	reg = readl(&clkrst->crc_clk_src_sdmmc3);
+	reg &= 0x3FFFFF00;	/* SDMMC3_CLK_SRC = 00, PLLP_OUT0 */
+	reg |= (10 << 1);	/* n-1, 11-1 shl 1 */
+	writel(reg, &clkrst->crc_clk_src_sdmmc3);
+
+	udelay(2);
+
+	/* De-assert reset to SDMMC3 */
+	reset_set_enable(PERIPH_ID_SDMMC3, 0);
+}
+
+/*
+ * Routine: pin_mux_mmc
+ * Description: setup the pin muxes/tristate values for the SDMMC(s)
+ */
+static void pin_mux_mmc(void)
+{
+	/* SDMMC4: config 3, x8 on 2nd set of pins */
+	pinmux_set_func(PINGRP_ATB, PMUX_FUNC_SDIO4);
+	pinmux_set_func(PINGRP_GMA, PMUX_FUNC_SDIO4);
+	pinmux_set_func(PINGRP_GME, PMUX_FUNC_SDIO4);
+
+	pinmux_tristate_disable(PINGRP_ATB);
+	pinmux_tristate_disable(PINGRP_GMA);
+	pinmux_tristate_disable(PINGRP_GME);
+
+	/* SDMMC3: SDIO3_CLK, SDIO3_CMD, SDIO3_DAT[3:0] */
+	pinmux_set_func(PINGRP_SDB, PMUX_FUNC_SDIO3);
+	pinmux_set_func(PINGRP_SDC, PMUX_FUNC_SDIO3);
+	pinmux_set_func(PINGRP_SDD, PMUX_FUNC_SDIO3);
+
+	pinmux_tristate_disable(PINGRP_SDC);
+	pinmux_tristate_disable(PINGRP_SDD);
+	pinmux_tristate_disable(PINGRP_SDB);
 }
 
 /*
@@ -229,6 +304,28 @@ int arch_cpu_init(void)
 {
 	/* Fire up the Cortex A9 */
 	tegra2_start();
+	return 0;
+}
+#endif
+
+#ifdef CONFIG_TEGRA2_MMC
+/* this is a weak define that we are overriding */
+int board_mmc_init(bd_t *bd)
+{
+	debug("board_mmc_init called\n");
+	/* Enable clocks, muxes, etc. for SDMMC controllers */
+	clock_init_mmc();
+	pin_mux_mmc();
+	gpio_config_mmc();
+
+	debug("board_mmc_init: init eMMC\n");
+	/* init dev 0, eMMC chip, with 4-bit bus */
+	tegra2_mmc_init(0, 4);
+
+	debug("board_mmc_init: init SD slot\n");
+	/* init dev 1, SD slot, with 4-bit bus */
+	tegra2_mmc_init(1, 4);
+
 	return 0;
 }
 #endif
