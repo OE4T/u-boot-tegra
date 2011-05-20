@@ -121,6 +121,8 @@ struct pmc_ctlr {
 	uint pmc_gate;			/* _GATE_0, offset 15C */
 };
 
+#define PWRGATE_ENABLE	0x100
+
 #define CPU_PWRED	1
 #define CPU_CLMP	1
 
