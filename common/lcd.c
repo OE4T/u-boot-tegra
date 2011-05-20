@@ -427,7 +427,7 @@ static int lcd_init (void *lcdbase)
 
 	lcd_ctrl_init (lcdbase);
 	lcd_is_enabled = 1;
-	lcd_clear (NULL, 1, 1, NULL);	/* dummy args */
+	do_lcd_clear (NULL, 1, 1, NULL);	/* dummy args */
 	lcd_enable ();
 
 	/* Initialize the console */
