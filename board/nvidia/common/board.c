@@ -117,22 +117,14 @@ static void clock_init_uart(void)
  */
 static void pin_mux_uart(void)
 {
-	struct pmux_tri_ctlr *pmt = (struct pmux_tri_ctlr *)NV_PA_APB_MISC_BASE;
-	u32 reg;
-
 #if defined(CONFIG_TEGRA2_ENABLE_UARTA)
-	reg = readl(&pmt->pmt_ctl_c);
-	reg &= 0xFFF0FFFF;	/* IRRX_/IRTX_SEL [19:16] = 00 UARTA */
-	writel(reg, &pmt->pmt_ctl_c);
-
+	pinmux_set_func(PINGRP_IRRX, PMUX_FUNC_UARTA);
+	pinmux_set_func(PINGRP_IRTX, PMUX_FUNC_UARTA);
 	pinmux_tristate_disable(PINGRP_IRRX);
 	pinmux_tristate_disable(PINGRP_IRTX);
 #endif	/* CONFIG_TEGRA2_ENABLE_UARTA */
 #if defined(CONFIG_TEGRA2_ENABLE_UARTD)
-	reg = readl(&pmt->pmt_ctl_b);
-	reg &= 0xFFFFFFF3;	/* GMC_SEL [3:2] = 00, UARTD */
-	writel(reg, &pmt->pmt_ctl_b);
-
+	pinmux_set_func(PINGRP_GMC, PMUX_FUNC_UARTD);
 	pinmux_tristate_disable(PINGRP_GMC);
 #endif	/* CONFIG_TEGRA2_ENABLE_UARTD */
 }

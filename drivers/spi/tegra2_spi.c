@@ -75,7 +75,6 @@ void spi_free_slave(struct spi_slave *slave)
 void spi_init(void)
 {
 	struct clk_rst_ctlr *clkrst = (struct clk_rst_ctlr *)NV_PA_CLK_RST_BASE;
-	struct pmux_tri_ctlr *pmt = (struct pmux_tri_ctlr *)NV_PA_APB_MISC_BASE;
 	struct spi_tegra *spi = (struct spi_tegra *)TEGRA2_SPI_BASE;
 	u32 reg;
 
@@ -117,16 +116,15 @@ void spi_init(void)
 
 	/*
 	 * SPI pins on Tegra2 are muxed - change pinmux last due to UART
-	 * issue. GMD_SEL [31:30] = (3) SFLASH
+	 * issue.
 	 */
-	bf_writel(GMD_SEL_SFLASH, 3, &pmt->pmt_ctl_c);
-
+	pinmux_set_func(PINGRP_GMD, PMUX_FUNC_SFLASH);
 	pinmux_tristate_disable(PINGRP_LSPI);
 
 	/*
 	 * NOTE:
 	 * Don't set PinMux bits 3:2 to SPI here or subsequent UART data
-	 * won't go out! It'll be correctly set in seaboard_switch_spi_uart().
+	 * won't go out! It'll be correctly set in spi_uart_switch().
 	 */
 }
 

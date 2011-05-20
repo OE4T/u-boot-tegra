@@ -46,8 +46,6 @@ void gpio_config_uart(void)
 
 void seaboard_switch_spi_uart(enum spi_uart_switch new_pos)
 {
-	struct pmux_tri_ctlr *pmt = (struct pmux_tri_ctlr *)NV_PA_APB_MISC_BASE;
-
 	if (new_pos == switch_pos)
 		return;
 
@@ -57,8 +55,8 @@ void seaboard_switch_spi_uart(enum spi_uart_switch new_pos)
 			      CONFIG_SPI_CORRUPTS_UART_NR);
 
 	/* We need to dynamically change the pinmux, shared w/UART RXD/CTS */
-	bf_writel(GMC_SEL_SFLASH, new_pos == SWITCH_SPI ? 3 : 0,
-			&pmt->pmt_ctl_b);
+	pinmux_set_func(PINGRP_GMC, new_pos == SWITCH_SPI ?
+				PMUX_FUNC_SFLASH : PMUX_FUNC_UARTD);
 
 	/*
 	* On Seaboard, MOSI/MISO are shared w/UART.
