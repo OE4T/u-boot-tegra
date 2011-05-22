@@ -100,5 +100,29 @@
 		interrupts = < 63 >;
 		status = "disabled";
 	};
+
+	pwfm0: pwm@7000a000 {
+		compatible = "nvidia,tegra250-sdhci";
+		reg = <0x7000a000 0x4>;
+		status = "disabled";
+	};
+
+	pwfm1: pwm@7000a010 {
+		compatible = "nvidia,tegra250-sdhci";
+		reg = <0x7000a010 0x4>;
+		status = "disabled";
+	};
+
+	pwfm2: pwm@7000a020 {
+		compatible = "nvidia,tegra250-sdhci";
+		reg = <0x7000a020 0x4>;
+		status = "disabled";
+	};
+
+	pwfm3: pwm@7000a030 {
+		compatible = "nvidia,tegra250-sdhci";
+		reg = <0x7000a030 0x4>;
+		status = "disabled";
+	};
 };
 
