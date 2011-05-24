@@ -9,12 +9,6 @@
 
 	aliases {
 		console = "/serial@70006300";
-
-		/*
-		 * Number the serial ports so the U-Boot NS16550 driver can
-		 * maintain an output buffer for each.
-		 */
-		serial3 = "/serial@70006300";
 	};
 
 	chosen {
