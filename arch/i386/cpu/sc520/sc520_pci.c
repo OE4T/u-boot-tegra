@@ -27,7 +27,7 @@
 #include <pci.h>
 #include <asm/io.h>
 #include <asm/pci.h>
-#include <asm/ic/pci.h>
+#include <asm/ic/sc520/pci.h>
 #include <asm/ic/sc520.h>
 
 static struct {
