@@ -61,8 +61,8 @@ void bootstage_report(void);
 
 #else
 
-static inline bootstage_mark(enum bootstage_id id, const char *name)
-{}
+static inline uint32_t bootstage_mark(enum bootstage_id id, const char *name)
+{ return 0; }
 
 #endif
 
