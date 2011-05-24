@@ -24,6 +24,8 @@
 #ifndef _U_BOOT_I386_H_
 #define _U_BOOT_I386_H_	1
 
+#include <asm/types.h>
+
 /* cpu/.../cpu.c */
 int x86_cpu_init_r(void);
 int cpu_init_r(void);
