@@ -775,7 +775,7 @@ static int do_env_import(cmd_tbl_t * cmdtp, int flag, int argc, char * const arg
 				" - truncated\n", MAX_ENV_SIZE);
 		}
 		++size;
-		printf("## Info: input data size = %zd = 0x%zX\n", size, size);
+		printf("## Info: input data size = %zu = 0x%zX\n", size, size);
 	}
 
 	if (chk) {
