@@ -806,7 +806,9 @@ void clock_init(void)
 {
 	pll_rate[CLOCK_ID_MEMORY] = get_clock_freq(CLOCK_ID_MEMORY);
 	pll_rate[CLOCK_ID_PERIPH] = get_clock_freq(CLOCK_ID_PERIPH);
-	pll_rate[CLOCK_ID_OSC] = get_clock_freq(CLOCK_ID_PERIPH);
+	/* FIXME: I2C needs CLK_M for CLOCK_ID_OSC */
+	/* pll_rate[CLOCK_ID_OSC] = get_clock_freq(CLOCK_ID_PERIPH); */
+	pll_rate[CLOCK_ID_OSC] = osc_freq[clock_get_osc_freq()];
 	pll_rate[CLOCK_ID_SFROM32KHZ] = 32768;
 	debug("PLLM = %d\n", pll_rate[CLOCK_ID_MEMORY]);
 	debug("PLLP = %d\n", pll_rate[CLOCK_ID_PERIPH]);

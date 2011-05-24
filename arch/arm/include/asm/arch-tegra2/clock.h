@@ -224,7 +224,14 @@ unsigned long clock_start_pll(enum clock_id id, u32 divm, u32 divn,
  */
 void clock_enable(enum periph_id clkid);
 
-/**
+/*
+ * Disable a clock
+ *
+ * @param id	clock id
+ */
+void clock_disable(enum periph_id clkid);
+
+/*
  * Set whether a clock is enabled or disabled.
  *
  * @param id		clock id

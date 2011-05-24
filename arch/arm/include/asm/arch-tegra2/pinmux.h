@@ -341,6 +341,8 @@ void pinmux_set_func(enum pmux_pingrp pin, enum pmux_func func);
 /* Set the complete configuration for a pin group */
 void pinmux_config_pingroup(struct pingroup_config *config);
 
+void pinmux_set_tristate(enum pmux_pingrp pin, int enable);
+
 /**
  * Configuure a list of pin groups
  *

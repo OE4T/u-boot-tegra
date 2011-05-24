@@ -37,6 +37,7 @@
 #include <asm/arch/pmc.h>
 #include <spi.h>
 #include <fdt_decode.h>
+#include <i2c.h>
 #include "board.h"
 
 #ifdef CONFIG_TEGRA2_MMC
@@ -209,6 +210,9 @@ int board_init(void)
 	spi_init();
 #endif
 	power_det_init();
+#ifdef CONFIG_TEGRA2_I2C
+	i2c_init_board();
+#endif
 
 	return 0;
 }
