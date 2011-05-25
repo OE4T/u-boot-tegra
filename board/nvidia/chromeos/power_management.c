@@ -13,6 +13,7 @@
 #include <common.h>
 #include <i2c.h>
 
+#include <chromeos/common.h>
 #include <chromeos/power_management.h>
 
 #define PREFIX "cold_reboot: "
@@ -27,13 +28,13 @@ void cold_reboot(void)
 	uint8_t byte;
 
 	if (i2c_set_bus_num(PMIC_I2C_BUS)) {
-		debug(PREFIX "i2c_set_bus_num fail\n");
+		VBDEBUG(PREFIX "i2c_set_bus_num fail\n");
 		goto FATAL;
 	}
 
 	if (i2c_read(PMIC_I2C_DEVICE_ADDRESS, TPS6586X_SUPPLYENE, 1,
 				&byte, sizeof(byte))) {
-		debug(PREFIX "i2c_read fail\n");
+		VBDEBUG(PREFIX "i2c_read fail\n");
 		goto FATAL;
 	}
 
@@ -42,7 +43,7 @@ void cold_reboot(void)
 
 	if (i2c_write(PMIC_I2C_DEVICE_ADDRESS, TPS6586X_SUPPLYENE, 1,
 				&byte, sizeof(byte))) {
-		debug(PREFIX "i2c_write fail\n");
+		VBDEBUG(PREFIX "i2c_write fail\n");
 		goto FATAL;
 	}
 

@@ -8,14 +8,15 @@
  * Software Foundation.
  */
 
-/* Implementation of firmware storage access interface for NAND */
+#ifndef CHROMEOS_COMMON_H_
+#define CHROMEOS_COMMON_H_
 
-#include <common.h>
-#include <chromeos/common.h>
-#include <chromeos/firmware_storage.h>
+#if defined DEBUG
+#define VBDEBUG debug
+#elif defined VBOOT_DEBUG
+#define VBDEBUG(fmt, args...) printf(fmt ,##args)
+#else
+#define VBDEBUG(fmt, args...)
+#endif
 
-int firmware_storage_init_nand(firmware_storage_t *file)
-{
-	/* TODO Implement interface to NAND */
-	return -1;
-}
+#endif /* CHROMEOS_COMMON_H_ */

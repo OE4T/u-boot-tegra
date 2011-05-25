@@ -10,6 +10,7 @@
 
 #include <common.h>
 #include <malloc.h>
+#include <chromeos/common.h>
 #include <chromeos/get_firmware_body.h>
 
 #include <load_firmware_fw.h>
@@ -56,11 +57,11 @@ int GetFirmwareBody(LoadFirmwareParams *params, uint64_t index)
 	ssize_t n;
 	uint8_t *firmware_body;
 
-	debug(PREFIX "firmware index: %d\n", index);
+	VBDEBUG(PREFIX "firmware index: %d\n", index);
 
 	/* index = 0: firmware A; 1: firmware B; anything else: invalid */
 	if (index != 0 && index != 1) {
-		debug(PREFIX "incorrect index: %d\n", index);
+		VBDEBUG(PREFIX "incorrect index: %d\n", index);
 		return 1;
 	}
 
@@ -79,16 +80,16 @@ int GetFirmwareBody(LoadFirmwareParams *params, uint64_t index)
 	kbh = (VbKeyBlockHeader *) block;
 	fph = (VbFirmwarePreambleHeader *) (block + kbh->key_block_size);
 
-	debug(PREFIX "key block address: %p\n", kbh);
-	debug(PREFIX "preamble address: %p\n", fph);
-	debug(PREFIX "firmware body offset: %08lx\n", data_offset);
+	VBDEBUG(PREFIX "key block address: %p\n", kbh);
+	VBDEBUG(PREFIX "preamble address: %p\n", fph);
+	VBDEBUG(PREFIX "firmware body offset: %08lx\n", data_offset);
 
 	if (file->seek(file->context, data_offset, SEEK_SET) < 0) {
-		debug(PREFIX "seek to firmware data failed\n");
+		VBDEBUG(PREFIX "seek to firmware data failed\n");
 		return 1;
 	}
 
-	debug(PREFIX "body size: %08llx\n", fph->body_signature.data_size);
+	VBDEBUG(PREFIX "body size: %08llx\n", fph->body_signature.data_size);
 
 	/*
 	 * This loop feeds firmware body into UpdateFirmwareBodyHash.
@@ -100,7 +101,7 @@ int GetFirmwareBody(LoadFirmwareParams *params, uint64_t index)
 		n = BLOCK_SIZE < leftover ? BLOCK_SIZE : leftover;
 		n = file->read(file->context, firmware_body, n);
 		if (n <= 0) {
-			debug(PREFIX "an error has occured "
+			VBDEBUG(PREFIX "an error has occured "
 					"while reading firmware: %d\n", n);
 			return 1;
 		}

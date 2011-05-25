@@ -14,6 +14,7 @@
 #include <common.h>
 #include <command.h>
 #include <malloc.h>
+#include <chromeos/common.h>
 #include <chromeos/firmware_storage.h>
 #include <chromeos/fmap.h>
 #include <chromeos/gbb_bmpblk.h>

@@ -13,6 +13,7 @@
 #include <common.h>
 #include <malloc.h>
 #include <spi_flash.h>
+#include <chromeos/common.h>
 #include <chromeos/firmware_storage.h>
 
 #define PREFIX "firmware_storage_spi: "
@@ -41,17 +42,17 @@ static off_t seek_spi(void *context, off_t offset, enum whence_t whence)
 	else if (whence == SEEK_END)
 		next_offset = cxt->flash->size + offset;
 	else {
-		debug(PREFIX "unknown whence value: %d\n", whence);
+		VBDEBUG(PREFIX "unknown whence value: %d\n", whence);
 		return -1;
 	}
 
 	if (next_offset < 0) {
-		debug(PREFIX "negative offset: %d\n", next_offset);
+		VBDEBUG(PREFIX "negative offset: %d\n", next_offset);
 		return -1;
 	}
 
 	if (next_offset > cxt->flash->size) {
-		debug(PREFIX "offset overflow: 0x%08x > 0x%08x\n",
+		VBDEBUG(PREFIX "offset overflow: 0x%08x > 0x%08x\n",
 				next_offset, cxt->flash->size);
 		return -1;
 	}
@@ -70,7 +71,7 @@ static int border_check(struct spi_flash *flash, u32 offset,
 		size_t *count_ptr)
 {
 	if (offset >= flash->size) {
-		debug(PREFIX "at EOF\n");
+		VBDEBUG(PREFIX "at EOF\n");
 		return -1;
 	}
 
@@ -88,7 +89,7 @@ static ssize_t read_spi(void *context, void *buf, size_t count)
 		return -1;
 
 	if (cxt->flash->read(cxt->flash, cxt->offset, count, buf)) {
-		debug(PREFIX "SPI read fail\n");
+		VBDEBUG(PREFIX "SPI read fail\n");
 		return -1;
 	}
 
@@ -112,9 +113,9 @@ static ssize_t read_spi(void *context, void *buf, size_t count)
  */
 static void align_to_sector(size_t *offset_ptr, size_t *length_ptr)
 {
-	debug(PREFIX "before adjustment\n");
-	debug(PREFIX "offset: 0x%lx\n", *offset_ptr);
-	debug(PREFIX "length: 0x%lx\n", *length_ptr);
+	VBDEBUG(PREFIX "before adjustment\n");
+	VBDEBUG(PREFIX "offset: 0x%lx\n", *offset_ptr);
+	VBDEBUG(PREFIX "length: 0x%lx\n", *length_ptr);
 
 	/* Adjust if offset is not multiple of SECTOR_SIZE */
 	if (*offset_ptr & (SECTOR_SIZE - 1ul)) {
@@ -127,9 +128,9 @@ static void align_to_sector(size_t *offset_ptr, size_t *length_ptr)
 		*length_ptr += SECTOR_SIZE;
 	}
 
-	debug(PREFIX "after adjustment\n");
-	debug(PREFIX "offset: 0x%lx\n", *offset_ptr);
-	debug(PREFIX "length: 0x%lx\n", *length_ptr);
+	VBDEBUG(PREFIX "after adjustment\n");
+	VBDEBUG(PREFIX "offset: 0x%lx\n", *offset_ptr);
+	VBDEBUG(PREFIX "length: 0x%lx\n", *length_ptr);
 }
 
 static ssize_t write_spi(void *context, const void *buf, size_t count)
@@ -151,7 +152,7 @@ static ssize_t write_spi(void *context, const void *buf, size_t count)
 	if (border_check(flash, offset, &tmp))
 		return -1;
 	if (tmp != length) {
-		debug(PREFIX "cannot erase range [%08lx:%08lx]: %08lx\n",
+		VBDEBUG(PREFIX "cannot erase range [%08lx:%08lx]: %08lx\n",
 				offset, offset + length, offset + tmp);
 		return -1;
 	}
@@ -159,23 +160,23 @@ static ssize_t write_spi(void *context, const void *buf, size_t count)
 	backup_buf = length > sizeof(static_buf) ? malloc(length) : static_buf;
 
 	if ((status = flash->read(flash, offset, length, backup_buf))) {
-		debug(PREFIX "cannot backup data: %d\n", status);
+		VBDEBUG(PREFIX "cannot backup data: %d\n", status);
 		goto EXIT;
 	}
 
 	if ((status = flash->erase(flash, offset, length))) {
-		debug(PREFIX "SPI erase fail: %d\n", status);
+		VBDEBUG(PREFIX "SPI erase fail: %d\n", status);
 		goto EXIT;
 	}
 
-	debug(PREFIX "cxt->offset: 0x%08lx\n", cxt->offset);
-	debug(PREFIX "offset:      0x%08lx\n", offset);
+	VBDEBUG(PREFIX "cxt->offset: 0x%08lx\n", cxt->offset);
+	VBDEBUG(PREFIX "offset:      0x%08lx\n", offset);
 
 	/* combine data we want to write and backup data */
 	memcpy(backup_buf + (cxt->offset - offset), buf, count);
 
 	if (flash->write(flash, offset, length, backup_buf)) {
-		debug(PREFIX "SPI write fail\n");
+		VBDEBUG(PREFIX "SPI write fail\n");
 		goto EXIT;
 	}
 
@@ -217,7 +218,7 @@ int firmware_storage_init_spi(firmware_storage_t *file)
 	cxt->offset = 0;
 	cxt->flash = spi_flash_probe(bus, cs, max_hz, spi_mode);
 	if (!cxt->flash) {
-		debug(PREFIX "fail to init SPI flash at %u:%u\n", bus, cs);
+		VBDEBUG(PREFIX "fail to init SPI flash at %u:%u\n", bus, cs);
 		free(cxt);
 		return -1;
 	}

@@ -10,6 +10,7 @@
 
 #include <common.h>
 #include <malloc.h>
+#include <chromeos/common.h>
 #include <chromeos/get_firmware_body.h>
 #include <chromeos/load_firmware_helper.h>
 
@@ -39,12 +40,12 @@ int load_gbb(firmware_storage_t *file, void **gbb_data_ptr,
 	gbb_data = malloc(CONFIG_LENGTH_GBB);
 	gbb_size = CONFIG_LENGTH_GBB;
 	if (!gbb_data) {
-		debug(EMSG_MALLOC, CONFIG_LENGTH_GBB);
+		VBDEBUG(EMSG_MALLOC, CONFIG_LENGTH_GBB);
 		goto EXIT;
 	}
 
 	if (firmware_storage_read(file, CONFIG_OFFSET_GBB, gbb_size, gbb_data))
-		debug(EMSG_READ_GBB);
+		VBDEBUG(EMSG_READ_GBB);
 	else
 		retcode = 0;
 
@@ -83,7 +84,7 @@ static int read_verification_block(firmware_storage_t *file,
 
 	/* read key block header */
 	if (firmware_storage_read(file, vblock_offset, sizeof(kbh), &kbh)) {
-		debug(PREFIX "read key block fail\n");
+		VBDEBUG(PREFIX "read key block fail\n");
 		return -1;
 	}
 	key_block_size = kbh.key_block_size;
@@ -91,19 +92,19 @@ static int read_verification_block(firmware_storage_t *file,
 	/* read firmware preamble header */
 	if (firmware_storage_read(file, vblock_offset + key_block_size,
 				sizeof(fph), &fph)) {
-		debug(PREFIX "read preamble fail\n");
+		VBDEBUG(PREFIX "read preamble fail\n");
 		return -1;
 	}
 	vblock_size = key_block_size + fph.preamble_size;
 
 	vblock = malloc(vblock_size);
 	if (!vblock) {
-		debug(PREFIX "malloc verification block fail\n");
+		VBDEBUG(PREFIX "malloc verification block fail\n");
 		return -1;
 	}
 
 	if (firmware_storage_read(file, vblock_offset, vblock_size, vblock)) {
-		debug(PREFIX "read verification block fail\n");
+		VBDEBUG(PREFIX "read verification block fail\n");
 		free(vblock);
 		return -1;
 	}
@@ -133,21 +134,21 @@ int load_firmware_wrapper(firmware_storage_t *file,
 			file, CONFIG_OFFSET_FW_MAIN_A, CONFIG_OFFSET_FW_MAIN_B);
 
 	if (load_gbb(file, &params.gbb_data, &params.gbb_size)) {
-		debug(PREFIX "error: read gbb fail\n");
+		VBDEBUG(PREFIX "error: read gbb fail\n");
 		goto EXIT;
 	}
 
 	if (read_verification_block(file, CONFIG_OFFSET_VBLOCK_A,
 				&params.verification_block_0,
 				&params.verification_size_0)) {
-		debug(PREFIX "error: read verification block 0 fail\n");
+		VBDEBUG(PREFIX "error: read verification block 0 fail\n");
 		goto EXIT;
 	}
 
 	if (read_verification_block(file, CONFIG_OFFSET_VBLOCK_B,
 				&params.verification_block_1,
 				&params.verification_size_1)) {
-		debug(PREFIX "read verification block 1 fail\n");
+		VBDEBUG(PREFIX "read verification block 1 fail\n");
 		goto EXIT;
 	}
 
@@ -162,7 +163,7 @@ int load_firmware_wrapper(firmware_storage_t *file,
 	status = LoadFirmware(&params);
 
 	if (status == LOAD_FIRMWARE_SUCCESS) {
-		debug(PREFIX "will jump to rewritable firmware %lld\n",
+		VBDEBUG(PREFIX "will jump to rewritable firmware %lld\n",
 				params.firmware_index);
 		*firmware_data_ptr = gfbi.firmware_body[params.firmware_index];
 

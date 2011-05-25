@@ -35,6 +35,7 @@
  */
 
 #include <common.h>
+#include <chromeos/common.h>
 #include <chromeos/power_management.h>
 #include <chromeos/vboot_nvstorage_helper.h>
 
@@ -76,12 +77,12 @@ static int prepare_access_nvcontext(block_dev_desc_t **dev_desc_ptr,
 
 	dev_desc = get_dev("mmc", 0);
 	if (dev_desc == NULL) {
-		debug(PREFIX "get_dev(0) fail\n");
+		VBDEBUG(PREFIX "get_dev(0) fail\n");
 		return -1;
 	}
 
 	if (dev_desc->block_read(dev_desc->dev, 1, 1, buf) < 0) {
-		debug(PREFIX "read primary GPT table fail\n");
+		VBDEBUG(PREFIX "read primary GPT table fail\n");
 		return -1;
 	}
 
@@ -99,19 +100,19 @@ static int access_nvcontext(VbNvContext *nvcxt, int is_read)
 	uint8_t buf[512];
 
 	if (set_mmc_device(0, &last_dev)) {
-		debug(PREFIX "set_mmc_device(0) fail\n");
+		VBDEBUG(PREFIX "set_mmc_device(0) fail\n");
 		return -1;
 	}
 
-	debug(PREFIX "last_dev: %d\n", last_dev);
+	VBDEBUG(PREFIX "last_dev: %d\n", last_dev);
 
 	if (prepare_access_nvcontext(&dev_desc, &nvcxt_lba)) {
-		debug(PREFIX "prepare_access_nvcontext fail\n");
+		VBDEBUG(PREFIX "prepare_access_nvcontext fail\n");
 		goto EXIT;
 	}
 
 	if (dev_desc->block_read(dev_desc->dev, nvcxt_lba, 1, buf) < 0) {
-		debug(PREFIX "block_read fail\n");
+		VBDEBUG(PREFIX "block_read fail\n");
 		goto EXIT;
 	}
 
@@ -121,7 +122,7 @@ static int access_nvcontext(VbNvContext *nvcxt, int is_read)
 		memcpy(buf, nvcxt->raw, VBNV_BLOCK_SIZE);
 		if (dev_desc->block_write(dev_desc->dev,
 					nvcxt_lba, 1, buf) < 0) {
-			debug(PREFIX "block_write fail\n");
+			VBDEBUG(PREFIX "block_write fail\n");
 			goto EXIT;
 		}
 	}
@@ -142,12 +143,12 @@ uint64_t get_nvcxt_lba(void)
 	uint64_t nvcxt_lba = ~0ULL;
 
 	if (set_mmc_device(0, &last_dev)) {
-		debug(PREFIX "set_mmc_device(0) fail\n");
+		VBDEBUG(PREFIX "set_mmc_device(0) fail\n");
 		return ~0ULL;
 	}
 
 	if (prepare_access_nvcontext(&dev_desc, &nvcxt_lba))
-		debug(PREFIX "prepare_access_nvcontext fail\n");
+		VBDEBUG(PREFIX "prepare_access_nvcontext fail\n");
 
 	/* restore previous device */
 	if (last_dev != -1 && last_dev != 0)
@@ -171,19 +172,19 @@ int clear_recovery_request(void)
 	VbNvContext nvcxt;
 
 	if (read_nvcontext(&nvcxt) || VbNvSetup(&nvcxt)) {
-		debug(PREFIX "cannot read nvcxt\n");
+		VBDEBUG(PREFIX "cannot read nvcxt\n");
 		return 1;
 	}
 
 	if (VbNvSet(&nvcxt, VBNV_RECOVERY_REQUEST,
 				VBNV_RECOVERY_NOT_REQUESTED)) {
-		debug(PREFIX "cannot clear VBNV_RECOVERY_REQUEST\n");
+		VBDEBUG(PREFIX "cannot clear VBNV_RECOVERY_REQUEST\n");
 		return 1;
 	}
 
 	if (VbNvTeardown(&nvcxt) ||
 			(nvcxt.raw_changed && write_nvcontext(&nvcxt))) {
-		debug(PREFIX "cannot write nvcxt\n");
+		VBDEBUG(PREFIX "cannot write nvcxt\n");
 		return 1;
 	}
 
@@ -196,22 +197,22 @@ void reboot_to_recovery_mode(uint32_t reason)
 
 	nvcxt = &nvcontext;
 	if (read_nvcontext(nvcxt) || VbNvSetup(nvcxt)) {
-		debug(PREFIX "cannot read nvcxt\n");
+		VBDEBUG(PREFIX "cannot read nvcxt\n");
 		goto FAIL;
 	}
 
-	debug(PREFIX "store recovery cookie in recovery field\n");
+	VBDEBUG(PREFIX "store recovery cookie in recovery field\n");
 	if (VbNvSet(nvcxt, VBNV_RECOVERY_REQUEST, reason) ||
 			VbNvTeardown(nvcxt) ||
 			(nvcxt->raw_changed && write_nvcontext(nvcxt))) {
-		debug(PREFIX "cannot write back nvcxt");
+		VBDEBUG(PREFIX "cannot write back nvcxt");
 		goto FAIL;
 	}
 
-	debug(PREFIX "reboot to recovery mode\n");
+	VBDEBUG(PREFIX "reboot to recovery mode\n");
 	cold_reboot();
 
-	debug(PREFIX "error: cold_reboot() returned\n");
+	VBDEBUG(PREFIX "error: cold_reboot() returned\n");
 FAIL:
 	/* FIXME: bring up a sad face? */
 	printf("Please reset and press recovery button when reboot.\n");

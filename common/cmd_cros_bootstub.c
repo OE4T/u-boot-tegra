@@ -13,6 +13,7 @@
 #include <common.h>
 #include <command.h>
 #include <malloc.h>
+#include <chromeos/common.h>
 #include <chromeos/firmware_storage.h>
 #include <chromeos/gpio.h>
 #include <chromeos/kernel_shared_data.h>
@@ -49,7 +50,7 @@ int load_recovery_firmware(firmware_storage_t *file,
 			CONFIG_OFFSET_RECOVERY, CONFIG_LENGTH_RECOVERY,
 			recovery_firmware_buffer);
 	if (retval) {
-		debug(PREFIX "cannot load recovery firmware\n");
+		VBDEBUG(PREFIX "cannot load recovery firmware\n");
 	}
 
 	return retval;
@@ -57,7 +58,7 @@ int load_recovery_firmware(firmware_storage_t *file,
 
 void jump_to_firmware(void (*firmware_entry_point)(void))
 {
-	debug(PREFIX "jump to firmware %p\n", firmware_entry_point);
+	VBDEBUG(PREFIX "jump to firmware %p\n", firmware_entry_point);
 
 	cleanup_before_linux();
 
@@ -66,7 +67,7 @@ void jump_to_firmware(void (*firmware_entry_point)(void))
 
 	/* FIXME(clchiou) Bring up a sad face as boot has failed */
 	enable_interrupts();
-	debug(PREFIX "error: firmware returns\n");
+	VBDEBUG(PREFIX "error: firmware returns\n");
 	while (1);
 }
 
@@ -82,7 +83,7 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	if (firmware_storage_init(&file)) {
 		/* FIXME(clchiou) Bring up a sad face as boot has failed */
-		debug(PREFIX "init_firmware_storage fail\n");
+		VBDEBUG(PREFIX "init_firmware_storage fail\n");
 		while (1);
 	}
 
@@ -97,26 +98,26 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	if (read_nvcontext(&nvcxt) || VbNvGet(&nvcxt, VBNV_RECOVERY_REQUEST,
 				&recovery_request)) {
-		debug(PREFIX "fail to read nvcontext\n");
+		VBDEBUG(PREFIX "fail to read nvcontext\n");
 		reason = VBNV_RECOVERY_US_UNSPECIFIED;
 		goto RECOVERY;
 	}
 
 	/* clear VBNV_DEBUG_RESET_MODE after read */
 	if (VbNvSet(&nvcxt, VBNV_DEBUG_RESET_MODE, 0)) {
-		debug(PREFIX "fail to write nvcontext\n");
+		VBDEBUG(PREFIX "fail to write nvcontext\n");
 		reason = VBNV_RECOVERY_US_UNSPECIFIED;
 		goto RECOVERY;
 	}
 
 	if (recovery_request != VBNV_RECOVERY_NOT_REQUESTED) {
-		debug(PREFIX "boot recovery cookie set\n");
+		VBDEBUG(PREFIX "boot recovery cookie set\n");
 		reason = recovery_request;
 		goto RECOVERY;
 	}
 
 	if (is_recovery_mode_gpio_asserted()) {
-		debug(PREFIX "recovery button pressed\n");
+		VBDEBUG(PREFIX "recovery button pressed\n");
 		reason = VBNV_RECOVERY_RO_MANUAL;
 		goto RECOVERY;
 	}
@@ -128,7 +129,7 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			boot_flags, &nvcxt, NULL, &firmware_data);
 
 	if (nvcxt.raw_changed && write_nvcontext(&nvcxt)) {
-		debug(PREFIX "fail to write nvcontext\n");
+		VBDEBUG(PREFIX "fail to write nvcontext\n");
 		reason = VBNV_RECOVERY_US_UNSPECIFIED;
 		goto RECOVERY;
 	}
@@ -142,7 +143,7 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	/* assert(status == LOAD_FIRMWARE_RECOVERY) */
 
 RECOVERY:
-	debug(PREFIX "write to recovery cookie\n");
+	VBDEBUG(PREFIX "write to recovery cookie\n");
 
 	/*
 	 * Although writing back VbNvContext cookies may fail, we boot
@@ -154,20 +155,20 @@ RECOVERY:
 	if (reason != VBNV_RECOVERY_NOT_REQUESTED &&
 			VbNvSet(&nvcxt, VBNV_RECOVERY_REQUEST, reason)) {
 		/* FIXME: bring up a sad face? */
-		debug(PREFIX "error: cannot write recovery reason\n");
+		VBDEBUG(PREFIX "error: cannot write recovery reason\n");
 	}
 
 	if (VbNvTeardown(&nvcxt)) {
 		/* FIXME: bring up a sad face? */
-		debug(PREFIX "error: cannot tear down cookie\n");
+		VBDEBUG(PREFIX "error: cannot tear down cookie\n");
 	}
 
 	if (nvcxt.raw_changed && write_nvcontext(&nvcxt)) {
 		/* FIXME: bring up a sad face? */
-		debug(PREFIX "error: cannot write recovery cookie\n");
+		VBDEBUG(PREFIX "error: cannot write recovery cookie\n");
 	}
 
-	debug(PREFIX "jump to recovery firmware and never return\n");
+	VBDEBUG(PREFIX "jump to recovery firmware and never return\n");
 
 	firmware_data = malloc(CONFIG_LENGTH_RECOVERY);
 	WARN_ON_FAILURE(load_recovery_firmware(&file, firmware_data));

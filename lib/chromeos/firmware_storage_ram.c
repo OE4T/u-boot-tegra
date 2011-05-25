@@ -12,6 +12,7 @@
 
 #include <common.h>
 #include <malloc.h>
+#include <chromeos/common.h>
 #include <chromeos/firmware_storage.h>
 
 struct context_t {
@@ -30,17 +31,17 @@ static off_t seek_ram(void *context, off_t offset, enum whence_t whence)
 	else if (whence == SEEK_END)
 		cur = cxt->end + offset;
 	else {
-		debug("seek_ram: unknown whence value: %d\n", whence);
+		VBDEBUG("seek_ram: unknown whence value: %d\n", whence);
 		return -1;
 	}
 
 	if (cur < cxt->beg) {
-		debug("seek_ram: offset underflow: %p < %p\n", cur, cxt->beg);
+		VBDEBUG("seek_ram: offset underflow: %p < %p\n", cur, cxt->beg);
 		return -1;
 	}
 
 	if (cur >= cxt->end) {
-		debug("seek_ram: offset exceeds size: %p >= %p\n", cur,
+		VBDEBUG("seek_ram: offset exceeds size: %p >= %p\n", cur,
 				cxt->end);
 		return -1;
 	}

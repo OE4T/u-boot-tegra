@@ -17,6 +17,7 @@
 #ifdef CONFIG_USB_STORAGE
 #include <usb.h>
 #endif
+#include <chromeos/common.h>
 #include <chromeos/os_storage.h>
 #include <linux/string.h> /* for strcmp */
 
@@ -64,7 +65,7 @@ ulong get_limit(void)
 uint64_t get_bytes_per_lba(void)
 {
 	if (!bootdev_config.dev_desc) {
-		debug(PREFIX "get_bytes_per_lba: not dev_desc set\n");
+		VBDEBUG(PREFIX "get_bytes_per_lba: not dev_desc set\n");
 		return ~0ULL;
 	}
 
@@ -79,7 +80,7 @@ uint64_t get_ending_lba(void)
 
 	bytes_per_lba = get_bytes_per_lba();
 	if (bytes_per_lba == ~0ULL) {
-		debug(PREFIX "get_ending_lba: get bytes_per_lba fail\n");
+		VBDEBUG(PREFIX "get_ending_lba: get bytes_per_lba fail\n");
 		goto EXIT;
 	}
 
@@ -89,7 +90,7 @@ uint64_t get_ending_lba(void)
 		buf = static_buf;
 
 	if (BootDeviceReadLBA(1, 1, buf)) {
-		debug(PREFIX "get_ending_lba: read primary GPT header fail\n");
+		VBDEBUG(PREFIX "get_ending_lba: read primary GPT header fail\n");
 		goto EXIT;
 	}
 
@@ -125,7 +126,7 @@ int set_bootdev(char *ifname, int dev, int part)
 	disk_partition_t part_info;
 
 	if ((bootdev_config.dev_desc = get_dev(ifname, dev)) == NULL) {
-		debug(PREFIX "block device not supported\n");
+		VBDEBUG(PREFIX "block device not supported\n");
 		goto cleanup;
 	}
 
@@ -137,7 +138,7 @@ int set_bootdev(char *ifname, int dev, int part)
 	}
 
 	if (get_partition_info(bootdev_config.dev_desc, part, &part_info)) {
-		debug(PREFIX "cannot find partition\n");
+		VBDEBUG(PREFIX "cannot find partition\n");
 		goto cleanup;
 	}
 
@@ -195,7 +196,7 @@ int BootDeviceWriteLBA(uint64_t lba_start, uint64_t lba_count,
 int is_mmc_storage_present(int mmc_device_number)
 {
 	if (mmc_device_number >= MMC_DEV_INSTANCES) {
-		debug(PREFIX "%d >= MMC_DEV_INSTANCES\n", mmc_device_number);
+		VBDEBUG(PREFIX "%d >= MMC_DEV_INSTANCES\n", mmc_device_number);
 		return 0;
 	}
 
@@ -214,7 +215,7 @@ int is_mmc_storage_present(int mmc_device_number)
 int is_usb_storage_present(int usb_controller_number)
 {
 	if (usb_controller_number >= CONFIG_USB_CONTROLLER_INSTANCES) {
-		debug(PREFIX "%d >= CONFIG_USB_CONTROLLER_INSTANCES\n",
+		VBDEBUG(PREFIX "%d >= CONFIG_USB_CONTROLLER_INSTANCES\n",
 				usb_controller_number);
 		return 0;
 	}
@@ -226,7 +227,7 @@ int is_usb_storage_present(int usb_controller_number)
 	extern int USB_EHCI_TEGRA_BASE_ADDR;
 	extern int USB_base_addr[];
 	if (!USB_base_addr[usb_controller_number]) {
-		debug(PREFIX "unknown USB controller: %d\n",
+		VBDEBUG(PREFIX "unknown USB controller: %d\n",
 				usb_controller_number);
 		return 0;
 	}
@@ -259,7 +260,7 @@ int is_any_storage_device_plugged(int boot_probed_device)
 			return 1;
 	}
 #else
-	debug(PREFIX "MMC storage is not enabled\n");
+	VBDEBUG(PREFIX "MMC storage is not enabled\n");
 #endif
 
 #ifdef CONFIG_USB_STORAGE
@@ -270,7 +271,7 @@ int is_any_storage_device_plugged(int boot_probed_device)
 				return 1;
 	}
 #else
-	debug(PREFIX "USB storage is not enabled\n");
+	VBDEBUG(PREFIX "USB storage is not enabled\n");
 #endif
 
 	return 0;

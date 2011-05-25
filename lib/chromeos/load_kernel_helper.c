@@ -10,6 +10,7 @@
 
 #include <common.h>
 #include <part.h>
+#include <chromeos/common.h>
 #include <chromeos/gpio.h>
 #include <chromeos/kernel_shared_data.h>
 #include <chromeos/load_kernel_helper.h>
@@ -62,7 +63,7 @@ int load_kernel_wrapper_core(LoadKernelParams *params,
 	if (!bypass_load_kernel) {
 		dev_desc = get_bootdev();
 		if (!dev_desc) {
-			debug(PREFIX "get_bootdev fail\n");
+			VBDEBUG(PREFIX "get_bootdev fail\n");
 			goto EXIT;
 		}
 	}
@@ -83,18 +84,18 @@ int load_kernel_wrapper_core(LoadKernelParams *params,
 
 	params->nv_context = nvcxt;
 
-	debug(PREFIX "call LoadKernel() with parameters...\n");
-	debug(PREFIX "shared_data_blob:     0x%p\n",
+	VBDEBUG(PREFIX "call LoadKernel() with parameters...\n");
+	VBDEBUG(PREFIX "shared_data_blob:     0x%p\n",
 			params->shared_data_blob);
-	debug(PREFIX "bytes_per_lba:        %d\n",
+	VBDEBUG(PREFIX "bytes_per_lba:        %d\n",
 			(int) params->bytes_per_lba);
-	debug(PREFIX "ending_lba:           0x%08x\n",
+	VBDEBUG(PREFIX "ending_lba:           0x%08x\n",
 			(int) params->ending_lba);
-	debug(PREFIX "kernel_buffer:        0x%p\n",
+	VBDEBUG(PREFIX "kernel_buffer:        0x%p\n",
 			params->kernel_buffer);
-	debug(PREFIX "kernel_buffer_size:   0x%08x\n",
+	VBDEBUG(PREFIX "kernel_buffer_size:   0x%08x\n",
 			(int) params->kernel_buffer_size);
-	debug(PREFIX "boot_flags:           0x%08x\n",
+	VBDEBUG(PREFIX "boot_flags:           0x%08x\n",
 			(int) params->boot_flags);
 
 	if (!bypass_load_kernel) {
@@ -105,13 +106,13 @@ int load_kernel_wrapper_core(LoadKernelParams *params,
 	}
 
 EXIT:
-	debug(PREFIX "LoadKernel status: %d\n", status);
+	VBDEBUG(PREFIX "LoadKernel status: %d\n", status);
 	if (status == LOAD_KERNEL_SUCCESS) {
-		debug(PREFIX "partition_number:   0x%08x\n",
+		VBDEBUG(PREFIX "partition_number:   0x%08x\n",
 				(int) params->partition_number);
-		debug(PREFIX "bootloader_address: 0x%08x\n",
+		VBDEBUG(PREFIX "bootloader_address: 0x%08x\n",
 				(int) params->bootloader_address);
-		debug(PREFIX "bootloader_size:    0x%08x\n",
+		VBDEBUG(PREFIX "bootloader_size:    0x%08x\n",
 				(int) params->bootloader_size);
 
 		if (params->partition_number == 2) {
@@ -121,7 +122,7 @@ EXIT:
 			setenv("kernelpart", "4");
 			setenv("rootpart", "5");
 		} else {
-			debug(PREFIX "unknown kernel partition: %d\n",
+			VBDEBUG(PREFIX "unknown kernel partition: %d\n",
 					(int) params->partition_number);
 			status = LOAD_KERNEL_NOT_FOUND;
 		}
@@ -141,7 +142,7 @@ EXIT:
 			(GoogleBinaryBlockHeader*) gbb_data;
 		int i;
 
-		debug(PREFIX "kernel shared data at %p\n", sd);
+		VBDEBUG(PREFIX "kernel shared data at %p\n", sd);
 
 		strcpy((char*) sd->signature, "CHROMEOS");
 		sd->version = SHARED_MEM_VERSION;
@@ -209,24 +210,24 @@ EXIT:
 		memcpy(sd->nvcxt_cache,
 				params->nv_context->raw, VBNV_BLOCK_SIZE);
 
-		debug(PREFIX "version  %08x\n", sd->version);
-		debug(PREFIX "chsw     %08x\n", sd->chsw);
+		VBDEBUG(PREFIX "version  %08x\n", sd->version);
+		VBDEBUG(PREFIX "chsw     %08x\n", sd->chsw);
 		for (i = 0; i < 5; i++)
-			debug(PREFIX "binf[%2d] %08x\n", i, sd->binf[i]);
-		debug(PREFIX "vbnv[ 0] %08x\n", sd->vbnv[0]);
-		debug(PREFIX "vbnv[ 1] %08x\n", sd->vbnv[1]);
-		debug(PREFIX "nvcxt    %08llx\n", sd->nvcxt_lba);
-		debug(PREFIX "nvcxt_c  ");
+			VBDEBUG(PREFIX "binf[%2d] %08x\n", i, sd->binf[i]);
+		VBDEBUG(PREFIX "vbnv[ 0] %08x\n", sd->vbnv[0]);
+		VBDEBUG(PREFIX "vbnv[ 1] %08x\n", sd->vbnv[1]);
+		VBDEBUG(PREFIX "nvcxt    %08llx\n", sd->nvcxt_lba);
+		VBDEBUG(PREFIX "nvcxt_c  ");
 		for (i = 0; i < VBNV_BLOCK_SIZE; i++)
-			debug("%02x", sd->nvcxt_cache[i]);
+			VBDEBUG("%02x", sd->nvcxt_cache[i]);
 		putc('\n');
-		debug(PREFIX "write_protect_sw %d\n", sd->write_protect_sw);
-		debug(PREFIX "recovery_sw      %d\n", sd->recovery_sw);
-		debug(PREFIX "developer_sw     %d\n", sd->developer_sw);
-		debug(PREFIX "hwid     \"%s\"\n", sd->hwid);
-		debug(PREFIX "fwid     \"%s\"\n", sd->fwid);
-		debug(PREFIX "frid     \"%s\"\n", sd->frid);
-		debug(PREFIX "fmap     %08x\n", sd->fmap_base);
+		VBDEBUG(PREFIX "write_protect_sw %d\n", sd->write_protect_sw);
+		VBDEBUG(PREFIX "recovery_sw      %d\n", sd->recovery_sw);
+		VBDEBUG(PREFIX "developer_sw     %d\n", sd->developer_sw);
+		VBDEBUG(PREFIX "hwid     \"%s\"\n", sd->hwid);
+		VBDEBUG(PREFIX "fwid     \"%s\"\n", sd->fwid);
+		VBDEBUG(PREFIX "frid     \"%s\"\n", sd->frid);
+		VBDEBUG(PREFIX "fmap     %08x\n", sd->fmap_base);
 	}
 
 	return status;
@@ -264,7 +265,7 @@ static int load_kernel_config(uint64_t bootloader_address)
 	 * http://crosbug.com/14022
 	 */
 	if (run_command(buf, 0)) {
-		debug(PREFIX "run_command(%s) fail\n", buf);
+		VBDEBUG(PREFIX "run_command(%s) fail\n", buf);
 		return 1;
 	}
 	return 0;
@@ -331,7 +332,7 @@ static void update_cmdline(char *src, int devnum, int partnum, uint8_t *guid,
 
 	// sanity check on inputs
 	if (devnum < 0 || devnum > 25 || partnum < 1 || partnum > 99) {
-		debug(PREFIX "insane input: %d, %d\n", devnum, partnum);
+		VBDEBUG(PREFIX "insane input: %d, %d\n", devnum, partnum);
 		devnum = 0;
 		partnum = 3;
 	}
@@ -381,28 +382,28 @@ static int boot_kernel(LoadKernelParams *params)
 	char load_address[32];
 	char *argv[2] = { "bootm", load_address };
 
-	debug(PREFIX "boot_kernel\n");
-	debug(PREFIX "kernel_buffer:      0x%p\n",
+	VBDEBUG(PREFIX "boot_kernel\n");
+	VBDEBUG(PREFIX "kernel_buffer:      0x%p\n",
 			params->kernel_buffer);
-	debug(PREFIX "bootloader_address: 0x%08x\n",
+	VBDEBUG(PREFIX "bootloader_address: 0x%08x\n",
 			(int) params->bootloader_address);
 
 	if (load_kernel_config(params->bootloader_address)) {
-		debug(PREFIX "error: load kernel config failed\n");
+		VBDEBUG(PREFIX "error: load kernel config failed\n");
 		return;
 	}
 
 	if ((cmdline = getenv("bootargs"))) {
-		debug(PREFIX "cmdline before update: %s\n", cmdline);
+		VBDEBUG(PREFIX "cmdline before update: %s\n", cmdline);
 
 		update_cmdline(cmdline, get_device_number(),
 				params->partition_number + 1,
 				params->partition_guid,
 				cmdline_buf);
 		setenv("bootargs", cmdline_buf);
-		debug(PREFIX "cmdline after update:  %s\n", getenv("bootargs"));
+		VBDEBUG(PREFIX "cmdline after update:  %s\n", getenv("bootargs"));
 	} else {
-		debug(PREFIX "bootargs == NULL\n");
+		VBDEBUG(PREFIX "bootargs == NULL\n");
 	}
 
 	/*
@@ -412,11 +413,11 @@ static int boot_kernel(LoadKernelParams *params)
 	 * by calling do_bootm.
 	 */
 	sprintf(load_address, "0x%p", params->kernel_buffer);
-	debug(PREFIX "run command: %s %s\n", argv[0], argv[1]);
+	VBDEBUG(PREFIX "run command: %s %s\n", argv[0], argv[1]);
 	do_bootm(NULL, 0, sizeof(argv)/sizeof(*argv), argv);
 
 	/* should never reach here! */
-	debug(PREFIX "error: do_bootm() returned\n");
+	VBDEBUG(PREFIX "error: do_bootm() returned\n");
 	return LOAD_KERNEL_INVALID;
 }
 
@@ -440,7 +441,7 @@ int load_and_boot_kernel(void *gbb_data, uint64_t gbb_size,
 		 * Even if we can't read nvcxt, we continue anyway because this
 		 * is developer firmware
 		 */
-		debug(PREFIX "fail to read nvcontext\n");
+		VBDEBUG(PREFIX "fail to read nvcontext\n");
 	}
 
 	prepare_bootargs();
@@ -448,7 +449,7 @@ int load_and_boot_kernel(void *gbb_data, uint64_t gbb_size,
 	status = load_kernel_wrapper(&params, gbb_data, gbb_size,
 			boot_flags, &nvcxt, NULL);
 
-	debug(PREFIX "load_kernel_wrapper returns %d\n", status);
+	VBDEBUG(PREFIX "load_kernel_wrapper returns %d\n", status);
 
 	if (VbNvTeardown(&nvcxt) ||
 			(nvcxt.raw_changed && write_nvcontext(&nvcxt))) {
@@ -456,7 +457,7 @@ int load_and_boot_kernel(void *gbb_data, uint64_t gbb_size,
 		 * Even if we can't read nvcxt, we continue anyway because this
 		 * is developer firmware
 		 */
-		debug(PREFIX "fail to write nvcontext\n");
+		VBDEBUG(PREFIX "fail to write nvcontext\n");
 	}
 
 	if (status == LOAD_KERNEL_SUCCESS)

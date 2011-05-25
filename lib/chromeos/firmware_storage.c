@@ -9,6 +9,7 @@
  */
 
 #include <common.h>
+#include <chromeos/common.h>
 #include <chromeos/firmware_storage.h>
 
 #if defined CONFIG_CHROMEOS_DEFAULT_FIRMWARE_STORAGE_SPI && \
@@ -39,7 +40,7 @@ int (*const firmware_storage_init)(firmware_storage_t *file) =
 #ifndef CONFIG_CHROMEOS_FIRMWARE_STORAGE_NAND
 int firmware_storage_init_nand(firmware_storage_t *file)
 {
-	debug(PREFIX "NAND is not supported\n");
+	VBDEBUG(PREFIX "NAND is not supported\n");
 	return -1;
 }
 #endif
@@ -47,7 +48,7 @@ int firmware_storage_init_nand(firmware_storage_t *file)
 #ifndef CONFIG_CHROMEOS_FIRMWARE_STORAGE_SPI
 int firmware_storage_init_spi(firmware_storage_t *file)
 {
-	debug(PREFIX "SPI is not supported\n");
+	VBDEBUG(PREFIX "SPI is not supported\n");
 	return -1;
 }
 #endif
@@ -55,7 +56,7 @@ int firmware_storage_init_spi(firmware_storage_t *file)
 #ifndef CONFIG_CHROMEOS_FIRMWARE_STORAGE_RAM
 int firmware_storage_init_ram(firmware_storage_t *file, void *beg, void *end)
 {
-	debug(PREFIX "RAM is not supported\n");
+	VBDEBUG(PREFIX "RAM is not supported\n");
 	return -1;
 }
 #endif
@@ -70,7 +71,7 @@ int firmware_storage_read(firmware_storage_t *file,
 	size_t remain;
 
 	if (file->seek(file->context, offset, SEEK_SET) < 0) {
-		debug(PREFIX "seek to address 0x%08x fail\n", offset);
+		VBDEBUG(PREFIX "seek to address 0x%08x fail\n", offset);
 		return -1;
 	}
 
@@ -83,12 +84,12 @@ int firmware_storage_read(firmware_storage_t *file,
 	}
 
 	if (size < 0) {
-		debug(PREFIX "an error occur when read firmware: %ld\n", size);
+		VBDEBUG(PREFIX "an error occur when read firmware: %ld\n", size);
 		return -1;
 	}
 
 	if (remain > 0) {
-		debug(PREFIX "cannot read all data: %ld\n", remain);
+		VBDEBUG(PREFIX "cannot read all data: %ld\n", remain);
 		return -1;
 	}
 
@@ -105,7 +106,7 @@ int firmware_storage_write(firmware_storage_t *file,
 	size_t remain;
 
 	if (file->seek(file->context, offset, SEEK_SET) < 0) {
-		debug(PREFIX "seek to address 0x%08x fail\n", offset);
+		VBDEBUG(PREFIX "seek to address 0x%08x fail\n", offset);
 		return -1;
 	}
 
@@ -118,12 +119,12 @@ int firmware_storage_write(firmware_storage_t *file,
 	}
 
 	if (size < 0) {
-		debug(PREFIX "an error occur when write firmware: %ld\n", size);
+		VBDEBUG(PREFIX "an error occur when write firmware: %ld\n", size);
 		return -1;
 	}
 
 	if (remain > 0) {
-		debug(PREFIX "cannot write all data: %ld\n", remain);
+		VBDEBUG(PREFIX "cannot write all data: %ld\n", remain);
 		return -1;
 	}
 

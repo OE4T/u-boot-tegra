@@ -16,6 +16,7 @@
 #include <lcd.h>
 #include <malloc.h>
 #include <usb.h> /* for wait_ms() */
+#include <chromeos/common.h>
 #include <chromeos/firmware_storage.h>
 #include <chromeos/load_firmware_helper.h>
 #include <chromeos/load_kernel_helper.h>
@@ -37,7 +38,7 @@ DECLARE_GLOBAL_DATA_PTR;
 #define WARN_ON_FAILURE(action) do { \
 	int return_code = (action); \
 	if (return_code != 0) \
-		debug(PREFIX "%s failed, returning %d\n", \
+		VBDEBUG(PREFIX "%s failed, returning %d\n", \
 				#action, return_code); \
 } while (0)
 #else
@@ -87,7 +88,7 @@ static int exclude_mem_region(uint32_t start, uint32_t end)
 	int i = g_excluded_size;
 
 	if (g_excluded_size >= MAX_EXCLUDED_REGIONS) {
-		debug(PREFIX "the number of excluded regions reaches"
+		VBDEBUG(PREFIX "the number of excluded regions reaches"
 				"the maximum: %d\n", MAX_EXCLUDED_REGIONS);
 		return -1;
 	}
@@ -107,7 +108,7 @@ static int exclude_mem_region(uint32_t start, uint32_t end)
 static void zero_mem(uint32_t start, uint32_t end)
 {
 	if (end > start) {
-		debug(PREFIX "\t[0x%08x, 0x%08x)\n", start, end);
+		VBDEBUG(PREFIX "\t[0x%08x, 0x%08x)\n", start, end);
 		memset((void *)start, '\0', (size_t)(end - start));
 	}
 }
@@ -120,7 +121,7 @@ static void clear_mem_regions(void)
 	int i;
 	uint32_t addr = g_memory_region.start;
 
-	debug(PREFIX "clear memory regions:\n");
+	VBDEBUG(PREFIX "clear memory regions:\n");
 	for (i = 0; i < g_excluded_size; ++i) {
 		zero_mem(addr, g_excluded_regions[i].start);
 		if (g_excluded_regions[i].end > addr)
@@ -156,7 +157,7 @@ static int test_clear_mem_regions(void)
 	clear_mem_regions();
 	for (i = 0; i < 10; ++i) {
 		if (s[i] != r[i]) {
-			debug(PREFIX "test_clear_mem_regions FAILED!\n");
+			VBDEBUG(PREFIX "test_clear_mem_regions FAILED!\n");
 			return -1;
 		}
 	}
@@ -206,12 +207,12 @@ static int init_gbb_in_ram(void)
 	void *gbb_base = NULL;
 
 	if (firmware_storage_init(&file)) {
-		debug(PREFIX "init firmware storage failed\n");
+		VBDEBUG(PREFIX "init firmware storage failed\n");
 		return -1;
 	}
 
 	if (load_gbb(&file, &gbb_base, &g_gbb_size)) {
-		debug(PREFIX "Unable to load gbb\n");
+		VBDEBUG(PREFIX "Unable to load gbb\n");
 		return -1;
 	}
 

@@ -13,6 +13,7 @@
 #include <common.h>
 #include <command.h>
 #include <mmc.h>
+#include <chromeos/common.h>
 #include <chromeos/firmware_storage.h>
 #include <chromeos/gbb_bmpblk.h>
 #include <chromeos/gpio.h>
@@ -41,7 +42,7 @@ int do_cros_normal_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 static void beep(void)
 {
 	/* TODO: implement beep */
-	debug(PREFIX "beep\n");
+	VBDEBUG(PREFIX "beep\n");
 }
 
 static int unblocked_getc(int *c)
@@ -67,12 +68,12 @@ int do_cros_developer_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 	int c, is_after_20_seconds = 0;
 
 	if (!is_developer_mode_gpio_asserted()) {
-		debug(PREFIX "developer switch is off; reboot to recovery!\n");
+		VBDEBUG(PREFIX "developer switch is off; reboot to recovery!\n");
 		reboot_to_recovery_mode(VBNV_RECOVERY_RW_DEV_MISMATCH);
 	}
 
 	if (TlclStubInit() != TPM_SUCCESS) {
-		debug(PREFIX "fail to init tpm\n");
+		VBDEBUG(PREFIX "fail to init tpm\n");
 		reboot_to_recovery_mode(VBNV_RECOVERY_RW_TPM_ERROR);
 	}
 
@@ -82,17 +83,17 @@ int do_cros_developer_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 		 * FIXME: We can't read gbb and so can't show a face on screen;
 		 * how should we do when this happen? Trap in infinite loop?
 		 */
-		debug(PREFIX "cannot load gbb\n");
+		VBDEBUG(PREFIX "cannot load gbb\n");
 		while (1);
 	}
 
 	/* we don't care whether close operation fails */
 	if (file.close(file.context)) {
-		debug(PREFIX "close firmware storage failed\n");
+		VBDEBUG(PREFIX "close firmware storage failed\n");
 	}
 
 	if (display_screen_in_bmpblk(gbb_data, SCREEN_DEVELOPER_MODE)) {
-		debug(PREFIX "cannot display stuff on LCD screen\n");
+		VBDEBUG(PREFIX "cannot display stuff on LCD screen\n");
 	}
 
 	start = get_timer(0);
@@ -104,7 +105,7 @@ int do_cros_developer_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 #ifdef DEBUG
 		/* only output when time advances at least 1 second */
 		if (time / CONFIG_SYS_HZ > last_time / CONFIG_SYS_HZ)
-			debug(PREFIX "time ~ %d sec\n", time / CONFIG_SYS_HZ);
+			VBDEBUG(PREFIX "time ~ %d sec\n", time / CONFIG_SYS_HZ);
 #endif
 
 		/* Beep twice when time > 20 seconds */
@@ -121,7 +122,7 @@ int do_cros_developer_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 		if (!unblocked_getc(&c))
 			continue;
 
-		debug(PREFIX "unblocked_getc() == 0x%x\n", c);
+		VBDEBUG(PREFIX "unblocked_getc() == 0x%x\n", c);
 
 		/* Load and boot kernel from USB or SD card */
 		if (CTRL_U == c) {
@@ -129,7 +130,7 @@ int do_cros_developer_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 				load_and_boot_kernel(gbb_data, gbb_size,
 						boot_flags);
 
-			debug(PREFIX "Fail to probe usb and mmc\n");
+			VBDEBUG(PREFIX "Fail to probe usb and mmc\n");
 			beep();
 		}
 
@@ -138,12 +139,12 @@ int do_cros_developer_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 			break;
 
 		if (c == ' ' || c == '\r' || c == '\n' || c == ESCAPE) {
-			debug(PREFIX "reboot to recovery mode\n");
+			VBDEBUG(PREFIX "reboot to recovery mode\n");
 			reboot_to_recovery_mode(VBNV_RECOVERY_RW_DEV_SCREEN);
 		}
 	}
 
-	debug(PREFIX "boot from internal storage\n");
+	VBDEBUG(PREFIX "boot from internal storage\n");
 	if (is_mmc_storage_present(MMC_EMMC_DEVNUM) &&
 			!set_bootdev("mmc", MMC_EMMC_DEVNUM, 0))
 		load_and_boot_kernel(gbb_data, gbb_size, boot_flags);

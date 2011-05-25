@@ -15,6 +15,7 @@
 #include <fat.h>
 #include <malloc.h>
 #include <mmc.h>
+#include <chromeos/common.h>
 #include <chromeos/firmware_storage.h>
 #include <chromeos/load_firmware_helper.h>
 #include <chromeos/load_kernel_helper.h>
@@ -37,13 +38,13 @@
 int initialize_drive(void)
 {
 	if (initialize_mmc_device(DEVICE_NUMBER)) {
-		debug(PREFIX "mmc %d init fail\n", DEVICE_NUMBER);
+		VBDEBUG(PREFIX "mmc %d init fail\n", DEVICE_NUMBER);
 		return -1;
 	}
 
-	debug(PREFIX "set_bootdev %s %x:0\n", DEVICE_TYPE, DEVICE_NUMBER);
+	VBDEBUG(PREFIX "set_bootdev %s %x:0\n", DEVICE_TYPE, DEVICE_NUMBER);
 	if (set_bootdev(DEVICE_TYPE, DEVICE_NUMBER, 0)) {
-		debug(PREFIX "set_bootdev fail\n");
+		VBDEBUG(PREFIX "set_bootdev fail\n");
 		return -1;
 	}
 
@@ -60,26 +61,26 @@ int do_cros_normal_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 	uint32_t reason = VBNV_RECOVERY_RW_UNSPECIFIED;
 
 	if (TlclStubInit() != TPM_SUCCESS) {
-		debug(PREFIX "fail to init tpm\n");
+		VBDEBUG(PREFIX "fail to init tpm\n");
 		reboot_to_recovery_mode(VBNV_RECOVERY_RW_TPM_ERROR);
 	}
 
 	if (initialize_drive()) {
-		debug(PREFIX "error: initialize fixed drive fail\n");
+		VBDEBUG(PREFIX "error: initialize fixed drive fail\n");
 		reboot_to_recovery_mode(VBNV_RECOVERY_RW_NO_OS);
 	}
 
 	if (firmware_storage_init(&file) ||
 			load_gbb(&file, &gbb_data, &gbb_size)) {
-		debug(PREFIX "error: cannot read gbb\n");
+		VBDEBUG(PREFIX "error: cannot read gbb\n");
 		reboot_to_recovery_mode(VBNV_RECOVERY_RO_SHARED_DATA);
 	}
 
 	status = load_and_boot_kernel(gbb_data, gbb_size, 0ULL);
-	debug(PREFIX "status == %d\n", status);
+	VBDEBUG(PREFIX "status == %d\n", status);
 
 	if (status == LOAD_KERNEL_REBOOT) {
-		debug(PREFIX "internal error: reboot to current mode\n");
+		VBDEBUG(PREFIX "internal error: reboot to current mode\n");
 		cold_reboot();
 	}
 

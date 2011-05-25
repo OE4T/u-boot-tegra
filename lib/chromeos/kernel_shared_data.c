@@ -9,6 +9,7 @@
  */
 
 #include <common.h>
+#include <chromeos/common.h>
 #include <chromeos/kernel_shared_data.h>
 
 KernelSharedDataType *get_kernel_shared_data(void)

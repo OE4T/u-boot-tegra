@@ -13,6 +13,7 @@
 #include <common.h>
 #include <lcd.h>
 #include <malloc.h>
+#include <chromeos/common.h>
 #include <chromeos/gbb_bmpblk.h>
 
 #include <bmpblk_header.h>

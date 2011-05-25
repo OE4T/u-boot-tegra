@@ -9,6 +9,7 @@
  */
 
 #include <common.h>
+#include <chromeos/common.h>
 #include <chromeos/fmap.h>
 
 off_t fmap_find(const uint8_t *image, size_t image_len)
