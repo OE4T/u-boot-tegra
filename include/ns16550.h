@@ -21,6 +21,9 @@
  * will not allocate storage for arrays of size 0
  */
 
+#ifndef __NS16550_H
+#define __NS16550_H
+
 #if !defined(CONFIG_SYS_NS16550_REG_SIZE) || (CONFIG_SYS_NS16550_REG_SIZE == 0)
 #error "Please define NS16550 registers size."
 #elif (CONFIG_SYS_NS16550_REG_SIZE > 0)
@@ -165,3 +168,5 @@ int	NS16550_tstc   (NS16550_t regs, unsigned int port);
 void	NS16550_reinit (NS16550_t com_port, int baud_divisor);
 void    NS16550_clear(NS16550_t regs, unsigned port);
 void    NS16550_drain(NS16550_t regs, unsigned port);
+
+#endif
