@@ -41,7 +41,7 @@ int load_kernel_wrapper_core(LoadKernelParams *params, void *gbb_data,
 
 /*
  * Call load_kernel_wrapper and boot the loaded kernel if load_kernel_wrapper
- * returns non-success.
+ * returns success.
  */
 int load_and_boot_kernel(void *gbb_data, uint64_t gbb_size,
 		uint64_t boot_flags);

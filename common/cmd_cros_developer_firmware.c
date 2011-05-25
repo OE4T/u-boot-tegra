@@ -148,9 +148,7 @@ int do_cros_developer_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 			!set_bootdev("mmc", MMC_EMMC_DEVNUM, 0))
 		load_and_boot_kernel(gbb_data, gbb_size, boot_flags);
 
-	printf(PREFIX "cannot boot from internal storage!\n");
-	while (1);
-
+	reboot_to_recovery_mode(VBNV_RECOVERY_RW_INVALID_OS);
 	return 0;
 }
 

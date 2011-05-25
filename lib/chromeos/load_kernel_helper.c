@@ -363,7 +363,7 @@ static void update_cmdline(char *src, int devnum, int partnum, uint8_t *guid,
 	*dst = '\0';
 }
 
-static void boot_kernel(LoadKernelParams *params)
+static int boot_kernel(LoadKernelParams *params)
 {
 	char *cmdline, cmdline_buf[4096];
 	char load_address[32];
@@ -403,8 +403,9 @@ static void boot_kernel(LoadKernelParams *params)
 	debug(PREFIX "run command: %s %s\n", argv[0], argv[1]);
 	do_bootm(NULL, 0, sizeof(argv)/sizeof(*argv), argv);
 
+	/* should never reach here! */
 	debug(PREFIX "error: do_bootm() returned\n");
-	while (1);
+	return LOAD_KERNEL_INVALID;
 }
 
 static void prepare_bootargs(void)
@@ -447,7 +448,7 @@ int load_and_boot_kernel(void *gbb_data, uint64_t gbb_size,
 	}
 
 	if (status == LOAD_KERNEL_SUCCESS)
-		boot_kernel(&params); /* this function never returns */
+		return boot_kernel(&params);
 
 	return status;
 }
