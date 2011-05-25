@@ -102,6 +102,24 @@ EXIT:
 	return ret;
 }
 
+/* TODO(clchiou): This will be deprecated when we fix crosbug:14022 */
+static void setup_envvar(char *ifname, int dev)
+{
+	char buf[32];
+
+	setenv("devtype", ifname);
+
+	if (!strcmp(ifname, "usb")) {
+		setenv("devname", "sda");
+	} else { /* assert ifname == "mmc" */
+		sprintf(buf, "mmcblk%dp", dev);
+		setenv("devname", buf);
+	}
+
+	sprintf(buf, "%d", dev);
+	setenv("devnum", buf);
+}
+
 int set_bootdev(char *ifname, int dev, int part)
 {
 	disk_partition_t part_info;
@@ -114,6 +132,7 @@ int set_bootdev(char *ifname, int dev, int part)
 	if (part == 0) {
 		bootdev_config.offset = 0;
 		bootdev_config.limit = bootdev_config.dev_desc->lba;
+		setup_envvar(ifname, dev);
 		return 0;
 	}
 
@@ -124,6 +143,7 @@ int set_bootdev(char *ifname, int dev, int part)
 
 	bootdev_config.offset = part_info.start;
 	bootdev_config.limit = part_info.size;
+	setup_envvar(ifname, dev);
 	return 0;
 
 cleanup:
