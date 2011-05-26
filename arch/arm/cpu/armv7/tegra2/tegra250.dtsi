@@ -55,7 +55,7 @@
 		status = "disabled";
 	};
 
-	serial@70006300 {
+	uart3: serial@70006300 {
 		compatible = "nvidia,tegra250-uart", "ns16550";
 		reg = <0x70006300 0x100>;
 		id = <3>;
