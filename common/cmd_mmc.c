@@ -28,17 +28,6 @@
 #ifndef CONFIG_GENERIC_MMC
 static int curr_device = -1;
 
-int initialize_mmc_device(int dev)
-{
-	return mmc_legacy_init(dev);
-}
-
-/* TODO: temporary hack for factory bring up; remove/rewrite when necessary */
-int get_mmc_current_device(void)
-{
-	return curr_device;
-}
-
 int do_mmc (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	int dev;
@@ -58,7 +47,7 @@ int do_mmc (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			return cmd_usage(cmdtp);
 		}
 
-		if (initialize_mmc_device(dev) != 0) {
+		if (mmc_legacy_init(dev) != 0) {
 			puts("No MMC card found\n");
 			return 1;
 		}
@@ -84,24 +73,6 @@ int do_mmc (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		}
 
 		printf("mmc%d is current device\n", curr_device);
-	} else if (strcmp(argv[1], "part") == 0) {
-		if (argc == 2) {
-			if (curr_device < 0) {
-				puts("No MMC device available\n");
-				return 1;
-			}
-			dev = curr_device;
-		} else {
-			dev = simple_strtoul(argv[2], NULL, 10);
-
-#ifdef CONFIG_SYS_MMC_SET_DEV
-			if (mmc_set_dev(dev) != 0)
-				return 1;
-#endif
-			curr_device = dev;
-		}
-		print_part(mmc_get_dev(dev));
-		return 0;
 	} else {
 		return cmd_usage(cmdtp);
 	}
@@ -133,38 +104,29 @@ static void print_mmcinfo(struct mmc *mmc)
 			(mmc->version >> 4) & 0xf, mmc->version & 0xf);
 
 	printf("High Capacity: %s\n", mmc->high_capacity ? "Yes" : "No");
-	printf("Capacity: %lld\n", mmc->capacity);
+	puts("Capacity: ");
+	print_size(mmc->capacity, "\n");
 
 	printf("Bus Width: %d-bit\n", mmc->bus_width);
 }
 
-int initialize_mmc_device(int dev_num)
-{
-	struct mmc *mmc;
-	int err;
-
-	mmc = find_mmc_device(dev_num);
-
-	if (mmc)
-		err = mmc_init(mmc);
-	return err;
-}
-
 int do_mmcinfo (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
+	struct mmc *mmc;
 	int dev_num;
-	int err;
 
 	if (argc < 2)
 		dev_num = 0;
 	else
 		dev_num = simple_strtoul(argv[1], NULL, 0);
 
-	err = initialize_mmc_device(dev_num);
-	if (err)
-		return err;
-	else
+	mmc = find_mmc_device(dev_num);
+
+	if (mmc) {
+		mmc_init(mmc);
+
 		print_mmcinfo(mmc);
+	}
 
 	return 0;
 }
