@@ -250,6 +250,11 @@ int board_early_init_f(void)
 	/* Initialize periph GPIOs */
 	gpio_init(gd->blob);
 
+#ifdef CONFIG_VIDEO_TEGRA2
+	/* Get LCD panel size */
+	lcd_early_init(gd->blob);
+#endif
+
 	return 0;
 }
 #endif	/* EARLY_INIT */

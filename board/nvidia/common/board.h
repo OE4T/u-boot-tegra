@@ -29,5 +29,6 @@ void gpio_config_uart(const void *blob);
 void gpio_early_init_uart(const void *blob);
 void gpio_config_mmc(void);
 int tegra2_mmc_init(const void *blob);
+void lcd_early_init(const void *blob);
 
 #endif	/* BOARD_H */
