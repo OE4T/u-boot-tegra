@@ -277,7 +277,6 @@ void board_usb_init(void)
 	enum clock_osc_freq freq;
 	const struct usb_pll_params *params;
 	struct usb_ctlr *usbctlr;
-	u32 val;
 	unsigned stable_time;
 
 	/* Get the Oscillator frequency */
