@@ -82,6 +82,20 @@ struct fdt_spi_uart {
 	u32 port;			/* Port number of UART affected */
 };
 
+enum {
+	FDT_GPIO_NONE = 255,	/* an invalid GPIO used to end our list */
+	FDT_GPIO_MAX  = 254,	/* maximum value GPIO number */
+};
+
+/* This is the state of a GPIO pin. For now it only handles output pins */
+struct fdt_gpio_state {
+	u8 gpio;		/* GPIO number */
+	u8 high;		/* 1=high, 0 = low */
+};
+
+/* This tells us whether a fdt_gpio_state record is valid or not */
+#define fdt_gpio_isvalid(gpio) ((gpio)->gpio != FDT_GPIO_NONE)
+
 /**
  * Return information from the FDT about the console UART. This looks for
  * an alias node called 'console' which must point to a UART. It then reads
@@ -136,3 +150,10 @@ enum fdt_compat_id fdt_decode_lookup(const void *blob, int node);
  * @returns 0 on success, -ve on error, in which case config is unchanged
  */
 int fdt_decode_get_spi_switch(const void *blob, struct fdt_spi_uart *config);
+
+/**
+ * Set up GPIO pins according to the list provided.
+ *
+ * @param gpio_list	List of GPIOs to set up
+ */
+void fdt_setup_gpios(struct fdt_gpio_state *gpio_list);

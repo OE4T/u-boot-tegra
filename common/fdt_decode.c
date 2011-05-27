@@ -25,6 +25,9 @@
 #include <fdt_support.h>
 #include <fdt_decode.h>
 
+/* we need a generic GPIO interface here */
+#include <asm/arch/gpio.h>
+
 /*
  * Here are the type we know about. One day we might allow drivers to
  * register. For now we just put them here.
@@ -211,4 +214,53 @@ int fdt_decode_get_spi_switch(const void *blob, struct fdt_spi_uart *config)
 	if (gpio)
 		config->gpio = fdt32_to_cpu(gpio[1]);
 	return 0;
+}
+
+/**
+ * Decode a list of GPIOs from an FDT. This creates a list of GPIOs with the
+ * last one being GPIO_NONE
+ *
+ * @param blob		FDT blob to use
+ * @param node		Node to look at
+ * @param property	Node property name
+ * @param gpio		Array of gpio elements to fill from FDT
+ * @param max_count	Maximum number of elements allowed
+ * @return 0 if ok, -FDT_ERR_BADLAYOUT if max_count would be exceeded
+ */
+static int decode_gpios(const void *blob, int node, const char *property,
+		 struct fdt_gpio_state *gpio, int max_count)
+{
+	const u32 *cell;
+	int len, i;
+
+	cell = fdt_getprop(blob, node, property, &len);
+	len /= sizeof(u32) * 3;		/* 3 cells per GPIO record */
+	if (len >= max_count) {
+		printf("FDT: decode_gpios: too many GPIOs\n");
+		return -FDT_ERR_BADLAYOUT;
+	}
+	for (i = 0; i < len; i++, cell += 3) {
+		gpio[i].gpio = fdt32_to_cpu(cell[1]);
+		gpio[i].high = fdt32_to_cpu(cell[2]);
+	}
+
+	/* terminate the list */
+	gpio[len].gpio = FDT_GPIO_NONE;
+	return 0;
+}
+
+void fdt_setup_gpios(struct fdt_gpio_state *gpio_list)
+{
+	struct fdt_gpio_state *gpio;
+	int i;
+
+	for (i = 0, gpio = gpio_list; fdt_gpio_isvalid(gpio); i++, gpio++) {
+		if (i > FDT_GPIO_MAX) {
+			/* Something may have gone horribly wrong */
+			printf("FDT: fdt_setup_gpios: too many GPIOs\n");
+			return;
+		}
+		gpio_direction_output(gpio->gpio, 1);
+		gpio_set_value(gpio->gpio, gpio->high);
+	}
 }
