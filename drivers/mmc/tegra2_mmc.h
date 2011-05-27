@@ -2,6 +2,7 @@
  * (C) Copyright 2009 SAMSUNG Electronics
  * Minkyu Kang <mk7.kang@samsung.com>
  * Portions Copyright (C) 2011 NVIDIA Corporation
+ * Portions Copyright (c) 2011 The Chromium OS Authors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +22,8 @@
 
 #ifndef __TEGRA2_MMC_H_
 #define __TEGRA2_MMC_H_
+
+#include <mmc.h>
 
 #define TEGRA2_SDMMC1_BASE	0xC8000000
 #define TEGRA2_SDMMC2_BASE	0xC8000200
@@ -73,6 +76,17 @@ struct mmc_host {
 	unsigned int version;	/* SDHCI spec. version */
 	unsigned int clock;	/* Current clock (MHz) */
 	unsigned int base;	/* Base address, SDMMC1/2/3/4 */
+
+	/*
+	 * We need a per-host bounce buffer that will be optionally used
+	 * when the mmc_send_cmd function is called with an unaligned
+	 * buffer.  The bounce buffer will be allocated in that case and
+	 * a copy to and from it will be used so that DMA destination and
+	 * source pointers can be aligned.
+	 */
+	char *          bounce;
+	uint            bounce_size;
+	struct mmc_data bounce_data;
 };
 
 int tegra2_mmc_init(int dev_index, int bus_width);

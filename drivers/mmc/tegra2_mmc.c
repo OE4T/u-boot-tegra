@@ -3,6 +3,7 @@
  * Minkyu Kang <mk7.kang@samsung.com>
  * Jaehoon Chung <jh80.chung@samsung.com>
  * Portions Copyright 2011 NVIDIA Corporation
+ * Portions Copyright (c) 2011 The Chromium OS Authors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,10 +21,12 @@
  */
 
 #include <common.h>
+#include <linux/ctype.h>
 #include <mmc.h>
 #include <asm/io.h>
 #include <asm/arch/clk_rst.h>
 #include <asm/arch/clock.h>
+#include <malloc.h>
 #include "tegra2_mmc.h"
 
 /* support 4 mmc hosts */
@@ -56,14 +59,130 @@ static inline struct tegra2_mmc *tegra2_get_base_mmc(int dev_index)
 	return (struct tegra2_mmc *)(offset);
 }
 
-static void mmc_prepare_data(struct mmc_host *host, struct mmc_data *data)
+/*
+ * Flush the data cache lines associated with the given mmc_data structs buffer.
+ */
+static void mmc_dcache_flush(struct mmc_data *data)
+{
+	unsigned long start = (unsigned long) data->dest;
+	unsigned long stop = start + (data->blocksize * data->blocks);
+
+	flush_dcache_range(start, stop);
+}
+
+/*
+ * Invalidate the data cache lines associated with the given mmc_data structs
+ * buffer.
+ */
+static void mmc_dcache_invalidate(struct mmc_data *data)
+{
+	unsigned long start = (unsigned long) data->dest;
+	unsigned long stop = start + (data->blocksize * data->blocks);
+
+	invalidate_dcache_range(start, stop);
+}
+
+/*
+ * Ensure that the host's bounce buffer is large enough to hold the given
+ * mmc_data's buffer.  On failure to reallocate the bounce buffer -1 is
+ * returned and the host is left in a consistent state.
+ */
+static int mmc_resize_bounce(struct mmc_host *host, struct mmc_data *data)
+{
+	uint	new_bounce_size = data->blocks * data->blocksize;
+
+	if (host->bounce)
+	{
+		free(host->bounce);
+
+		host->bounce_size = 0;
+		host->bounce = NULL;
+	}
+
+	host->bounce = memalign(CACHE_LINE_SIZE, new_bounce_size);
+
+	debug("mmc_resize_bounce: size(%d) bounce(%p)\n",
+	      new_bounce_size, host->bounce);
+
+	if (host->bounce == NULL)
+		return -1;
+
+	host->bounce_size = new_bounce_size;
+
+	return 0;
+}
+
+/*
+ * Prepare the host's bounce buffer to proxy for the given mmc_data's buffer.
+ * If this is a write operation the contents of the mmc_data's buffer are
+ * copied to the bounce buffer.
+ */
+static int mmc_setup_bounce_data(struct mmc_host *host, struct mmc_data *data)
+{
+	size_t bytes = data->blocks * data->blocksize;
+
+	if ((bytes > host->bounce_size) && (mmc_resize_bounce(host, data) < 0))
+		return -1;
+
+	host->bounce_data = *data;
+	host->bounce_data.dest = host->bounce;
+
+	if (data->flags & MMC_DATA_WRITE)
+		memcpy(host->bounce_data.dest, data->src, bytes);
+
+	return 0;
+}
+
+/*
+ * Invalidate the cache lines covering the bounce buffer and copy the contents
+ * to the given mmc_data's buffer.  This assumes that the hosts bounce buffer
+ * was initialized via mmc_setup_bounce_data.
+ */
+static void mmc_restore_bounce_data(struct mmc_host *host,
+				    struct mmc_data *data)
+{
+	mmc_dcache_invalidate(&host->bounce_data);
+
+	memcpy(data->dest,
+	       host->bounce_data.src,
+	       data->blocks * data->blocksize);
+}
+
+static int mmc_prepare_data(struct mmc_host *host, struct mmc_data *data)
 {
 	unsigned char ctrl;
 
 	debug("data->dest: %08X, data->blocks: %u, data->blocksize: %u\n",
 	(u32)data->dest, data->blocks, data->blocksize);
 
+	/*
+	 * If the mmc_data's buffer is not aligned to a cache line boundary.
+	 * We need to use an aligned bounce buffer because the cache
+	 * invalidation code that would give us visibility into the read data
+	 * after the DMA operation completes will flush the first and last few
+	 * bytes of the unaligned buffer out to memory, overwriting the DMA'ed
+	 * data.
+	 */
+	if (((uint)data->dest) & (CACHE_LINE_SIZE - 1))
+	{
+		printf("%s: Unaligned data, using slower bounce buffer\n",
+		       __func__);
+
+		if (mmc_setup_bounce_data(host, data) < 0)
+			return -1;
+
+		data = &host->bounce_data;
+	}
+
+	if (data->flags & MMC_DATA_WRITE)
+		mmc_dcache_flush(data);
+
+	/*
+	 * At this point the buffer referenced by data is guaranteed to be
+	 * cache line size aligned.
+	 */
 	writel((u32)data->dest, &host->reg->sysad);
+
 	/*
 	 * DMASEL[4:3]
 	 * 00 = Selects SDMA
@@ -78,6 +197,25 @@ static void mmc_prepare_data(struct mmc_host *host, struct mmc_data *data)
 	/* We do not handle DMA boundaries, so set it to max (512 KiB) */
 	writew((7 << 12) | (data->blocksize & 0xFFF), &host->reg->blksize);
 	writew(data->blocks, &host->reg->blkcnt);
+
+	return 0;
+}
+
+static void mmc_restore_data(struct mmc_host *host, struct mmc_data *data)
+{
+	/*
+	 * If we performed a read then we need to invalidate the dcache lines
+	 * that cover the DMA buffer.  This might also require copying data
+	 * back from the bounce buffer if the original mmc_data's buffer is
+	 * unaligned.
+	 */
+	if (data->flags & MMC_DATA_READ)
+	{
+		if (((uint)data->dest) & (CACHE_LINE_SIZE - 1))
+			mmc_restore_bounce_data(host, data);
+		else
+			mmc_dcache_invalidate(data);
+	}
 }
 
 static void mmc_set_transfer_mode(struct mmc_host *host, struct mmc_data *data)
@@ -151,7 +289,8 @@ static int mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd,
 		return result;
 
 	if (data)
-		mmc_prepare_data(host, data);
+		if ((result = mmc_prepare_data(host, data)) < 0)
+			return result;
 
 	debug("cmd->arg: %08x\n", cmd->cmdarg);
 	writel(cmd->cmdarg, &host->reg->argument);
@@ -185,8 +324,10 @@ static int mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd,
 
 	if (cmd->resp_type & MMC_RSP_CRC)
 		flags |= (1 << 3);
+
 	if (cmd->resp_type & MMC_RSP_OPCODE)
 		flags |= (1 << 4);
+
 	if (data)
 		flags |= (1 << 5);
 
@@ -299,6 +440,10 @@ static int mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd,
 	}
 
 	udelay(1000);
+
+	if (data)
+		mmc_restore_data(host, data);
+
 	return 0;
 }
 
@@ -517,6 +662,9 @@ static int tegra2_mmc_initialize(int dev_index, int bus_width)
 	mmc_host[dev_index].clock = 0;
 	mmc_host[dev_index].reg = tegra2_get_base_mmc(dev_index);
 	mmc_host[dev_index].base = (unsigned int)mmc_host[dev_index].reg;
+	mmc_host[dev_index].bounce = NULL;
+	mmc_host[dev_index].bounce_size = 0;
+
 	mmc_register(mmc);
 
 	return 0;

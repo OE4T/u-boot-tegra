@@ -1,6 +1,7 @@
 /*
  *  (C) Copyright 2010,2011
  *  NVIDIA Corporation <www.nvidia.com>
+ * Portions Copyright (c) 2011 The Chromium OS Authors
  *
  * See file CREDITS for list of people who contributed to this
  * project.
@@ -61,6 +62,8 @@
 #define CONFIG_MACH_TYPE		MACH_TYPE_SEABOARD
 #define CONFIG_SYS_BOARD_ODMDATA	0x300d8011 /* lp1, 1GB */
 
+#define CACHE_LINE_SIZE			32
+
 #define CONFIG_BOARD_EARLY_INIT_F
 
 /* GPIO */
@@ -85,7 +88,6 @@
 #define CONFIG_EFI_PARTITION
 #define CONFIG_CMD_EXT2
 #define CONFIG_CMD_FAT
-#define CONFIG_SYS_NO_DCACHE	//temp fix for DMA / dcache interaction
 
 /* Environment in SPI */
 #define CONFIG_ENV_IS_IN_SPI_FLASH
