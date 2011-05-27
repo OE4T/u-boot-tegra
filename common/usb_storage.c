@@ -953,7 +953,6 @@ static int usb_request_sense(ccb *srb, struct us_data *ss)
 static int usb_test_unit_ready(ccb *srb, struct us_data *ss)
 {
 	int retry = RETRIES(10);
-	int result;
 
 	do {
 		memset(&srb->cmd[0], 0, 12);
