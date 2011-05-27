@@ -79,7 +79,7 @@ unsigned long clock_start_pll(enum clock_pll_id clkid, u32 divm, u32 divn,
 		bf_pack(PLL_BYPASS, 0) |
 		bf_pack(PLL_ENABLE, 1);
 
-	if (clkid == CLOCK_PLL_ID_USB)
+	if (clkid == CLOCK_ID_USB)
 		data |= bf_pack(PLL_VCO_FREQ, divp);
 	else
 		data |= bf_pack(PLL_DIVP, divp);

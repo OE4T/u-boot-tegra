@@ -285,7 +285,7 @@ void board_usb_init(void)
 
 	/* Enable PLL U for USB */
 	params = &usb_pll[freq];
-	stable_time = clock_start_pll(CLOCK_PLL_ID_USB,
+	stable_time = clock_start_pll(CLOCK_ID_USB,
 		params->divm, params->divn, params->divp, params->cpcon,
 		params->lfcon);
 	/* TODO: what should we do with stable_time? */

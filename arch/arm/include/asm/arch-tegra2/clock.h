@@ -37,21 +37,21 @@ enum clock_osc_freq {
 
 /* The PLLs supported by the hardware */
 enum clock_pll_id {
-	CLOCK_PLL_ID_FIRST,
-	CLOCK_PLL_ID_CGENERAL = CLOCK_PLL_ID_FIRST,
-	CLOCK_PLL_ID_MEMORY,
-	CLOCK_PLL_ID_PERIPH,
-	CLOCK_PLL_ID_AUDIO,
-	CLOCK_PLL_ID_USB,
-	CLOCK_PLL_ID_DISPLAY,
+	CLOCK_ID_FIRST,
+	CLOCK_ID_CGENERAL = CLOCK_ID_FIRST,
+	CLOCK_ID_MEMORY,
+	CLOCK_ID_PERIPH,
+	CLOCK_ID_AUDIO,
+	CLOCK_ID_USB,
+	CLOCK_ID_DISPLAY,
 
 	/* now the simple ones */
-	CLOCK_PLL_ID_FIRST_SIMPLE,
-	CLOCK_PLL_ID_XCPU = CLOCK_PLL_ID_FIRST_SIMPLE,
-	CLOCK_PLL_ID_EPCI,
-	CLOCK_PLL_ID_SFROM32KHZ,
+	CLOCK_ID_FIRST_SIMPLE,
+	CLOCK_ID_XCPU = CLOCK_ID_FIRST_SIMPLE,
+	CLOCK_ID_EPCI,
+	CLOCK_ID_SFROM32KHZ,
 
-	CLOCK_PLL_ID_COUNT,
+	CLOCK_ID_COUNT,
 };
 
 /* The clocks supported by the hardware */
@@ -181,8 +181,8 @@ enum periph_id {
 #define PERIPH_MASK(id) (1 << ((id) & 0x1f))
 
 /* return 1 if a PLL ID is in range */
-#define clock_pll_id_isvalid(id) ((id) >= CLOCK_PLL_ID_FIRST && \
-		(id) < CLOCK_PLL_ID_COUNT)
+#define clock_pll_id_isvalid(id) ((id) >= CLOCK_ID_FIRST && \
+		(id) < CLOCK_ID_COUNT)
 
 /* return 1 if a peripheral ID is in range */
 #define clock_periph_id_isvalid(id) ((id) >= PERIPH_ID_FIRST && \
