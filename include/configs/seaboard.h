@@ -56,8 +56,8 @@
 #define CONFIG_CONSOLE_MUX
 #define CONFIG_SYS_CONSOLE_IS_IN_ENV
 #define CONFIG_STD_DEVICES_SETTINGS	"stdin=serial,tegra-kbc\0" \
-					"stdout=serial\0" \
-					"stderr=serial\0"
+					"stdout=serial,lcd\0" \
+					"stderr=serial,lcd\0"
 
 #define CONFIG_MACH_TYPE		MACH_TYPE_SEABOARD
 #define CONFIG_SYS_BOARD_ODMDATA	0x300d8011 /* lp1, 1GB */
@@ -175,6 +175,16 @@
 	  0,     0,    0,    0,    0,    0,    0,    0,		\
 	  0,     0,    0,    0,  '?',    0,    0,    0		\
 }
+
+/*
+ *  LCDC configuration
+ */
+#define CONFIG_LCD
+#define CONFIG_VIDEO_TEGRA2
+
+/* TODO: This needs to be configurable at run-time */
+#define LCD_BPP             LCD_COLOR16
+#define CONFIG_SYS_WHITE_ON_BLACK       /*Console colors*/
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	CONFIG_EXTRA_ENV_SETTINGS_COMMON \

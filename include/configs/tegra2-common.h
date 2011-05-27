@@ -189,9 +189,10 @@
 	"nfsserverip=172.22.72.144\0" \
 	"extra_bootargs=\0" \
 	"platform_extras=" TEGRA2_SYSMEM"\0" \
+	"videospec=tegrafb\0" \
 	"regen_all="\
 		"setenv common_bootargs console=${console} " \
-		"${platform_extras} noinitrd; " \
+		"video=${videospec} ${platform_extras} noinitrd; " \
 		"setenv bootargs ${common_bootargs} ${extra_bootargs} " \
 		"${bootdev_bootargs}\0" \
 	"regen_net_bootargs=setenv bootdev_bootargs " \
