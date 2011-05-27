@@ -69,7 +69,6 @@ void gpio_early_init_uart(const void *blob)
 	get_config(blob, &config);
 	if (config.gpio != -1)
 		gpio_direction_output(config.gpio, 0);
-	switch_pos = SWITCH_BOTH;
 }
 
 /*
@@ -119,6 +118,7 @@ static void spi_uart_switch(struct fdt_spi_uart *config,
 
 void uart_enable(NS16550_t regs)
 {
+	/* Also prevents calling spi_uart_switch() before relocation */
 	if (regs == local.regs)
 		spi_uart_switch(&local, SWITCH_UART);
 }
