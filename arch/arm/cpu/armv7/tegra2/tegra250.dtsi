@@ -124,5 +124,11 @@
 		reg = <0x7000a030 0x4>;
 		status = "disabled";
 	};
+
+	display1: display@0x54200000 {
+		compatible = "nvidia,tegra250-display";
+		reg = <0x54200000 0x40000>;
+		status = "disabled";
+	};
 };
 
