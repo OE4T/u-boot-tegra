@@ -96,6 +96,38 @@ struct fdt_gpio_state {
 /* This tells us whether a fdt_gpio_state record is valid or not */
 #define fdt_gpio_isvalid(gpio) ((gpio)->gpio != FDT_GPIO_NONE)
 
+#define FDT_LCD_GPIOS	5
+
+enum {
+	FDT_LCD_TIMING_REF_TO_SYNC,
+	FDT_LCD_TIMING_SYNC_WIDTH,
+	FDT_LCD_TIMING_BACK_PORCH,
+	FDT_LCD_TIMING_FRONT_PORCH,
+
+	FDT_LCD_TIMING_COUNT,
+};
+
+/* Information about the LCD */
+struct fdt_lcd {
+	addr_t reg;		/* address of registers in physical memory */
+	int width;		/* width in pixels */
+	int height;		/* height in pixels */
+	int bpp;		/* number of bits per pixel */
+
+	/*
+	 * log2 of number of bpp, in general, unless it bpp is 24 in which
+	 * case this field holds 24 also! This is a U-Boot thing.
+	 */
+	int log2_bpp;
+	struct fdt_gpio_state gpios[FDT_LCD_GPIOS]; /* state of output GPIOS */
+	struct pwfm_ctlr *pwfm;	/* PWM to use for backlight */
+	struct disp_ctlr *disp;	/* Display controller to use */
+	addr_t frame_buffer;	/* Address of frame buffer */
+	unsigned pixel_clock;	/* Pixel clock in Hz */
+	int horiz_timing[FDT_LCD_TIMING_COUNT];	/* Horizontal timing */
+	int vert_timing[FDT_LCD_TIMING_COUNT];	/* Vertical timing */
+};
+
 /**
  * Return information from the FDT about the console UART. This looks for
  * an alias node called 'console' which must point to a UART. It then reads
@@ -157,3 +189,29 @@ int fdt_decode_get_spi_switch(const void *blob, struct fdt_spi_uart *config);
  * @param gpio_list	List of GPIOs to set up
  */
 void fdt_setup_gpios(struct fdt_gpio_state *gpio_list);
+
+/**
+ * Returns information from the FDT about the LCD display. This function reads
+ * out the following attributes:
+ *
+ *	width		width in pixels
+ *	height		height in pixels
+ *	bits_per_pixel	put in bpp
+ *	log2_bpp	log2 of bpp (so bpp = 2 ^ log2_bpp)
+ *	pwfm		PWFM to use
+ *	display		Display to use (SOC peripheral)
+ *	frame-buffer	Frame buffer address (can be omitted since U-Boot will
+ *			normally set this)
+ *	pixel_clock	Pixel clock in Hz
+ *	horiz_timing	ref_to_sync, sync_width. back_porch, front_porch
+ *	vert_timing	ref_to_sync, sync_width. back_porch, front_porch
+ *	gpios		list of GPIOs to make as outputs, along with 0/1 value
+ *
+ * @param blob		FDT blob to use
+ * @param config	structure to use to return information
+ * @returns 0 on success, -ve on error, in which case config may or may not be
+ *			unchanged. If the node is present but expected data is
+ *			missing then this will generally return
+ *			-FDT_ERR_MISSING.
+ */
+int fdt_decode_lcd(const void *blob, struct fdt_lcd *config);

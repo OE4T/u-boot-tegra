@@ -104,6 +104,35 @@ static s32 get_int(const void *blob, int node, const char *prop_name,
 }
 
 /**
+ * Look up a property in a node and return its contents in an integer
+ * array of given length. The property must have at least enough data for
+ * the array (4*count bytes). It may have more, but this will be ignored.
+ *
+ * @param blob		FDT blob
+ * @param node		node to examine
+ * @param prop_name	name of property to find
+ * @param array		array to fill with data
+ * @param count		number of array elements
+ * @return 0 if ok, or -FDT_ERR_MISSING if the property is not found,
+ *		or -FDT_ERR_BADLAYOUT if not enough data
+ */
+static int get_int_array(const void *blob, int node, const char *prop_name,
+		int *array, int count)
+{
+	const s32 *cell;
+	int len, i;
+
+	cell = fdt_getprop(blob, node, prop_name, &len);
+	if (!cell)
+		return -FDT_ERR_MISSING;
+	if (len < sizeof(s32) * count)
+		return -FDT_ERR_BADLAYOUT;
+	for (i = 0; i < count; i++)
+		array[i] = fdt32_to_cpu(cell[i]);
+	return 0;
+}
+
+/**
  * Look up a phandle and follow it to its node. Then return the offset
  * of that node.
  *
@@ -123,6 +152,27 @@ static int lookup_phandle(const void *blob, int node, const char *prop_name)
 
 	lookup = fdt_node_offset_by_phandle(blob, fdt32_to_cpu(*phandle));
 	return lookup;
+}
+
+/**
+ * Look up a phandle and follow it to its node. Then return the register
+ * address of that node as a pointer. This can be used to access the
+ * peripheral directly.
+ *
+ * @param blob		FDT blob
+ * @param node		node to examine
+ * @param prop_name	name of property to find
+ * @return pointer to node's register address
+ */
+static void *lookup_phandle_reg(const void *blob, int node,
+		const char *prop_name)
+{
+	int lookup;
+
+	lookup = lookup_phandle(blob, node, prop_name);
+	if (lookup < 0)
+		return NULL;
+	return (void *)get_addr(blob, lookup, "reg");
 }
 
 /**
@@ -225,7 +275,8 @@ int fdt_decode_get_spi_switch(const void *blob, struct fdt_spi_uart *config)
  * @param property	Node property name
  * @param gpio		Array of gpio elements to fill from FDT
  * @param max_count	Maximum number of elements allowed
- * @return 0 if ok, -FDT_ERR_BADLAYOUT if max_count would be exceeded
+ * @return 0 if ok, -FDT_ERR_BADLAYOUT if max_count would be exceeded, or
+ *		-FDT_ERR_MISSING if the property is missing.
  */
 static int decode_gpios(const void *blob, int node, const char *property,
 		 struct fdt_gpio_state *gpio, int max_count)
@@ -234,6 +285,9 @@ static int decode_gpios(const void *blob, int node, const char *property,
 	int len, i;
 
 	cell = fdt_getprop(blob, node, property, &len);
+	if (!cell)
+		return -FDT_ERR_MISSING;
+
 	len /= sizeof(u32) * 3;		/* 3 cells per GPIO record */
 	if (len >= max_count) {
 		printf("FDT: decode_gpios: too many GPIOs\n");
@@ -263,4 +317,45 @@ void fdt_setup_gpios(struct fdt_gpio_state *gpio_list)
 		gpio_direction_output(gpio->gpio, 1);
 		gpio_set_value(gpio->gpio, gpio->high);
 	}
+}
+
+int fdt_decode_lcd(const void *blob, struct fdt_lcd *config)
+{
+	int node, err, bpp, bit;
+	int display_node;
+
+	node = fdt_node_offset_by_compatible(blob, 0, "nvidia,tegra2-lcd");
+	if (node < 0)
+		return node;
+	display_node = lookup_phandle(blob, node, "display");
+	if (display_node < 0)
+		return display_node;
+	config->reg = get_addr(blob, display_node, "reg");
+	config->width = get_int(blob, node, "width", -1);
+	config->height = get_int(blob, node, "height", -1);
+	bpp = get_int(blob, node, "bits_per_pixel", -1);
+	bit = ffs(bpp) - 1;
+	if (bpp == (1 << bit))
+		config->log2_bpp = bit;
+	else
+		config->log2_bpp = bpp;
+	config->bpp = bpp;
+	config->pwfm = (struct pwfm_ctlr *)lookup_phandle_reg(blob, node,
+							      "pwfm");
+	config->disp = (struct disp_ctlr *)lookup_phandle_reg(blob, node,
+							  "display");
+	config->pixel_clock = get_int(blob, node, "pixel_clock", 0);
+	err = get_int_array(blob, node, "horiz_timing", config->horiz_timing,
+			FDT_LCD_TIMING_COUNT);
+	if (!err)
+		err = get_int_array(blob, node, "vert_timing",
+				config->vert_timing, FDT_LCD_TIMING_COUNT);
+	if (err)
+		return err;
+	if (!config->pixel_clock || config->reg == -1U || bpp == -1 ||
+			config->width == -1 || config->height == -1 ||
+			!config->pwfm || !config->disp)
+		return -FDT_ERR_MISSING;
+	config->frame_buffer = get_addr(blob, node, "frame-buffer");
+	return decode_gpios(blob, node, "gpios", config->gpios, FDT_LCD_GPIOS);
 }
