@@ -145,7 +145,19 @@
  *
  * The enum should have the field as a prefix.
  */
+#define bf_enum(field, _enum) bf_pack(field, field ## _ ## _enum)
+
+/*
+ * Sets the value of a field in a register to the given enum.
+ *
+ * The enum should have the field as a prefix.
+ */
 #define bf_enum_writel(field, _enum, reg) \
 		bf_writel(field, field ## _ ## _enum, reg)
+
+/*
+ * Return a word with the bitfield set to all ones.
+ */
+#define bf_ones(field) bf_mask(field)
 
 #endif
