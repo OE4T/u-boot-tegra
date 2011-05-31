@@ -255,14 +255,12 @@ static int load_kernel_config(uint64_t bootloader_address)
 	strcpy(buf, "setenv bootargs ${bootargs} ");
 
 	/* Use the bootloader address to find the kernel config location. */
-	strcat(buf, (char *)(bootloader_address - CROS_PARAMS_SIZE -
-			CROS_CONFIG_SIZE));
+	strncat(buf, (char *)(bootloader_address - CROS_PARAMS_SIZE -
+			CROS_CONFIG_SIZE), CROS_CONFIG_SIZE);
 
 	/*
 	 * Use run_command instead of setenv because we need variable
 	 * substitutions.
-	 * TODO: Do more variable substitutions for the bug:
-	 * http://crosbug.com/14022
 	 */
 	if (run_command(buf, 0)) {
 		VBDEBUG(PREFIX "run_command(%s) fail\n", buf);
