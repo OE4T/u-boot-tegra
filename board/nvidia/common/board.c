@@ -33,6 +33,7 @@
 #include <asm/arch/pinmux.h>
 #include <asm/arch/uart.h>
 #include <asm/arch/usb.h>
+#include <asm/arch/pmc.h>
 #include <spi.h>
 #include <fdt_decode.h>
 #include "board.h"
@@ -231,6 +232,19 @@ static void gpio_init(const void *blob)
 #ifdef CONFIG_SPI_UART_SWITCH
 	gpio_early_init_uart(blob);
 #endif
+}
+
+/*
+ * Routine: power_det_init
+ * Description: turn off power detects
+ */
+static void power_det_init(void)
+{
+	struct pmc_ctlr *const pmc = (struct pmc_ctlr *)NV_PA_PMC_BASE;
+
+	/* turn off power detects */
+	writel(0, &pmc->pmc_pwr_det_latch);
+	writel(0, &pmc->pmc_pwr_det);
 }
 
 /*
