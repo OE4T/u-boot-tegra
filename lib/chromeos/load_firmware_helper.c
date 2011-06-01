@@ -12,6 +12,7 @@
 #include <malloc.h>
 #include <chromeos/common.h>
 #include <chromeos/get_firmware_body.h>
+#include <chromeos/kernel_shared_data.h>
 #include <chromeos/load_firmware_helper.h>
 
 #include <gbb_header.h>
@@ -152,7 +153,7 @@ int load_firmware_wrapper(firmware_storage_t *file,
 		goto EXIT;
 	}
 
-        params.nv_context = nvcxt;
+	params.nv_context = nvcxt;
 
 	params.boot_flags = boot_flags;
 	params.shared_data_blob = shared_data_blob ? shared_data_blob :
@@ -163,6 +164,30 @@ int load_firmware_wrapper(firmware_storage_t *file,
 	status = LoadFirmware(&params);
 
 	if (status == LOAD_FIRMWARE_SUCCESS) {
+		/* Fill in the firmware ID based on the index. */
+		KernelSharedDataType *sd = get_kernel_shared_data();
+		if (params.firmware_index == FIRMWARE_A) {
+			if (firmware_storage_read(file,
+					(off_t)CONFIG_OFFSET_RW_FWID_A,
+					(size_t)CONFIG_LENGTH_RW_FWID_A,
+					sd->fwid)) {
+				VBDEBUG(PREFIX "error: read fwid fail\n");
+				goto EXIT;
+			}
+		} else if (params.firmware_index == FIRMWARE_B) {
+			if (firmware_storage_read(file,
+					(off_t)CONFIG_OFFSET_RW_FWID_B,
+					(size_t)CONFIG_LENGTH_RW_FWID_B,
+					sd->fwid)) {
+				VBDEBUG(PREFIX "error: read fwid fail\n");
+				goto EXIT;
+			}
+		} else {
+			VBDEBUG(PREFIX "wrong firmware_index %lld\n",
+					params.firmware_index);
+			goto EXIT;
+		}
+
 		VBDEBUG(PREFIX "will jump to rewritable firmware %lld\n",
 				params.firmware_index);
 		*firmware_data_ptr = gfbi.firmware_body[params.firmware_index];

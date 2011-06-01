@@ -162,7 +162,6 @@ EXIT:
 
 		strncpy((char*) sd->hwid,
 				gbb_data + gbbh->hwid_offset, gbbh->hwid_size);
-		strncpy((char*) sd->fwid, version_string, ID_LEN);
 
 		/* boot reason; always 0 */
 		sd->binf[0] = 0;

@@ -13,9 +13,6 @@
 
 #include <vboot_nvstorage.h>
 
-/* U-Boot version string with build datetime */
-extern const char version_string[];
-
 #define ID_LEN		256
 
 typedef struct {

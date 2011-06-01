@@ -94,7 +94,14 @@ int do_cros_bootstub(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	/* Fill in the RO firmware ID */
 	KernelSharedDataType *sd = get_kernel_shared_data();
-	strncpy((char*) sd->frid, version_string, ID_LEN);
+	if (firmware_storage_read(&file,
+			(off_t)CONFIG_OFFSET_RO_FRID,
+			(size_t)CONFIG_LENGTH_RO_FRID,
+			sd->frid)) {
+		VBDEBUG(PREFIX "fail to read fwid\n");
+		reason = VBNV_RECOVERY_US_UNSPECIFIED;
+		goto RECOVERY;
+	}
 
 	if (read_nvcontext(&nvcxt) || VbNvGet(&nvcxt, VBNV_RECOVERY_REQUEST,
 				&recovery_request)) {
