@@ -180,6 +180,7 @@
 
 /* Environment information */
 #define CONFIG_EXTRA_ENV_SETTINGS_COMMON \
+	CONFIG_STD_DEVICES_SETTINGS \
 	"console=ttyS0,115200n8\0" \
 	"smpflag=smp\0" \
 	"user=user\0" \
