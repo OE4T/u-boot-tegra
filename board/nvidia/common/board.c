@@ -267,6 +267,7 @@ int board_init(void)
 #ifdef CONFIG_TEGRA2_SPI
 	spi_init();
 #endif
+	power_det_init();
 
 	return 0;
 }
