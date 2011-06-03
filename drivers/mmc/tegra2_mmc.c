@@ -316,7 +316,7 @@ static void mmc_change_clock(struct mmc_host *host, uint clock)
 		mmc_id = PERIPH_ID_SDMMC3;
 	else if (hostbase == TEGRA2_SDMMC4_BASE)
 		mmc_id = PERIPH_ID_SDMMC4;
-	clock_ll_set_source_divisor(mmc_id, CLOCK_ID_PERIPH, hw_div);
+	clock_ll_set_source_divisor(mmc_id, 0, hw_div);
 
 	writew(0, &host->reg->clkcon);
 
@@ -346,7 +346,6 @@ static void mmc_change_clock(struct mmc_host *host, uint clock)
 	writew(clk, &host->reg->clkcon);
 
 	debug("mmc_change_clock: clkcon = %08X\n", clk);
-	debug("mmc_change_clock: CLK_SOURCE_SDMMCx = %08X\n", reg);
 
 out:
 	host->clock = clock;
