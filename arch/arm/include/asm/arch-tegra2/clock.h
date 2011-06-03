@@ -22,6 +22,7 @@
 /* Tegra2 clock control functions */
 
 #ifndef _CLOCK_H
+#define _CLOCK_H
 
 /* Set of oscillator frequencies supported in the internal API. */
 enum clock_osc_freq {
@@ -296,12 +297,13 @@ void clock_ll_set_source_divisor(enum periph_id periph_id, int source,
 		unsigned rate);
 
 /**
- * Start a peripheral PLL clock at the given rate
+ * Start a peripheral PLL clock at the given rate. This also resets the
+ * peripheral.
  *
  * @param periph_id	peripheral to start
  * @param parent	PLL id of required parent clock
  * @param rate		Required clock rate in Hz
- * @return rate selected, or -1U if something went wrong
+ * @return rate selected in Hz, or -1U if something went wrong
  */
 unsigned clock_start_periph_pll(enum periph_id periph_id,
 		enum clock_id parent, unsigned rate);
@@ -318,6 +320,22 @@ unsigned clock_start_periph_pll(enum periph_id periph_id,
  */
 unsigned long clock_get_periph_rate(enum periph_id periph_id,
 		enum clock_id parent);
+
+/**
+ * Adjust peripheral PLL clock to the given rate. This does not reset the
+ * peripheral. If a second stage divisor is not available, pass NULL for
+ * extra_div. If it is available, then this parameter will return the
+ * divisor selected (which will be a power of 2 from 1 to 256).
+ *
+ * @param periph_id	peripheral to start
+ * @param parent	PLL id of required parent clock
+ * @param rate		Required clock rate in Hz
+ * @param extra_div	value for the second-stage divisor (NULL if one is
+			not available.
+ * @return rate selected in Hz, or -1U if something went wrong
+ */
+unsigned clock_adjust_periph_pll_div(enum periph_id periph_id,
+		enum clock_id parent, unsigned rate, int *extra_div);
 
 /* Initialize the clocks */
 void clock_init(void);

@@ -495,8 +495,10 @@ void clock_ll_set_source(enum periph_id periph_id, int source)
  *
  * @param parent_rate	clock rate of parent clock in Hz
  * @param rate		required clock rate for this clock
+ * @return divider which should be used
  */
-static int clk_div7_1_get_divider(unsigned long parent_rate, unsigned long rate)
+static int clk_div7_1_get_divider(unsigned long parent_rate,
+				  unsigned long rate)
 {
 	u64 divider = parent_rate * 2;
 
@@ -512,22 +514,73 @@ static int clk_div7_1_get_divider(unsigned long parent_rate, unsigned long rate)
 	return divider - 2;
 }
 
-unsigned long clock_get_periph_rate(enum periph_id periph_id,
-		enum clock_id parent)
+/**
+ * Given the parent's rate and the divider in 7.1 format, this works out the
+ * resulting peripheral clock rate.
+ *
+ * @param parent_rate	clock rate of parent clock in Hz
+ * @param divider which should be used in 7.1 format
+ * @return effective clock rate of peripheral
+ */
+static unsigned long get_rate_from_divider(unsigned long parent_rate,
+					   int divider)
 {
-	u32 *reg = get_periph_source_reg(periph_id);
-	u32 data = readl(reg);
 	u64 rate;
-	int divider;
 
-	divider = bf_unpack(OUT_CLK_DIVISOR, data);
-	rate = (u64)pll_rate[parent] * 2 ;
+	rate = (u64)parent_rate * 2;
 	do_div (rate, divider + 2);
 	return rate;
 }
 
+unsigned long clock_get_periph_rate(enum periph_id periph_id,
+		enum clock_id parent)
+{
+	u32 *reg = get_periph_source_reg(periph_id);
 
-/*
+	return get_rate_from_divider(pll_rate[parent],
+				     bf_readl(OUT_CLK_DIVISOR, reg));
+}
+
+/**
+ * Find the best available 7.1 format divisor given a parent clock rate and
+ * required child clock rate. This function assumes that a second-stage
+ * divisor is available which can divide by powers of 2 from 1 to 256.
+ *
+ * @param parent_rate	clock rate of parent clock in Hz
+ * @param rate		required clock rate for this clock
+ * @param extra_div	value for the second-stage divisor (not set if this
+ *			function returns -1.
+ * @return divider which should be used, or -1 if nothing is valid
+ *
+ */
+static int find_best_divider(unsigned long parent_rate, unsigned long rate,
+		int *extra_div)
+{
+	int shift;
+	int best_divider = -1;
+	int best_error = rate;
+
+	/* try dividers from 1 to 256 and find closest match */
+	for (shift = 0; shift <= 8 && best_error > 0; shift++) {
+		unsigned divided_parent = parent_rate >> shift;
+		int divider = clk_div7_1_get_divider(divided_parent, rate);
+		unsigned effective_rate = get_rate_from_divider(divided_parent,
+						       divider);
+		int error = rate - effective_rate;
+
+		/* Given a valid divider, look for the lowest error */
+		if (divider != -1 && error < best_error) {
+			best_error = error;
+			*extra_div = 1 << shift;
+			best_divider = divider;
+		}
+	}
+
+	/* return what we found - *extra_div will already be set */
+	return best_divider;
+}
+
+/**
  * Given a peripheral ID and the required source clock, this returns which
  * value should be programmed into the source mux for that peripheral.
  *
@@ -579,41 +632,72 @@ static int get_periph_clock_source(enum periph_id periph_id,
 	return -1;
 }
 
-unsigned clock_start_periph_pll(enum periph_id periph_id,
-		enum clock_id parent, unsigned rate)
+/**
+ * Adjust peripheral PLL to use the given divider and source.
+ *
+ * @param periph_id	peripheral to adjust
+ * @param parent	Required parent clock (for source mux)
+ * @param divider	Required divider in 7.1 format
+ * @return 0 if ok, -1 on error (requesting a parent clock which is not valid
+ *		for this peripheral)
+ */
+static int adjust_periph_pll(enum periph_id periph_id,
+		enum clock_id parent, int divider)
 {
 	u32 *reg = get_periph_source_reg(periph_id);
-	int divider;
-	uint effective_rate;
 	int source, mux_bits;
-
-	reset_set_enable(periph_id, 1);
-	clock_enable(periph_id);
-
-	divider = clk_div7_1_get_divider(pll_rate[parent], rate);
-	assert(divider >= 0);
 
 	bf_writel(OUT_CLK_DIVISOR, divider, reg);
 	udelay(1);
 
-	/* work out the source clock and set it*/
+	/* work out the source clock and set it */
 	source = get_periph_clock_source(periph_id, parent, &mux_bits);
 	if (source < 0)
-		return -1U;
+		return -1;
 	if (mux_bits == 4)
 		bf_writel(OUT_CLK_SOURCE4, source, reg);
 	else
 		bf_writel(OUT_CLK_SOURCE, source, reg);
 	udelay(2);
+	return 0;
+}
 
+unsigned clock_adjust_periph_pll_div(enum periph_id periph_id,
+		enum clock_id parent, unsigned rate, int *extra_div)
+{
+	unsigned effective_rate;
+	int divider;
+
+	if (extra_div)
+		divider = find_best_divider(pll_rate[parent], rate, extra_div);
+	else
+		divider = clk_div7_1_get_divider(pll_rate[parent], rate);
+	assert(divider >= 0);
+	if (adjust_periph_pll(periph_id, parent, divider))
+		return -1U;
 	debug("periph %d, rate=%d, reg=%p = %x\n", periph_id, rate,
-	       reg, readl(reg));
+	       reg, readl(get_periph_source_reg(periph_id)));
 
 	/* Check what we ended up with. This shouldn't matter though */
 	effective_rate = clock_get_periph_rate(periph_id, parent);
+	if (extra_div)
+		effective_rate /= *extra_div;
 	if (rate != effective_rate)
 		printf("Requested clock rate %u not honored (got %u)\n",
 		       rate, effective_rate);
+	return effective_rate;
+}
+
+unsigned clock_start_periph_pll(enum periph_id periph_id,
+		enum clock_id parent, unsigned rate)
+{
+	unsigned effective_rate;
+
+	reset_set_enable(periph_id, 1);
+	clock_enable(periph_id);
+
+	effective_rate = clock_adjust_periph_pll_div(periph_id, parent, rate,
+						 NULL);
 
 	reset_set_enable(periph_id, 0);
 	return effective_rate;
@@ -722,6 +806,7 @@ void clock_init(void)
 {
 	pll_rate[CLOCK_ID_MEMORY] = get_clock_freq(CLOCK_ID_MEMORY);
 	pll_rate[CLOCK_ID_PERIPH] = get_clock_freq(CLOCK_ID_PERIPH);
+	pll_rate[CLOCK_ID_OSC] = get_clock_freq(CLOCK_ID_PERIPH);
 	pll_rate[CLOCK_ID_SFROM32KHZ] = 32768;
 	debug("PLLM = %d\n", pll_rate[CLOCK_ID_MEMORY]);
 	debug("PLLP = %d\n", pll_rate[CLOCK_ID_PERIPH]);
