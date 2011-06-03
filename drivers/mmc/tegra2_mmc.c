@@ -27,37 +27,34 @@
 #include <asm/arch/clk_rst.h>
 #include <asm/arch/clock.h>
 #include <malloc.h>
+#include <asm/clocks.h>
 #include "tegra2_mmc.h"
 
-/* support 4 mmc hosts */
-struct mmc mmc_dev[4];
-struct mmc_host mmc_host[4];
+enum {
+	MAX_HOSTS	= 4,		/* support 4 mmc hosts */
+};
 
-static inline struct tegra2_mmc *tegra2_get_base_mmc(int dev_index)
-{
-	unsigned long offset;
-	debug("tegra2_get_base_mmc: dev_index = %d\n", dev_index);
 
-	switch (dev_index) {
-	case 0:
-		offset = TEGRA2_SDMMC4_BASE;
-		break;
-	case 1:
-		offset = TEGRA2_SDMMC3_BASE;
-		break;
-	case 2:
-		offset = TEGRA2_SDMMC2_BASE;
-		break;
-	case 3:
-		offset = TEGRA2_SDMMC1_BASE;
-		break;
-	default:
-		offset = TEGRA2_SDMMC4_BASE;
-		break;
-	}
+struct mmc_host {
+	struct tegra2_mmc *reg;
+	unsigned int version;	/* SDHCI spec. version */
+	unsigned int clock;	/* Current clock (MHz) */
+	enum periph_id mmc_id;	/* Peripheral ID of the SDMMC we are using */
 
-	return (struct tegra2_mmc *)(offset);
-}
+	/*
+	 * We need a per-host bounce buffer that will be optionally used
+	 * when the mmc_send_cmd function is called with an unaligned
+	 * buffer.  The bounce buffer will be allocated in that case and
+	 * a copy to and from it will be used so that DMA destination and
+	 * source pointers can be aligned.
+	 */
+	char *          bounce;
+	uint            bounce_size;
+	struct mmc_data bounce_data;
+};
+
+struct mmc mmc_dev[MAX_HOSTS];
+struct mmc_host mmc_host[MAX_HOSTS];
 
 /*
  * Flush the data cache lines associated with the given mmc_data structs buffer.
@@ -280,7 +277,6 @@ static int mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd,
 	struct mmc_host *host = (struct mmc_host *)mmc->priv;
 	int flags, i;
 	int result;
-	unsigned int timeout;
 	unsigned int mask;
 	unsigned int retry = 0x100000;
 	debug(" mmc_send_cmd called\n");
@@ -449,52 +445,24 @@ static int mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd,
 
 static void mmc_change_clock(struct mmc_host *host, uint clock)
 {
-	int div, hw_div;
+	int div;
 	unsigned short clk;
 	unsigned long timeout;
-	unsigned int hostbase;
-	enum periph_id mmc_id = PERIPH_ID_SDMMC1;
 
 	debug(" mmc_change_clock called\n");
 
-	/* Change Tegra2 SDMMCx clock divisor here */
-	/* Source is 216MHz, PLLP_OUT0 */
+	/*
+	 * Change Tegra2 SDMMCx clock divisor here. Source is 216MHz,
+	 * PLLP_OUT0
+	 */
 	if (clock == 0)
 		goto out;
-
-	div = 1;
-	if (clock <= 400000) {
-		hw_div = ((9-1)<<1);		/* Best match is 375KHz */
-		div = 64;
-	} else if (clock <= 20000000)
-		hw_div = ((11-1)<<1);		/* Best match is 19.6MHz */
-	else if (clock <= 26000000)
-		hw_div = ((9-1)<<1);		/* Use 24MHz */
-	else
-		hw_div = ((4-1)<<1) + 1;	/* 4.5 divisor for 48MHz */
-
-	debug("mmc_change_clock: hw_div = %d, card clock div = %d\n",
-		hw_div, div);
-
-	/* Change SDMMCx divisor */
-
-	hostbase = readl(&host->base);
-	debug("mmc_change_clock: hostbase = %08X\n", hostbase);
-
-	/* TODO: We need to record the PERIPH_ID, not the hostbase */
-	if (hostbase == TEGRA2_SDMMC1_BASE)
-		mmc_id = PERIPH_ID_SDMMC1;
-	else if (hostbase == TEGRA2_SDMMC2_BASE)
-		mmc_id = PERIPH_ID_SDMMC2;
-	else if (hostbase == TEGRA2_SDMMC3_BASE)
-		mmc_id = PERIPH_ID_SDMMC3;
-	else if (hostbase == TEGRA2_SDMMC4_BASE)
-		mmc_id = PERIPH_ID_SDMMC4;
-	clock_ll_set_source_divisor(mmc_id, 0, hw_div);
+	clock_adjust_periph_pll_div(host->mmc_id, CLOCK_ID_PERIPH, clock,
+				    &div);
+	debug("div = %d\n", div);
 
 	writew(0, &host->reg->clkcon);
 
-	div >>= 1;
 	/*
 	 * CLKCON
 	 * SELFREQ[15:8]	: base clock divided by value
@@ -502,6 +470,7 @@ static void mmc_change_clock(struct mmc_host *host, uint clock)
 	 * STBLINTCLK[1]	: Internal Clock Stable
 	 * ENINTCLK[0]		: Internal Clock Enable
 	 */
+	div >>= 1;
 	clk = (div << 8) | (1 << 0);
 	writew(clk, &host->reg->clkcon);
 
@@ -534,7 +503,6 @@ static void mmc_set_ios(struct mmc *mmc)
 	debug("bus_width: %x, clock: %d\n", mmc->bus_width, mmc->clock);
 
 	/* Change clock first */
-
 	mmc_change_clock(host, mmc->clock);
 
 	ctrl = readb(&host->reg->hostctl);
@@ -627,16 +595,31 @@ static int mmc_core_init(struct mmc *mmc)
 	return 0;
 }
 
-static int tegra2_mmc_initialize(int dev_index, int bus_width)
+static int init_port(unsigned dev_index, enum periph_id mmc_id,
+		struct tegra2_mmc *reg, int bus_width)
 {
+	struct mmc_host *host;
 	struct mmc *mmc;
 
-	debug(" mmc_initialize called\n");
+	debug(" tegra2_mmc_init: index %d, bus width %d\n",
+		dev_index, bus_width);
+	if (dev_index >= MAX_HOSTS)
+		return -1;
+
+	/* Do the SDMMC resets/clock enables */
+	clock_start_periph_pll(mmc_id, CLOCK_ID_PERIPH, CLK_20M);
 
 	mmc = &mmc_dev[dev_index];
 
 	sprintf(mmc->name, "Tegra2 SD/MMC");
-	mmc->priv = &mmc_host[dev_index];
+	host = &mmc_host[dev_index];
+	host->clock = 0;
+	host->reg = reg;
+	host->mmc_id = mmc_id;
+	host->bounce = NULL;
+	host->bounce_size = 0;
+
+	mmc->priv = host;
 	mmc->send_cmd = mmc_send_cmd;
 	mmc->set_ios = mmc_set_ios;
 	mmc->init = mmc_core_init;
@@ -653,26 +636,28 @@ static int tegra2_mmc_initialize(int dev_index, int bus_width)
 	 *  low-speed SDIO card frequency (actually 400KHz)
 	 * max freq is highest HS eMMC clock as per the SD/MMC spec
 	 *  (actually 52MHz)
-	 * Both of these are the closest equivalents w/216MHz source
-	 *  clock and Tegra2 SDMMC divisors.
 	 */
-	mmc->f_min = 375000;
-	mmc->f_max = 48000000;
-
-	mmc_host[dev_index].clock = 0;
-	mmc_host[dev_index].reg = tegra2_get_base_mmc(dev_index);
-	mmc_host[dev_index].base = (unsigned int)mmc_host[dev_index].reg;
-	mmc_host[dev_index].bounce = NULL;
-	mmc_host[dev_index].bounce_size = 0;
+	mmc->f_min = CLK_400K;
+	mmc->f_max = CLK_52M;
 
 	mmc_register(mmc);
 
 	return 0;
 }
 
-int tegra2_mmc_init(int dev_index, int bus_width)
+
+int tegra2_mmc_init(const void *blob)
 {
-	debug(" tegra2_mmc_init: index %d, bus width %d\n",
-		dev_index, bus_width);
-	return tegra2_mmc_initialize(dev_index, bus_width);
+	/* For now these are still hard-coded for Seaboard */
+
+	/* init dev 0, eMMC chip, with 4-bit bus */
+	if (init_port(0, PERIPH_ID_SDMMC4,
+			(struct tegra2_mmc *)NV_PA_SDMMC4_BASE, 4))
+		return -1;
+
+	/* init dev 1, SD slot, with 4-bit bus */
+	if (init_port(1, PERIPH_ID_SDMMC3,
+			(struct tegra2_mmc *)NV_PA_SDMMC3_BASE, 4))
+		return -1;
+	return 0;
 }

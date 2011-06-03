@@ -129,17 +129,6 @@ static void pin_mux_uart(int uart_ids)
 }
 
 /*
- * Routine: clock_init_mmc
- * Description: init the PLL and clocks for the SDMMC controllers
- */
-static void clock_init_mmc(void)
-{
-	/* Do the SDMMC resets/clock enables */
-	clock_start_periph_pll(PERIPH_ID_SDMMC4, CLOCK_ID_PERIPH, CLK_20M);
-	clock_start_periph_pll(PERIPH_ID_SDMMC3, CLOCK_ID_PERIPH, CLK_20M);
-}
-
-/*
  * Routine: pin_mux_mmc
  * Description: setup the pin muxes/tristate values for the SDMMC(s)
  */
@@ -281,17 +270,10 @@ int board_mmc_init(bd_t *bd)
 {
 	debug("board_mmc_init called\n");
 	/* Enable clocks, muxes, etc. for SDMMC controllers */
-	clock_init_mmc();
 	pin_mux_mmc();
 	gpio_config_mmc();
 
-	debug("board_mmc_init: init eMMC\n");
-	/* init dev 0, eMMC chip, with 4-bit bus */
-	tegra2_mmc_init(0, 4);
-
-	debug("board_mmc_init: init SD slot\n");
-	/* init dev 1, SD slot, with 4-bit bus */
-	tegra2_mmc_init(1, 4);
+	tegra2_mmc_init(gd->blob);
 
 	return 0;
 }

@@ -28,6 +28,6 @@ void tegra2_start(void);
 void gpio_config_uart(const void *blob);
 void gpio_early_init_uart(const void *blob);
 void gpio_config_mmc(void);
-int tegra2_mmc_init(int dev_index, int bus_width);
+int tegra2_mmc_init(const void *blob);
 
 #endif	/* BOARD_H */

@@ -23,13 +23,6 @@
 #ifndef __TEGRA2_MMC_H_
 #define __TEGRA2_MMC_H_
 
-#include <mmc.h>
-
-#define TEGRA2_SDMMC1_BASE	0xC8000000
-#define TEGRA2_SDMMC2_BASE	0xC8000200
-#define TEGRA2_SDMMC3_BASE	0xC8000400
-#define TEGRA2_SDMMC4_BASE	0xC8000600
-
 #ifndef __ASSEMBLY__
 struct tegra2_mmc {
 	unsigned int	sysad;		/* _SYSTEM_ADDRESS_0 */
@@ -71,25 +64,7 @@ struct tegra2_mmc {
 	unsigned char	res6[0x100];	/* RESERVED, offset 100h-1FFh */
 };
 
-struct mmc_host {
-	struct tegra2_mmc *reg;
-	unsigned int version;	/* SDHCI spec. version */
-	unsigned int clock;	/* Current clock (MHz) */
-	unsigned int base;	/* Base address, SDMMC1/2/3/4 */
-
-	/*
-	 * We need a per-host bounce buffer that will be optionally used
-	 * when the mmc_send_cmd function is called with an unaligned
-	 * buffer.  The bounce buffer will be allocated in that case and
-	 * a copy to and from it will be used so that DMA destination and
-	 * source pointers can be aligned.
-	 */
-	char *          bounce;
-	uint            bounce_size;
-	struct mmc_data bounce_data;
-};
-
-int tegra2_mmc_init(int dev_index, int bus_width);
+int tegra2_mmc_init(const void *blob);
 
 #endif	/* __ASSEMBLY__ */
 #endif	/* __TEGRA2_MMC_H_ */
