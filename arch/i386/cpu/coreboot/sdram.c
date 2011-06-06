@@ -23,6 +23,7 @@
  */
 
 #include <asm/u-boot-i386.h>
+#include <asm/global_data.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
