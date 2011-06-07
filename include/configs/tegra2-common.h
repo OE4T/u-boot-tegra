@@ -188,7 +188,7 @@
 	"tftpserverip=172.22.72.144\0" \
 	"nfsserverip=172.22.72.144\0" \
 	"extra_bootargs=\0" \
-	"platform_extras=mem= " TEGRA2_SYSMEM"\0" \
+	"platform_extras=" TEGRA2_SYSMEM"\0" \
 	"regen_all="\
 		"setenv common_bootargs console=${console} " \
 		"${platform_extras} noinitrd; " \
