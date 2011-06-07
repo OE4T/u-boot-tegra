@@ -75,6 +75,28 @@ static inline void set_cr(unsigned int val)
 	isb();
 }
 
+/* options available for data cache on each page */
+enum dcache_option {
+	DCACHE_OFF,
+	DCACHE_WRITETHROUGH,
+	DCACHE_WRITEBACK,
+};
+
+/* Size of an MMU section */
+enum {
+	MMU_SECTION_SHIFT	= 20,
+	MMU_SECTION_SIZE	= 1 << MMU_SECTION_SHIFT,
+};
+
+/**
+ * Change the cache settings for a region.
+ *
+ * \param start		start address of memory region to change
+ * \param size		size of memory region to change
+ * \param option	dcache option to select
+ */
+void mmu_set_region_dcache(u32 start, int size, enum dcache_option option);
+
 #endif /* __ASSEMBLY__ */
 
 #define arch_align_stack(x) (x)

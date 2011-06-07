@@ -618,6 +618,14 @@ void	invalidate_dcache_range(unsigned long start, unsigned long stop);
 void	invalidate_dcache_all(void);
 void	invalidate_icache_all(void);
 
+/**
+ * Register an update to the page tables, and flush the TLB
+ *
+ * \param start 	start address of update in page table
+ * \param stop		stop address of update in page table
+ */
+void	mmu_page_table_flush(unsigned long start, unsigned long stop);
+
 /* arch/$(ARCH)/lib/ticks.S */
 unsigned long long get_ticks(void);
 void	wait_ticks    (unsigned long);
