@@ -35,6 +35,7 @@
 #include <stdarg.h>
 #include <linux/types.h>
 #include <stdio_dev.h>
+#include <asm/system.h>
 #if defined(CONFIG_POST)
 #include <post.h>
 #endif
@@ -335,6 +336,12 @@ static void test_pattern (void)
 /* ** GENERIC Initialization Routines					*/
 /************************************************************************/
 
+int lcd_get_size(int *line_length)
+{
+	*line_length = (panel_info.vl_col * NBITS (panel_info.vl_bpix)) / 8;
+	return *line_length * panel_info.vl_row;
+}
+
 int drv_lcd_init (void)
 {
 	struct stdio_dev lcddev;
@@ -342,7 +349,7 @@ int drv_lcd_init (void)
 
 	lcd_base = (void *)(gd->fb_base);
 
-	lcd_line_length = (panel_info.vl_col * NBITS (panel_info.vl_bpix)) / 8;
+	lcd_get_size(&lcd_line_length);
 
 	lcd_init (lcd_base);		/* LCD initialization */
 
@@ -455,15 +462,21 @@ static int lcd_init (void *lcdbase)
 ulong lcd_setmem (ulong addr)
 {
 	ulong size;
-	int line_length = (panel_info.vl_col * NBITS (panel_info.vl_bpix)) / 8;
+	int line_length;
 
 	debug ("LCD panel info: %d x %d, %d bit/pix\n",
 		panel_info.vl_col, panel_info.vl_row, NBITS (panel_info.vl_bpix) );
 
-	size = line_length * panel_info.vl_row;
+	size = lcd_get_size(&line_length);
 
-	/* Round up to nearest full page */
-	size = (size + (PAGE_SIZE - 1)) & ~(PAGE_SIZE - 1);
+	/* Round up to nearest full page, or MMU section if defined */
+#ifdef CONFIG_ALIGN_LCD_TO_SECTION
+	size = ALIGN(size, MMU_SECTION_SIZE);
+	addr = ALIGN(addr- MMU_SECTION_SIZE + 1, MMU_SECTION_SIZE);
+#else
+	size = ALIGN(size, PAGE_SIZE);
+	addr = ALIGN(addr - PAGE_SIZE + 1, PAGE_SIZE);
+#endif
 
 	/* Allocate pages for the frame buffer. */
 	addr -= size;

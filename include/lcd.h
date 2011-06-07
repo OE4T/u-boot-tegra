@@ -215,6 +215,9 @@ int	lcd_clear	(void);
 /* Allow boards to customize the information displayed */
 void lcd_show_board_info(void);
 
+/* Return the size of the LCD frame buffer, and the line length */
+int lcd_get_size(int *line_length);
+
 /************************************************************************/
 /* ** BITMAP DISPLAY SUPPORT						*/
 /************************************************************************/
