@@ -28,6 +28,7 @@
 #include <asm/arch/power.h>
 #include <asm/arch/pwfm.h>
 #include <asm/arch/display.h>
+#include <asm/system.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -183,6 +184,7 @@ static void update_panel_size(struct fdt_lcd *config)
 void lcd_ctrl_init(void *lcdbase)
 {
 	struct fdt_lcd config;
+	int line_length;
 
 	/* get panel details */
 	if (fdt_decode_lcd(gd->blob, &config)) {
@@ -201,6 +203,9 @@ void lcd_ctrl_init(void *lcdbase)
 
 	/* call board specific hw init */
 	init_lcd(&config);
+	mmu_set_region_dcache(config.frame_buffer,
+			lcd_get_size(&line_length), DCACHE_WRITETHROUGH);
+
 	debug("LCD frame buffer at %p\n", lcd_base);
 }
 

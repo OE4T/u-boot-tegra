@@ -41,6 +41,7 @@
 #define CONFIG_BOOTSTAGE		/* Record boot time */
 #define CONFIG_BOOTSTAGE_REPORT		/* Print a boot time report */
 #define CONFIG_ARCH_CPU_INIT		/* Fire up the A9 core */
+#define CONFIG_ALIGN_LCD_TO_SECTION	/* Align LCD to 1MB boundary */
 
 #include <asm/arch/tegra2.h>		/* get chip and board defs */
 
