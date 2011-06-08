@@ -44,6 +44,8 @@
 
 #include <asm/arch/tegra2.h>		/* get chip and board defs */
 
+#define CACHE_LINE_SIZE			32
+
 /*
  * Display CPU and Board information
  */
