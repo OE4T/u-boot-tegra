@@ -33,6 +33,10 @@
 #include <mmc.h>
 #include <div64.h>
 
+#ifndef CACHE_LINE_SIZE
+#define CACHE_LINE_SIZE __BIGGEST_ALIGNMENT__
+#endif
+
 static struct list_head mmc_devices;
 static int cur_dev_num = -1;
 
@@ -382,22 +386,25 @@ int mmc_switch(struct mmc *mmc, u8 set, u8 index, u8 value)
 
 int mmc_change_freq(struct mmc *mmc)
 {
-	char ext_csd[512];
+	char *ext_csd = memalign(CACHE_LINE_SIZE, 512);
 	char cardtype;
-	int err;
+	int err = 0;
+
+	if (ext_csd == NULL)
+		return -1;
 
 	mmc->card_caps = 0;
 
 	/* Only version 4 supports high-speed */
 	if (mmc->version < MMC_VERSION_4)
-		return 0;
+		goto out;
 
 	mmc->card_caps |= MMC_MODE_4BIT;
 
 	err = mmc_send_ext_csd(mmc, ext_csd);
 
 	if (err)
-		return err;
+		goto failure;
 
 	if (ext_csd[212] || ext_csd[213] || ext_csd[214] || ext_csd[215])
 		mmc->high_capacity = 1;
@@ -407,17 +414,17 @@ int mmc_change_freq(struct mmc *mmc)
 	err = mmc_switch(mmc, EXT_CSD_CMD_SET_NORMAL, EXT_CSD_HS_TIMING, 1);
 
 	if (err)
-		return err;
+		goto failure;
 
 	/* Now check to see that it worked */
 	err = mmc_send_ext_csd(mmc, ext_csd);
 
 	if (err)
-		return err;
+		goto failure;
 
 	/* No high-speed support */
 	if (!ext_csd[185])
-		return 0;
+		goto out;
 
 	/* High Speed is set, there are two types: 52MHz and 26MHz */
 	if (cardtype & MMC_HS_52MHZ)
@@ -425,7 +432,11 @@ int mmc_change_freq(struct mmc *mmc)
 	else
 		mmc->card_caps |= MMC_MODE_HS;
 
-	return 0;
+out:
+failure:
+	free(ext_csd);
+
+	return err;
 }
 
 int sd_switch(struct mmc *mmc, int mode, int group, u8 value, u8 *resp)
@@ -452,12 +463,14 @@ int sd_switch(struct mmc *mmc, int mode, int group, u8 value, u8 *resp)
 
 int sd_change_freq(struct mmc *mmc)
 {
-	int err;
+	int err = 0;
 	struct mmc_cmd cmd;
-	uint scr[2];
-	uint switch_status[16];
+	uint *buffer = memalign(CACHE_LINE_SIZE, 64);
 	struct mmc_data data;
 	int timeout;
+
+	if (buffer == NULL)
+		return -1;
 
 	mmc->card_caps = 0;
 
@@ -470,7 +483,7 @@ int sd_change_freq(struct mmc *mmc)
 	err = mmc_send_cmd(mmc, &cmd, NULL);
 
 	if (err)
-		return err;
+		goto failure;
 
 	cmd.cmdidx = SD_CMD_APP_SEND_SCR;
 	cmd.resp_type = MMC_RSP_R1;
@@ -480,7 +493,7 @@ int sd_change_freq(struct mmc *mmc)
 	timeout = 3;
 
 retry_scr:
-	data.dest = (char *)&scr;
+	data.dest = (char *) buffer;
 	data.blocksize = 8;
 	data.blocks = 1;
 	data.flags = MMC_DATA_READ;
@@ -491,11 +504,11 @@ retry_scr:
 		if (timeout--)
 			goto retry_scr;
 
-		return err;
+		goto failure;
 	}
 
-	mmc->scr[0] = __be32_to_cpu(scr[0]);
-	mmc->scr[1] = __be32_to_cpu(scr[1]);
+	mmc->scr[0] = __be32_to_cpu(buffer[0]);
+	mmc->scr[1] = __be32_to_cpu(buffer[1]);
 
 	switch ((mmc->scr[0] >> 24) & 0xf) {
 		case 0:
@@ -514,18 +527,17 @@ retry_scr:
 
 	/* Version 1.0 doesn't support switching */
 	if (mmc->version == SD_VERSION_1_0)
-		return 0;
+		goto out;
 
 	timeout = 4;
 	while (timeout--) {
-		err = sd_switch(mmc, SD_SWITCH_CHECK, 0, 1,
-				(u8 *)&switch_status);
+		err = sd_switch(mmc, SD_SWITCH_CHECK, 0, 1, (u8 *)buffer);
 
 		if (err)
-			return err;
+			goto failure;
 
 		/* The high-speed function is busy.  Try again */
-		if (!(__be32_to_cpu(switch_status[7]) & SD_HIGHSPEED_BUSY))
+		if (!(__be32_to_cpu(buffer[7]) & SD_HIGHSPEED_BUSY))
 			break;
 	}
 
@@ -533,18 +545,22 @@ retry_scr:
 		mmc->card_caps |= MMC_MODE_4BIT;
 
 	/* If high-speed isn't supported, we return */
-	if (!(__be32_to_cpu(switch_status[3]) & SD_HIGHSPEED_SUPPORTED))
-		return 0;
+	if (!(__be32_to_cpu(buffer[3]) & SD_HIGHSPEED_SUPPORTED))
+		goto out;
 
-	err = sd_switch(mmc, SD_SWITCH_SWITCH, 0, 1, (u8 *)&switch_status);
+	err = sd_switch(mmc, SD_SWITCH_SWITCH, 0, 1, (u8 *)&buffer);
 
 	if (err)
-		return err;
+		goto failure;
 
-	if ((__be32_to_cpu(switch_status[4]) & 0x0f000000) == 0x01000000)
+	if ((__be32_to_cpu(buffer[4]) & 0x0f000000) == 0x01000000)
 		mmc->card_caps |= MMC_MODE_HS;
 
-	return 0;
+out:
+failure:
+	free(buffer);
+
+	return err;
 }
 
 /* frequency bases */
@@ -609,7 +625,6 @@ int mmc_startup(struct mmc *mmc)
 	uint mult, freq;
 	u64 cmult, csize;
 	struct mmc_cmd cmd;
-	char ext_csd[512];
 
 	/* Put the Card in Identify Mode */
 	cmd.cmdidx = MMC_CMD_ALL_SEND_CID;
@@ -726,6 +741,11 @@ int mmc_startup(struct mmc *mmc)
 		return err;
 
 	if (!IS_SD(mmc) && (mmc->version >= MMC_VERSION_4)) {
+		char *ext_csd = memalign(CACHE_LINE_SIZE, 512);
+
+		if (ext_csd == NULL)
+			return -1;
+
 		/* check  ext_csd version and capacity */
 		err = mmc_send_ext_csd(mmc, ext_csd);
 		if (!err & (ext_csd[192] >= 2)) {
@@ -733,6 +753,8 @@ int mmc_startup(struct mmc *mmc)
 					ext_csd[214] << 16 | ext_csd[215] << 24;
 			mmc->capacity *= 512;
 		}
+
+		free(ext_csd);
 	}
 
 	if (IS_SD(mmc))
