@@ -29,6 +29,7 @@
  */
 
 #include <ns16550.h>
+#include <asm/arch/clock.h>
 
 /* A typedef for a physical address. We should move it to a generic place */
 #ifdef CONFIG_PHYS_64BIT
@@ -50,6 +51,7 @@ enum fdt_compat_id {
 	COMPAT_UNKNOWN,
 	COMPAT_NVIDIA_SPI_UART_SWITCH,	/* SPI / UART switch */
 	COMPAT_SERIAL_NS16550,		/* NS16550 UART */
+	COMPAT_NVIDIA_TEGRA250_USB,	/* Tegra 250 USB port */
 
 	COMPAT_COUNT,
 };
@@ -120,6 +122,33 @@ struct fdt_lcd {
 	unsigned pixel_clock;	/* Pixel clock in Hz */
 	int horiz_timing[FDT_LCD_TIMING_COUNT];	/* Horizontal timing */
 	int vert_timing[FDT_LCD_TIMING_COUNT];	/* Vertical timing */
+};
+
+/* Parameters we need for USB */
+enum {
+	PARAM_DIVN,			/* PLL FEEDBACK DIVIDer */
+	PARAM_DIVM,			/* PLL INPUT DIVIDER */
+	PARAM_DIVP,			/* POST DIVIDER (2^N) */
+	PARAM_CPCON,			/* BASE PLLC CHARGE Pump setup ctrl */
+	PARAM_LFCON,			/* BASE PLLC LOOP FILter setup ctrl */
+	PARAM_ENABLE_DELAY_COUNT,	/* PLL-U Enable Delay Count */
+	PARAM_STABLE_COUNT,		/* PLL-U STABLE count */
+	PARAM_ACTIVE_DELAY_COUNT,	/* PLL-U Active delay count */
+	PARAM_XTAL_FREQ_COUNT,		/* PLL-U XTAL frequency count */
+	PARAM_DEBOUNCE_A_TIME,		/* 10MS DELAY for BIAS_DEBOUNCE_A */
+	PARAM_BIAS_TIME,		/* 20US DELAY AFter bias cell op */
+
+	PARAM_COUNT
+};
+
+/* Information about USB */
+struct fdt_usb {
+	struct usb_ctlr *reg;	/* address of registers in physical memory */
+	int params[PARAM_COUNT]; /* timing parameters */
+	int host_mode;		/* 1 if port has host mode, else 0 */
+	int utmi;		/* 1 if port has external tranceiver, else 0 */
+	int enabled;		/* 1 to enable, 0 to disable */
+	enum periph_id periph_id;/* peripheral id */
 };
 
 /**
@@ -222,3 +251,29 @@ void fdt_setup_gpios(struct fdt_gpio_state *gpio_list);
  *			-FDT_ERR_MISSING.
  */
 int fdt_decode_lcd(const void *blob, struct fdt_lcd *config);
+
+/**
+ * Returns information from the FDT about the USB port. This function reads
+ * out the following attributes:
+ *
+ *	reg
+ *	params
+ *	host-mode
+ *	utmi
+ *	periph-id
+ *
+ * The params are read out according to the supplied clock frequency. This is
+ * done by looking for a compatible 'nvidia,tegra250-usbparams' node with
+ * osc-frequency set to the given value.
+ *
+ * @param blob		FDT blob to use
+ * @param node		Node to read from
+ * @param osc_frequency_mhz	Current oscillator frequency
+ * @param config	structure to use to return information
+ * @returns 0 on success, -ve on error, in which case config may or may not be
+ *			unchanged. If the node is present but expected data is
+ *			missing then this will generally return
+ *			-FDT_ERR_MISSING.
+ */
+int fdt_decode_usb(const void *blob, int node, unsigned osc_frequency_mhz,
+		struct fdt_usb *config);

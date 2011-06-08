@@ -33,23 +33,7 @@
 #include <asm/arch/uart.h>
 #include <asm/arch/gpio.h>
 #include <asm/arch/usb.h>
-
-/* Parameters we need for USB */
-enum {
-	PARAM_DIVN,			/* PLL FEEDBACK DIVIDer */
-	PARAM_DIVM,			/* PLL INPUT DIVIDER */
-	PARAM_DIVP,			/* POST DIVIDER (2^N) */
-	PARAM_CPCON,			/* BASE PLLC CHARGE Pump setup ctrl */
-	PARAM_LFCON,			/* BASE PLLC LOOP FILter setup ctrl */
-	PARAM_ENABLE_DELAY_COUNT,	/* PLL-U Enable Delay Count */
-	PARAM_STABLE_COUNT,		/* PLL-U STABLE count */
-	PARAM_ACTIVE_DELAY_COUNT,	/* PLL-U Active delay count */
-	PARAM_XTAL_FREQ_COUNT,		/* PLL-U XTAL frequency count */
-	PARAM_DEBOUNCE_A_TIME,		/* 10MS DELAY for BIAS_DEBOUNCE_A */
-	PARAM_BIAS_TIME,		/* 20US DELAY AFter bias cell op */
-
-	PARAM_COUNT
-};
+#include <fdt_decode.h>
 
 /* Record which controller can switch from host to device mode */
 static struct usb_ctlr *host_dev_ctlr;
@@ -309,6 +293,37 @@ static void config_port(enum periph_id id, struct usb_ctlr *usbctlr,
 
 int board_usb_init(const void *blob)
 {
+#ifdef CONFIG_OF_CONTROL
+	struct fdt_usb config;
+	int clk_done = 0;
+	int node = 0;
+	unsigned osc_freq = clock_get_rate(CLOCK_ID_OSC);
+
+	do {
+		node = fdt_decode_next_compatible(blob, node,
+				COMPAT_NVIDIA_TEGRA250_USB);
+		if (node < 0)
+			break;
+		if (fdt_decode_usb(blob, node, osc_freq, &config))
+			return -1;
+		if (!config.enabled)
+			continue;
+
+		/* The first port we find gets to set the clocks */
+		if (!clk_done) {
+			config_clock(config.params);
+			clk_done = 1;
+		}
+		if (config.host_mode) {
+			/* Only one host-dev port is supported */
+			if (host_dev_ctlr)
+				return -1;
+			host_dev_ctlr = config.reg;
+		}
+		config_port(config.periph_id, config.reg, config.params,
+			    config.utmi);
+	} while (node);
+#else
 	enum clock_osc_freq freq;
 	const int *params;
 
@@ -328,7 +343,7 @@ int board_usb_init(const void *blob)
 			params, 0);
 	config_port(PERIPH_ID_USB3, (struct usb_ctlr *)NV_PA_USB3_BASE,
 			params, 1);
-
+#endif /* CONFIG_OF_CONTROL */
 	usb_set_host_mode();
 	return 0;
 }

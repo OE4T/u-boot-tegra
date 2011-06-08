@@ -37,6 +37,7 @@ static const char *compat_names[COMPAT_COUNT] = {
 	COMPAT(UNKNOWN, "<none>"),
 	COMPAT(NVIDIA_SPI_UART_SWITCH, "nvidia,spi-uart-switch"),
 	COMPAT(SERIAL_NS16550, "ns16550"),
+	COMPAT(NVIDIA_TEGRA20_USB, "nvidia,tegra250-usb"),
 };
 
 /**
@@ -386,4 +387,30 @@ int fdt_decode_lcd(const void *blob, struct fdt_lcd *config)
 		return -FDT_ERR_MISSING;
 	config->frame_buffer = get_addr(blob, node, "frame-buffer");
 	return decode_gpios(blob, node, "gpios", config->gpios, FDT_LCD_GPIOS);
+}
+
+int fdt_decode_usb(const void *blob, int node, unsigned osc_frequency_mhz,
+		struct fdt_usb *config)
+{
+	int clk_node = 0, rate;
+
+	/* Find the parameters for our oscillator frequency */
+	do {
+		clk_node = fdt_node_offset_by_compatible(blob, clk_node,
+					"nvidia,tegra250-usbparams");
+		if (clk_node < 0)
+			return -FDT_ERR_MISSING;
+		rate = get_int(blob, clk_node, "osc-frequency", 0);
+	} while (rate != osc_frequency_mhz);
+
+	config->reg = (struct usb_ctlr *)get_addr(blob, node, "reg");
+	config->host_mode = get_int(blob, node, "host-mode", 0);
+	config->utmi = lookup_phandle(blob, node, "utmi") >= 0;
+	config->enabled = get_is_enabled(blob, node, 1);
+	config->periph_id = get_int(blob, node, "periph-id", -1);
+	if (config->periph_id == -1)
+		return -FDT_ERR_MISSING;
+
+	return get_int_array(blob, clk_node, "params", config->params,
+			PARAM_COUNT);
 }
