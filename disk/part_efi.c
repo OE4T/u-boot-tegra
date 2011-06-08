@@ -36,6 +36,10 @@
 #include <malloc.h>
 #include "part_efi.h"
 
+#ifndef CACHE_LINE_SIZE
+#define CACHE_LINE_SIZE __BIGGEST_ALIGNMENT__
+#endif
+
 #if defined(CONFIG_CMD_IDE) || \
     defined(CONFIG_CMD_MG_DISK) || \
     defined(CONFIG_CMD_SATA) || \
@@ -105,25 +109,30 @@ static int is_pte_valid(gpt_entry * pte);
 
 void print_part_efi(block_dev_desc_t * dev_desc)
 {
-	gpt_header gpt_head;
+	gpt_header *gpt_head = memalign(CACHE_LINE_SIZE, sizeof(gpt_header));
 	gpt_entry **pgpt_pte = NULL;
 	int i = 0;
 
+	if (gpt_head == NULL) {
+		printf("%s: gpt_header allocation failed\n", __FUNCTION__);
+		return;
+	}
+
 	if (!dev_desc) {
 		printf("%s: Invalid Argument(s)\n", __FUNCTION__);
-		return;
+		goto failure;
 	}
 	/* This function validates AND fills in the GPT header and PTE */
 	if (is_gpt_valid(dev_desc, GPT_PRIMARY_PARTITION_TABLE_LBA,
-			 &(gpt_head), pgpt_pte) != 1) {
+			 gpt_head, pgpt_pte) != 1) {
 		printf("%s: *** ERROR: Invalid GPT ***\n", __FUNCTION__);
-		return;
+		goto failure;
 	}
 
 	debug("%s: gpt-entry at 0x%08X\n", __FUNCTION__, (unsigned int)*pgpt_pte);
 
 	printf("Part  Start LBA  End LBA\n");
-	for (i = 0; i < le32_to_int(gpt_head.num_partition_entries); i++) {
+	for (i = 0; i < le32_to_int(gpt_head->num_partition_entries); i++) {
 
 		if (is_pte_valid(&(*pgpt_pte)[i])) {
 			printf("%s%d  0x%llX    0x%llX\n", GPT_ENTRY_NAME,
@@ -140,26 +149,38 @@ void print_part_efi(block_dev_desc_t * dev_desc)
 		debug("%s: Freeing pgpt_pte\n", __FUNCTION__);
 		free(*pgpt_pte);
 	}
+
+failure:
+	free(gpt_head);
+
 	return;
 }
 
 int get_partition_info_efi(block_dev_desc_t * dev_desc, int part,
 				disk_partition_t * info)
 {
-	gpt_header gpt_head;
+	gpt_header *gpt_head = memalign(CACHE_LINE_SIZE, sizeof(gpt_header));
 	gpt_entry **pgpt_pte = NULL;
+	int err = 0;
+
+	if (gpt_head == NULL) {
+		printf("%s: gpt_header allocation failed\n", __FUNCTION__);
+		return -1;
+	}
 
 	/* "part" argument must be at least 1 */
 	if (!dev_desc || !info || part < 1) {
 		printf("%s: Invalid Argument(s)\n", __FUNCTION__);
-		return -1;
+		err = -1;
+		goto failure;
 	}
 
 	/* This function validates AND fills in the GPT header and PTE */
 	if (is_gpt_valid(dev_desc, GPT_PRIMARY_PARTITION_TABLE_LBA,
-			&(gpt_head), pgpt_pte) != 1) {
+			 gpt_head, pgpt_pte) != 1) {
 		printf("%s: *** ERROR: Invalid GPT ***\n", __FUNCTION__);
-		return -1;
+		err = -1;
+		goto failure;
 	}
 
 	/* The ulong casting limits the maximum disk size to 2 TB */
@@ -180,19 +201,34 @@ int get_partition_info_efi(block_dev_desc_t * dev_desc, int part,
 		debug("%s: Freeing pgpt_pte\n", __FUNCTION__);
 		free(*pgpt_pte);
 	}
-	return 0;
+
+failure:
+	free(gpt_head);
+
+	return err;
 }
 
 int test_part_efi(block_dev_desc_t * dev_desc)
 {
-	legacy_mbr legacymbr;
+	legacy_mbr *legacymbr = memalign(CACHE_LINE_SIZE, sizeof(legacy_mbr));
+	int err = 0;
 
-	/* Read legacy MBR from block 0 and validate it */
-	if ((dev_desc->block_read(dev_desc->dev, 0, 1, (ulong *) & legacymbr) != 1)
-		|| (is_pmbr_valid(&legacymbr) != 1)) {
+	if (legacymbr == NULL) {
+		printf("%s: legacy_mbr allocation failed\n", __FUNCTION__);
 		return -1;
 	}
-	return 0;
+
+	/* Read legacy MBR from block 0 and validate it */
+	if ((dev_desc->block_read(dev_desc->dev, 0, 1, (ulong *)legacymbr) != 1)
+		|| (is_pmbr_valid(legacymbr) != 1)) {
+		err = -1;
+		goto failure;
+	}
+
+failure:
+	free(legacymbr);
+
+	return err;
 }
 
 /*
@@ -372,7 +408,7 @@ static gpt_entry *alloc_read_gpt_entries(block_dev_desc_t * dev_desc,
 
 	/* Allocate memory for PTE, remember to FREE */
 	if (count != 0) {
-		pte = malloc(count);
+		pte = memalign(CACHE_LINE_SIZE, count);
 	}
 
 	if (count == 0 || pte == NULL) {
