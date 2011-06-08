@@ -22,7 +22,6 @@
 #include <common.h>
 #include <serial.h>
 #include <libfdt.h>
-#include <fdt_support.h>
 #include <fdt_decode.h>
 
 /* we need a generic GPIO interface here */
@@ -30,12 +29,14 @@
 
 /*
  * Here are the type we know about. One day we might allow drivers to
- * register. For now we just put them here.
+ * register. For now we just put them here. The COMPAT macro allows us to
+ * turn this into a sparse list later, and keeps the ID with the name.
  */
-static struct fdt_compat compat_types[] = {
-	{ COMPAT_UNKNOWN, "<none>" },
-	{ COMPAT_SPI_UART_SWITCH, "spi-uart-select" },
-	{ COMPAT_SERIAL_NS16550, "ns16550" },
+#define COMPAT(id, name) name
+static const char *compat_names[COMPAT_COUNT] = {
+	COMPAT(UNKNOWN, "<none>"),
+	COMPAT(NVIDIA_SPI_UART_SWITCH, "nvidia,spi-uart-switch"),
+	COMPAT(SERIAL_NS16550, "ns16550"),
 };
 
 /**
@@ -258,9 +259,15 @@ enum fdt_compat_id fdt_decode_lookup(const void *blob, int node)
 	/* Search our drivers */
 	for (id = COMPAT_UNKNOWN; id < COMPAT_COUNT; id++)
 		if (0 == fdt_node_check_compatible(blob, node,
-				compat_types[id].name))
+				compat_names[id]))
 			return id;
 	return COMPAT_UNKNOWN;
+}
+
+int fdt_decode_next_compatible(const void *blob, int node,
+		enum fdt_compat_id id)
+{
+	return fdt_node_offset_by_compatible(blob, node, compat_names[id]);
 }
 
 int fdt_decode_get_spi_switch(const void *blob, struct fdt_spi_uart *config)

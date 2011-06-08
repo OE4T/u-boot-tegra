@@ -48,16 +48,10 @@ typedef u32 addr_t;
  */
 enum fdt_compat_id {
 	COMPAT_UNKNOWN,
-	COMPAT_SPI_UART_SWITCH,		/* SPI / UART switch */
+	COMPAT_NVIDIA_SPI_UART_SWITCH,	/* SPI / UART switch */
 	COMPAT_SERIAL_NS16550,		/* NS16550 UART */
 
 	COMPAT_COUNT,
-};
-
-/** compat items that we know about and might have drivers for */
-struct fdt_compat {
-	enum fdt_compat_id id;
-	const char *name;
 };
 
 /* Information obtained about a UART from the FDT */
@@ -174,6 +168,18 @@ void fdt_decode_uart_calc_divisor(struct fdt_uart *uart);
 enum fdt_compat_id fdt_decode_lookup(const void *blob, int node);
 
 /**
+ * Find the next node which is compatible with the given id. Pass in a node
+ * of 0 the first time.
+ *
+ * @param blob		FDT blob to use
+ * @param node		Node offset to start search after
+ * @param id		Compatible ID to look for
+ * @return offset of next compatible node, or -FDT_ERR_NOTFOUND if no more
+ */
+int fdt_decode_next_compatible(const void *blob, int node,
+		enum fdt_compat_id id);
+
+/**
  * Returns information from the FDT about the SPI / UART switch on tegra
  * platforms.
  *
@@ -194,6 +200,7 @@ void fdt_setup_gpios(struct fdt_gpio_state *gpio_list);
  * Returns information from the FDT about the LCD display. This function reads
  * out the following attributes:
  *
+ *	reg		physical address of display peripheral
  *	width		width in pixels
  *	height		height in pixels
  *	bits_per_pixel	put in bpp
