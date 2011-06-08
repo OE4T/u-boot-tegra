@@ -43,6 +43,7 @@
 #define TEGRA2_I2C3_BASE	0x7000C500
 #define TEGRA2_DVC_BASE		0x7000D000
 #define NV_PA_PMC_BASE		0x7000E400
+#define NV_PA_FUSE_BASE         0x7000f800
 #define NV_PA_CSITE_BASE	0x70040000
 #define NV_PA_USB1_BASE		0xC5000000
 #define NV_PA_USB3_BASE		0xC5008000
@@ -64,5 +65,16 @@ struct timerus {
 #else  /* __ASSEMBLY__ */
 #define PRM_RSTCTRL		NV_PA_PMC_BASE
 #endif
+
+#define SKU_ID_T20		0x8
+#define SKU_ID_T25SE		0x14
+#define SKU_ID_AP25		0x17
+#define SKU_ID_T25		0x18
+#define SKU_ID_AP25E		0x1b
+#define SKU_ID_T25E		0x1c
+
+#define TEGRA_SOC_UNKNOWN	(-1)
+#define TEGRA_SOC_T20		(0)
+#define TEGRA_SOC_T25		(1)
 
 #endif	/* TEGRA2_H */

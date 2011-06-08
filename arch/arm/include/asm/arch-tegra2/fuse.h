@@ -21,16 +21,19 @@
  * MA 02111-1307 USA
  */
 
-#ifndef _BOARD_H_
-#define _BOARD_H_
+#ifndef _FUSE_H_
+#define _FUSE_H_
 
-void tegra2_start(void);
-void gpio_config_uart(const void *blob);
-void gpio_early_init_uart(const void *blob);
-void gpio_config_mmc(void);
-int tegra2_mmc_init(const void *blob);
-void lcd_early_init(const void *blob);
-int tegra_get_chip_type(void);
-int pmu_set_nominal(void);
+/* FUSE registers */
+struct fuse_regs {
+	u32 reserved0[64];		/* 0x00 - 0xFC: */
+	u32 production_mode;		/* 0x100: FUSE_PRODUCTION_MODE */
+	u32 reserved1[3];		/* 0x104 - 0x10c: */
+	u32 sku_info;			/* 0x110 */
+	u32 reserved2[13];		/* 0x114 - 0x144: */
+	u32 fa;				/* 0x148: FUSE_FA */
+	u32 reserved3[21];		/* 0x14C - 0x19C: */
+	u32 security_mode;		/* 0x1A0: FUSE_SECURITY_MODE */
+};
 
-#endif	/* BOARD_H */
+#endif	/* ifndef _FUSE_H_ */

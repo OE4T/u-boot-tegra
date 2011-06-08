@@ -29,6 +29,7 @@ COBJS-y += board.o
 COBJS-$(CONFIG_USB_EHCI_TEGRA) += usb.o
 COBJS-$(CONFIG_SPI_UART_SWITCH) += uart-spi-fix.o
 COBJS-$(CONFIG_TEGRA2_KEYBOARD) += generic_kbc.o
+COBJS-$(CONFIG_TEGRA2_I2C) += pmu.o
 
 COBJS	:= $(COBJS-y)
 SRCS	:= $(SOBJS:.o=.S) $(COBJS:.o=.c)

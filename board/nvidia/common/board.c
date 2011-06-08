@@ -35,6 +35,7 @@
 #include <asm/arch/uart.h>
 #include <asm/arch/usb.h>
 #include <asm/arch/pmc.h>
+#include <asm/arch/fuse.h>
 #include <spi.h>
 #include <fdt_decode.h>
 #include <i2c.h>
@@ -212,6 +213,8 @@ int board_init(void)
 	power_det_init();
 #ifdef CONFIG_TEGRA2_I2C
 	i2c_init_board();
+
+	pmu_set_nominal();
 #endif
 
 	return 0;
@@ -287,3 +290,26 @@ int board_mmc_init(bd_t *bd)
 	return 0;
 }
 #endif
+
+int tegra_get_chip_type(void)
+{
+	uint tegra_sku_id;
+
+	struct fuse_regs *fuse = (struct fuse_regs *)NV_PA_FUSE_BASE;
+
+	tegra_sku_id = readl(&fuse->sku_info) & 0xff;
+
+	switch (tegra_sku_id) {
+	case SKU_ID_T20:
+		return TEGRA_SOC_T20;
+	case SKU_ID_T25SE:
+	case SKU_ID_AP25:
+	case SKU_ID_T25:
+	case SKU_ID_AP25E:
+	case SKU_ID_T25E:
+		return TEGRA_SOC_T25;
+	default:
+		/* unknown sku id */
+		return TEGRA_SOC_UNKNOWN;
+	}
+}
