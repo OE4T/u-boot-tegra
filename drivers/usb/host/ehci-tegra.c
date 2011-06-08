@@ -31,18 +31,6 @@
 
 
 /*
- * This is a list of base addresses for each USB port. These CONFIG_TEGRA2_...
- * values are defined in the board config files. Non-existent ports are zero.
- */
-int USB_base_addr[5] = {
-	CONFIG_TEGRA2_USB0,
-	CONFIG_TEGRA2_USB1,
-	CONFIG_TEGRA2_USB2,
-	CONFIG_TEGRA2_USB3,
-	0
-};
-
-/*
  * Create the appropriate control structures to manage
  * a new EHCI host controller.
  */
@@ -62,9 +50,7 @@ int ehci_hcd_init(void)
  */
 int ehci_hcd_stop(void)
 {
-#ifdef CONFIG_TEGRA2_USB1_HOST
-	usb1_set_host_mode();
-#endif
+	usb_set_host_mode();
 	ehci_writel(&hcor->or_usbcmd, 0);
 	udelay(1000);
 	ehci_writel(&hcor->or_usbcmd, 2);

@@ -34,21 +34,25 @@
 #include <asm/arch/gpio.h>
 #include <asm/arch/usb.h>
 
+/* Parameters we need for USB */
+enum {
+	PARAM_DIVN,			/* PLL FEEDBACK DIVIDer */
+	PARAM_DIVM,			/* PLL INPUT DIVIDER */
+	PARAM_DIVP,			/* POST DIVIDER (2^N) */
+	PARAM_CPCON,			/* BASE PLLC CHARGE Pump setup ctrl */
+	PARAM_LFCON,			/* BASE PLLC LOOP FILter setup ctrl */
+	PARAM_ENABLE_DELAY_COUNT,	/* PLL-U Enable Delay Count */
+	PARAM_STABLE_COUNT,		/* PLL-U STABLE count */
+	PARAM_ACTIVE_DELAY_COUNT,	/* PLL-U Active delay count */
+	PARAM_XTAL_FREQ_COUNT,		/* PLL-U XTAL frequency count */
+	PARAM_DEBOUNCE_A_TIME,		/* 10MS DELAY for BIAS_DEBOUNCE_A */
+	PARAM_BIAS_TIME,		/* 20US DELAY AFter bias cell op */
 
-/* The fields for USB PLLU configuration parameters */
-struct usb_pll_params {
-	unsigned divn; 		/* PLL feedback divider */
-	unsigned divm; 		/* PLL input divider */
-	unsigned divp; 		/* post divider (2^n) */
-	unsigned cpcon;		/* Base PLLC charge pump setup control */
-	unsigned lfcon;		/* Base PLLC loop filter setup control */
-	u8 enable_delay_count;	/* Pll-U Enable Delay Count */
-	u8 stable_count;	/* PLL-U Stable count */
-	u8 active_delay_count;	/* Pll-U Active delay count */
-	u8 xtal_freq_count;	/* PLL-U Xtal frequency count */
-	unsigned debounce_a_time; /* 10ms delay for BIAS_DEBOUNCE_A */
-	unsigned bias_time;  	/* 20us delay after bias cell op */
+	PARAM_COUNT
 };
+
+/* Record which controller can switch from host to device mode */
+static struct usb_ctlr *host_dev_ctlr;
 
 /*
  * This table has USB timing parameters for each Oscillator frequency we
@@ -91,7 +95,7 @@ struct usb_pll_params {
  *
  * 4. The 20 microsecond delay after bias cell operation.
  */
-static const struct usb_pll_params usb_pll[CLOCK_OSC_FREQ_COUNT] = {
+static const int usb_pll[CLOCK_OSC_FREQ_COUNT][PARAM_COUNT] = {
 	/* DivN, DivM, DivP, CPCON, LFCON, Delays             Debounce, Bias */
 	{ 0x3C0, 0x0D, 0x00, 0xC,   0,  0x02, 0x33, 0x05, 0x7F, 0x7EF4, 5 },
 	{ 0x0C8, 0x04, 0x00, 0x3,   0,  0x03, 0x4B, 0x06, 0xBB, 0xBB80, 7 },
@@ -109,10 +113,9 @@ static const u8 utmip_elastic_limit = 16;
 static const u8 utmip_hs_sync_start_delay = 9;
 
 
-void usb1_set_host_mode(void)
+/* Put the port into host mode (this only works for USB1) */
+static void set_host_mode(struct usb_ctlr *usbctlr)
 {
-	struct usb_ctlr *usbctlr = (struct usb_ctlr *)NV_PA_USB1_BASE;
-
 	/* Check whether remote host from USB1 is driving VBus */
 	if (bf_readl(VBUS_VLD_STS, &usbctlr->phy_vbus_sensors))
 		return;
@@ -125,6 +128,13 @@ void usb1_set_host_mode(void)
 
 	/* Z_SLXK = 0, normal, not tristate */
 	pinmux_tristate_disable(PINGRP_SLXK);
+}
+
+/* Put our ports into host mode */
+void usb_set_host_mode(void)
+{
+	if (host_dev_ctlr)
+		set_host_mode(host_dev_ctlr);
 }
 
 void usbf_reset_controller(enum periph_id id, struct usb_ctlr *usbctlr)
@@ -155,7 +165,7 @@ void usbf_reset_controller(enum periph_id id, struct usb_ctlr *usbctlr)
 
 /* set up the USB controller with the parameters provided */
 static void init_usb_controller(enum periph_id id, struct usb_ctlr *usbctlr,
-		const struct usb_pll_params *params)
+		const int *params)
 {
 	u32 val;
 	int loop_count;
@@ -184,24 +194,24 @@ static void init_usb_controller(enum periph_id id, struct usb_ctlr *usbctlr,
 	 * the bring up of the plls.
 	 */
 	val = readl(&usbctlr->utmip_misc_cfg1);
-	bf_update(UTMIP_PLLU_STABLE_COUNT, val, params->stable_count);
+	bf_update(UTMIP_PLLU_STABLE_COUNT, val, params[PARAM_STABLE_COUNT]);
 	bf_update(UTMIP_PLL_ACTIVE_DLY_COUNT, val,
-		     params->active_delay_count);
+		     params[PARAM_ACTIVE_DELAY_COUNT]);
 	writel(val, &usbctlr->utmip_misc_cfg1);
 
 	/* Set PLL enable delay count and crystal frequency count */
 	val = readl(&usbctlr->utmip_pll_cfg1);
 	bf_update(UTMIP_PLLU_ENABLE_DLY_COUNT, val,
-		     params->enable_delay_count);
-	bf_update(UTMIP_XTAL_FREQ_COUNT, val, params->xtal_freq_count);
+		     params[PARAM_ENABLE_DELAY_COUNT]);
+	bf_update(UTMIP_XTAL_FREQ_COUNT, val, params[PARAM_XTAL_FREQ_COUNT]);
 	writel(val, &usbctlr->utmip_pll_cfg1);
 
 	/* Setting the tracking length time */
-	bf_writel(UTMIP_BIAS_PDTRK_COUNT, params->bias_time,
+	bf_writel(UTMIP_BIAS_PDTRK_COUNT, params[PARAM_BIAS_TIME],
 			&usbctlr->utmip_bias_cfg1);
 
 	/* Program debounce time for VBUS to become valid */
-	bf_writel(UTMIP_DEBOUNCE_CFG0, params->debounce_a_time,
+	bf_writel(UTMIP_DEBOUNCE_CFG0, params[PARAM_DEBOUNCE_A_TIME],
 			&usbctlr->utmip_debounce_cfg0);
 
 	/* Set UTMIP_FS_PREAMBLE_J to 1 */
@@ -272,41 +282,53 @@ static void power_up_port(struct usb_ctlr *usbctlr)
 	writel(val, &usbctlr->utmip_xcvr_cfg1);
 }
 
-void board_usb_init(void)
+static void config_clock(const int params[])
+{
+	unsigned stable_time;
+
+	stable_time = clock_start_pll(CLOCK_ID_USB,
+		params[PARAM_DIVM], params[PARAM_DIVN], params[PARAM_DIVP],
+		params[PARAM_CPCON], params[PARAM_LFCON]);
+	/* TODO: what should we do with stable_time? */
+}
+
+static void config_port(enum periph_id id, struct usb_ctlr *usbctlr,
+		const int params[], int utmi)
+{
+	init_usb_controller(id, usbctlr, params);
+	if (utmi) {
+		/* Disable ICUSB FS/LS transceiver */
+		bf_writel(IC_ENB1, 0, &usbctlr->icusb_ctrl);
+
+		/* Select UTMI parallel interface */
+		bf_writel(PTS, PTS_UTMI, &usbctlr->port_sc1);
+		bf_writel(STS, 0, &usbctlr->port_sc1);
+		power_up_port(usbctlr);
+	}
+}
+
+int board_usb_init(const void *blob)
 {
 	enum clock_osc_freq freq;
-	const struct usb_pll_params *params;
-	struct usb_ctlr *usbctlr;
-	unsigned stable_time;
+	const int *params;
 
 	/* Get the Oscillator frequency */
 	freq = clock_get_osc_freq();
 
 	/* Enable PLL U for USB */
-	params = &usb_pll[freq];
-	stable_time = clock_start_pll(CLOCK_ID_USB,
-		params->divm, params->divn, params->divp, params->cpcon,
-		params->lfcon);
-	/* TODO: what should we do with stable_time? */
+	params = &usb_pll[freq][0];
+	config_clock(params);
 
 	/* Set up our two ports */
-	usbctlr = (struct usb_ctlr *)NV_PA_USB1_BASE;
-	init_usb_controller(PERIPH_ID_USBD, usbctlr, params);
-
-	usbctlr = (struct usb_ctlr *)NV_PA_USB3_BASE;
-	init_usb_controller(PERIPH_ID_USB3, usbctlr, params);
-
-	/* Disable ICUSB FS/LS transceiver */
-	bf_writel(IC_ENB1, 0, &usbctlr->icusb_ctrl);
-
-	/* Select UTMI parallel interface */
-	bf_writel(PTS, PTS_UTMI, &usbctlr->port_sc1);
-	bf_writel(STS, 0, &usbctlr->port_sc1);
-
-	power_up_port(usbctlr);
-
 #ifdef CONFIG_TEGRA2_USB1_HOST
-	usb1_set_host_mode();
+	host_dev_ctlr = (struct usb_ctlr *)NV_PA_USB1_BASE;
 #endif
-}
+	/* Port 1 has an internal transceiver, port 3 is external */
+	config_port(PERIPH_ID_USBD, (struct usb_ctlr *)NV_PA_USB1_BASE,
+			params, 0);
+	config_port(PERIPH_ID_USB3, (struct usb_ctlr *)NV_PA_USB3_BASE,
+			params, 1);
 
+	usb_set_host_mode();
+	return 0;
+}

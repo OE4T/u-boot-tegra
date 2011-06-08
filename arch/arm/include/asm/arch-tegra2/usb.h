@@ -208,10 +208,10 @@ struct usb_ctlr {
 #define VBUS_VLD_STS_RANGE			26:26
 
 
-/* Change USB port 1 into host mode */
-void usb1_set_host_mode(void);
+/* Change the USB host port into host mode */
+void usb_set_host_mode(void);
 
 /* Setup USB on the board */
-void board_usb_init(void);
+int board_usb_init(const void *blob);
 
 #endif	/* _TEGRA_USB_H_ */

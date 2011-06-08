@@ -205,7 +205,7 @@ int board_init(void)
 	gpio_config_uart(gd->blob);
 #endif
 #ifdef CONFIG_USB_EHCI_TEGRA
-	board_usb_init();
+	board_usb_init(gd->blob);
 #endif
 #ifdef CONFIG_TEGRA2_SPI
 	spi_init();
