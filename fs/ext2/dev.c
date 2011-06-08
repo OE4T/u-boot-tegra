@@ -26,7 +26,12 @@
 
 #include <common.h>
 #include <config.h>
+#include <malloc.h>
 #include <ext2fs.h>
+
+#ifndef CACHE_LINE_SIZE
+#define CACHE_LINE_SIZE __BIGGEST_ALIGNMENT__
+#endif
 
 static block_dev_desc_t *ext2fs_block_dev_desc;
 static disk_partition_t part_info;
@@ -52,8 +57,14 @@ int ext2fs_set_blk_dev(block_dev_desc_t *rbdd, int part)
 
 int ext2fs_devread(int sector, int byte_offset, int byte_len, char *buf)
 {
-	char sec_buf[SECTOR_SIZE];
+	static char *sec_buf;
 	unsigned sectors;
+
+	if (sec_buf == NULL)
+		sec_buf = memalign(CACHE_LINE_SIZE, SECTOR_SIZE);
+
+	if (sec_buf == NULL)
+		return 0;
 
 	/*
 	 *  Check partition boundaries
