@@ -344,6 +344,14 @@ unsigned long clock_get_periph_rate(enum periph_id periph_id,
 unsigned clock_adjust_periph_pll_div(enum periph_id periph_id,
 		enum clock_id parent, unsigned rate, int *extra_div);
 
+/**
+ * Returns the clock rate of a specified clock, in Hz.
+ *
+ * @param parent	PLL id of clock to check
+ * @return rate of clock in Hz
+ */
+unsigned clock_get_rate(enum clock_id clkid);
+
 /* Initialize the clocks */
 void clock_init(void);
 

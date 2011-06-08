@@ -776,22 +776,20 @@ void reset_cmplx_set_enable(int cpu, int which, int reset)
 		writel(mask, &clkrst->crc_cpu_cmplx_clr);
 }
 
-/**
- * Returns the frequency of the given PLL. This assumes that the PLL is fed
- * from the main oscillator.
- *
- * @param clkid		Clock to examine
- * @return clock frequency in Hz
- */
-static unsigned get_clock_freq(enum clock_id clkid)
+unsigned clock_get_rate(enum clock_id clkid)
 {
-	struct clk_pll *pll = get_pll(clkid);
-	u32 base = readl(&pll->pll_base);
+	struct clk_pll *pll;
+	u32 base;
 	u32 divm;
 	u64 parent_rate;
 	u64 rate;
 
 	parent_rate = osc_freq[clock_get_osc_freq()];
+	if (clkid == CLOCK_ID_OSC)
+		return parent_rate;
+
+	pll = get_pll(clkid);
+	base = readl(&pll->pll_base);
 	rate = parent_rate * bf_unpack(PLL_DIVN, base);
 	divm = bf_unpack(PLL_DIVM, base);
 	if (clkid == CLOCK_ID_USB)
@@ -804,11 +802,9 @@ static unsigned get_clock_freq(enum clock_id clkid)
 
 void clock_init(void)
 {
-	pll_rate[CLOCK_ID_MEMORY] = get_clock_freq(CLOCK_ID_MEMORY);
-	pll_rate[CLOCK_ID_PERIPH] = get_clock_freq(CLOCK_ID_PERIPH);
-	/* FIXME: I2C needs CLK_M for CLOCK_ID_OSC */
-	/* pll_rate[CLOCK_ID_OSC] = get_clock_freq(CLOCK_ID_PERIPH); */
-	pll_rate[CLOCK_ID_OSC] = osc_freq[clock_get_osc_freq()];
+	pll_rate[CLOCK_ID_MEMORY] = clock_get_rate(CLOCK_ID_MEMORY);
+	pll_rate[CLOCK_ID_PERIPH] = clock_get_rate(CLOCK_ID_PERIPH);
+	pll_rate[CLOCK_ID_OSC] = clock_get_rate(CLOCK_ID_OSC);
 	pll_rate[CLOCK_ID_SFROM32KHZ] = 32768;
 	debug("PLLM = %d\n", pll_rate[CLOCK_ID_MEMORY]);
 	debug("PLLP = %d\n", pll_rate[CLOCK_ID_PERIPH]);
