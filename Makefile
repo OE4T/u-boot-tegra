@@ -480,8 +480,8 @@ $(obj)include/autoconf.mk.dep: $(obj)include/config.h include/common.h
 	@$(XECHO) Generating $@ ; \
 	set -e ; \
 	: Generate the dependancies ; \
-	$(CC) -x c -DDO_DEPS_ONLY -M $(HOSTCFLAGS) $(CPPFLAGS) \
-		-MQ $(obj)include/autoconf.mk include/common.h > $@
+	$(CC) -x c -DDO_DEPS_ONLY -M $(HOSTCFLAGS) $(HOSTCFLAGS_$(@F)) \
+		$(CPPFLAGS) -MQ $(obj)include/autoconf.mk include/common.h > $@
 
 $(obj)include/autoconf.mk: $(obj)include/config.h
 	@$(XECHO) Generating $@ ; \
