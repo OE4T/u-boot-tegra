@@ -30,6 +30,7 @@
 #include <asm/arch/pmu.h>
 #include <asm/arch/pmc.h>
 #include <i2c.h>
+#include "board.h"
 
 struct vdd_settings {
 	int	data;
