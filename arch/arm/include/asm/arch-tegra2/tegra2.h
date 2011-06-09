@@ -76,5 +76,6 @@ struct timerus {
 #define TEGRA_SOC_UNKNOWN	(-1)
 #define TEGRA_SOC_T20		(0)
 #define TEGRA_SOC_T25		(1)
+#define TEGRA_SOC_COUNT		(2)
 
 #endif	/* TEGRA2_H */

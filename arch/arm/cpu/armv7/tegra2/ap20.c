@@ -31,6 +31,34 @@
 #include <asm/arch/pinmux.h>
 #include <asm/arch/scu.h>
 #include <common.h>
+#include "../../../../../board/nvidia/common/board.h"
+
+struct clk_pll_table {
+	u16		n;
+	u16		m;
+	u8		p;
+	u8		cpcon;
+};
+
+/*
+ * Timing tables for each SOC for all four oscillator options.
+ */
+static struct clk_pll_table tegra_pll_x_table[TEGRA_SOC_COUNT]
+						[CLOCK_OSC_FREQ_COUNT] = {
+	/* T20: 1 GHz */
+	{{ 1000, 13, 0, 12},	/* OSC 13M */
+	 { 625,  12, 0, 8},	/* OSC 19.2M */
+	 { 1000, 12, 0, 12},	/* OSC 12M */
+	 { 1000, 26, 0, 12},	/* OSC 26M */
+	},
+
+	/* T25: 1.2 GHz */
+	{{ 923, 10, 0, 12},
+	 { 750, 12, 0,  8},
+	 { 600,  6, 0, 12},
+	 { 600, 13, 0, 12},
+	},
+};
 
 /* Returns 1 if the current CPU executing is a Cortex-A9, else 0 */
 static int ap20_cpu_is_cortexa9(void)
@@ -39,7 +67,7 @@ static int ap20_cpu_is_cortexa9(void)
 	return id == (PG_UP_TAG_0_PID_CPU & 0xff);
 }
 
-void init_pllx(void)
+static int pllx_set_rate(u32 divn, u32 divm, u32 divp, u32 cpcon)
 {
 	struct clk_rst_ctlr *clkrst = (struct clk_rst_ctlr *)NV_PA_CLK_RST_BASE;
 	struct clk_pll *pll = &clkrst->crc_pll[CLOCK_ID_XCPU];
@@ -47,22 +75,45 @@ void init_pllx(void)
 
 	/* If PLLX is already enabled, just return */
 	if (bf_readl(PLL_ENABLE, &pll->pll_base))
-		return;
+		return 0;
 
-	/* Set PLLX_MISC */
-	reg = bf_pack(PLL_CPCON, 1);
+	/* Set BYPASS, m, n and p to PLLX_BASE */
+	reg = bf_pack(PLL_BYPASS, 1) | bf_pack(PLL_DIVM, divm);
+	reg |= bf_pack(PLL_DIVN, divn) | bf_pack(PLL_DIVP, divp);
+	writel(reg, &pll->pll_base);
+
+	/* Set cpcon to PLLX_MISC */
+	reg = bf_pack(PLL_CPCON, cpcon);
 	writel(reg, &pll->pll_misc);
 
-	/* Use 12MHz clock here */
-	reg = bf_pack(PLL_BYPASS, 1) | bf_pack(PLL_DIVM, 12);
-	reg |= bf_pack(PLL_DIVN, 1000);
-	writel(reg, &pll->pll_base);
-
+	/* Enable PLLX */
+	reg = readl(&pll->pll_base);
 	reg |= bf_pack(PLL_ENABLE, 1);
-	writel(reg, &pll->pll_base);
 
+	/* Disable BYPASS */
 	reg &= ~bf_mask(PLL_BYPASS);
 	writel(reg, &pll->pll_base);
+
+	return 0;
+}
+
+static void init_pllx(void)
+{
+	int chip_type;
+	enum clock_osc_freq osc;
+	struct clk_pll_table *sel;
+
+	/* get chip type. If unknown, assign to T20 */
+	chip_type = tegra_get_chip_type();
+	if (chip_type == TEGRA_SOC_UNKNOWN)
+		chip_type = TEGRA_SOC_T20;
+
+	/* get osc freq */
+	osc = clock_get_osc_freq();
+
+	/* set pllx */
+	sel = &tegra_pll_x_table[chip_type][osc];
+	pllx_set_rate(sel->n, sel->m, sel->p, sel->cpcon);
 }
 
 static void enable_cpu_clock(int enable)
