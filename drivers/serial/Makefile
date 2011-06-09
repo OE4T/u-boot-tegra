@@ -47,6 +47,7 @@ COBJS-$(CONFIG_LH7A40X_SERIAL) += serial_lh7a40x.o
 COBJS-$(CONFIG_MAX3100_SERIAL) += serial_max3100.o
 COBJS-$(CONFIG_MXC_UART) += serial_mxc.o
 COBJS-$(CONFIG_NETARM_SERIAL) += serial_netarm.o
+COBJS-$(CONFIG_SYS_OXPCIE952) += oxpcie952.o
 COBJS-$(CONFIG_PL010_SERIAL) += serial_pl01x.o
 COBJS-$(CONFIG_PL011_SERIAL) += serial_pl01x.o
 COBJS-$(CONFIG_PXA_SERIAL) += serial_pxa.o

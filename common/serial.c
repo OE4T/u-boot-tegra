@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2011 The Chromium OS Authors. All rights reserved.
  * (C) Copyright 2004
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  *
@@ -47,7 +48,9 @@ struct serial_device *__default_serial_console (void)
    || defined(CONFIG_MPC83xx) || defined(CONFIG_MPC85xx) \
    || defined(CONFIG_MPC86xx) || defined(CONFIG_SYS_SC520) \
    || defined(CONFIG_TEGRA2) || defined(CONFIG_SYS_COREBOOT)
-#if defined(CONFIG_CONS_INDEX) && defined(CONFIG_SYS_NS16550_SERIAL)
+#if defined(CONFIG_SYS_COREBOOT) && defined(CONFIG_SYS_OXPCIE952)
+	return &oxpcie952_device;
+#elif defined(CONFIG_CONS_INDEX) && defined(CONFIG_SYS_NS16550_SERIAL)
 #if (CONFIG_CONS_INDEX==1)
 	return &eserial1_device;
 #elif (CONFIG_CONS_INDEX==2)
@@ -146,6 +149,9 @@ void serial_initialize (void)
 	serial_register(&eserial4_device);
 #endif
 #endif /* CONFIG_SYS_NS16550_SERIAL */
+#if defined(CONFIG_SYS_OXPCIE952)
+	serial_register(&oxpcie952_device);
+#endif
 #if defined (CONFIG_FFUART)
 	serial_register(&serial_ffuart_device);
 #endif

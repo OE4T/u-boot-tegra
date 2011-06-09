@@ -28,7 +28,7 @@ extern struct serial_device * default_serial_console (void);
     defined(CONFIG_MB86R0x) || defined(CONFIG_MPC5xxx) || \
     defined(CONFIG_MPC83xx) || defined(CONFIG_MPC85xx) || \
     defined(CONFIG_MPC86xx) || defined(CONFIG_SYS_SC520) || \
-    defined(CONFIG_TEGRA2) || defined(CONFIG_SYS_COREBOOT)
+    defined(CONFIG_TEGRA2)
 extern struct serial_device serial0_device;
 extern struct serial_device serial1_device;
 #if defined(CONFIG_SYS_NS16550_SERIAL)
@@ -38,6 +38,21 @@ extern struct serial_device eserial3_device;
 extern struct serial_device eserial4_device;
 #endif /* CONFIG_SYS_NS16550_SERIAL */
 
+#endif
+
+#if defined(CONFIG_SYS_COREBOOT)
+#if defined(CONFIG_SYS_NS16550_SERIAL)
+extern struct serial_device serial0_device;
+#endif
+#if defined(CONFIG_SERIAL_MULTI)
+extern struct serial_device eserial1_device;
+extern struct serial_device eserial2_device;
+extern struct serial_device eserial3_device;
+extern struct serial_device eserial4_device;
+#endif
+#if defined(CONFIG_SYS_OXPCIE952)
+extern struct serial_device oxpcie952_device;
+#endif
 #endif
 
 #if defined(CONFIG_MPC512X)

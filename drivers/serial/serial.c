@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2011 The Chromium OS Authors. All rights reserved.
  * (C) Copyright 2000
  * Rob Taylor, Flying Pig Systems. robt@flyingpig.com.
  *
@@ -35,6 +36,8 @@
 #include <asm/arch/armada100.h>
 #elif defined(CONFIG_PANTHEON)
 #include <asm/arch/pantheon.h>
+#elif defined(CONFIG_OXPCIE952)
+#include <oxpcie952.h>
 #endif
 
 #if defined (CONFIG_SERIAL_MULTI)
