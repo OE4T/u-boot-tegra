@@ -162,7 +162,7 @@
 
 #define CONFIG_IPADDR		10.0.0.2
 #define CONFIG_SERVERIP		10.0.0.1
-#define CONFIG_BOOTFILE		uImage
+#define CONFIG_BOOTFILE		vmlinux.uimg
 
 /*
  * We decorate the nfsroot name so that multiple users / boards can easily
@@ -209,12 +209,19 @@
 	"dhcp_boot=run dhcp_setup; " \
 		"bootp; tftpboot ${loadaddr} ${tftpserverip}:${tftppath}; " \
 		"bootm ${loadaddr}\0" \
+	\
+	"usb_setup=setenv bootdev_bootargs root=/dev/sda3 rw rootwait; " \
+		"run regen_all\0" \
+	"usb_boot=run usb_setup; " \
+		"ext2load usb 0:3 ${loadaddr} /boot/${bootfile};" \
+		"bootm ${loadaddr}\0" \
 
 #define CONFIG_BOOTCOMMAND \
   "usb start; "\
   "if test ${ethact} != \"\"; then "\
     "run dhcp_boot ; " \
   "fi ; " \
+  "run usb_boot ; "
 
 #define CONFIG_LOADADDR		0x408000	/* def. location for kernel */
 #define CONFIG_BOOTDELAY	0		/* -1 to disable auto boot */
