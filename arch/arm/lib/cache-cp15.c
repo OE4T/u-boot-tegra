@@ -142,6 +142,16 @@ static void cache_enable(uint32_t cache_bit)
 	set_cr(reg | cache_bit);
 }
 
+/*
+ * Big hack warning!
+ *
+ * Devs like to compile with -O0 to get a nice debugging illusion. But this
+ * function does not survive that since -O0 causes the compiler to read the
+ * PC back from the stack after the dcache flush. Might it be possible to fix
+ * this by flushing the write buffer?
+ */
+static void cache_disable(uint32_t cache_bit) __attribute__ ((optimize(2)));
+
 /* cache_bit must be either CR_I or CR_C */
 static void cache_disable(uint32_t cache_bit)
 {
