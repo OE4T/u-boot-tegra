@@ -209,7 +209,14 @@
 	"dhcp_boot=run dhcp_setup; " \
 		"bootp; tftpboot ${loadaddr} ${tftpserverip}:${tftppath}; " \
 		"bootm ${loadaddr}\0" \
-	\
+	"mmcdev=" TEGRA2_MMC_DEFAULT_DEVICE "\0" \
+	"mmc_setup=setenv bootdev_bootargs " \
+		"root=/dev/mmcblk${mmcdev}p3 rw rootwait; " \
+		"run regen_all\0" \
+	"mmc_boot=run mmc_setup; " \
+		"mmc rescan ${mmcdev}; " \
+		"ext2load mmc ${mmcdev}:3 ${loadaddr} /boot/${bootfile}; " \
+		"bootm ${loadaddr}\0" \
 	"usb_setup=setenv bootdev_bootargs root=/dev/sda3 rw rootwait; " \
 		"run regen_all\0" \
 	"usb_boot=run usb_setup; " \

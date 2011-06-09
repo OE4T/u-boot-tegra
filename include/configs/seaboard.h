@@ -101,6 +101,8 @@
 #define CONFIG_CMD_EXT2
 #define CONFIG_CMD_FAT
 
+#define TEGRA2_MMC_DEFAULT_DEVICE	"0"
+
 /* Environment in SPI */
 #define CONFIG_ENV_IS_IN_SPI_FLASH
 
