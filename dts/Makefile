@@ -27,12 +27,14 @@ LIB	= $(obj)libdts.o
 # Use a constant name for this so we can access it from C code.
 # objcopy doesn't seem to allow us to set the symbol name independently of
 # the filename.
-DT_BIN	:= dt.dtb
+DT_BIN	:= $(obj)dt.dtb
 
 # TODO: get arch properly for objcopy line.
-dt.o: $(TOPDIR)/board/$(BOARDDIR)/$(DEVICE_TREE).dts
-	$(DTC) -R 4 -p 0x1000 -O dtb -o $(DT_BIN) $<
-	$(OBJCOPY) -B armv5te -I binary -O elf32-littlearm $(DT_BIN) dt.o
+$(obj)dt.o: $(TOPDIR)/board/$(BOARDDIR)/$(DEVICE_TREE).dts
+	$(DTC) -R 4 -p 0x1000 -O dtb -o ${DT_BIN} $<
+	cd $(dir ${DT_BIN}) && \
+	$(OBJCOPY) -B armv5te -I binary -O elf32-littlearm \
+		$(notdir ${DT_BIN}) $@
 	rm $(DT_BIN)
 
 OBJS	:= dt.o
