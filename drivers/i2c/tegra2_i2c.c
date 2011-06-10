@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2011 The Chromium OS Authors. All rights reserved.
  * Copyright (c) 2010-2011 NVIDIA Corporation
  *  NVIDIA Corporation <www.nvidia.com>
  *
@@ -473,29 +474,47 @@ int i2c_probe(uchar chip)
 	return 0;
 }
 
+static int i2c_addr_ok(const uint addr, const int alen)
+{
+	if (alen < 0 || alen > sizeof(addr))
+		return 0;
+	if (alen != sizeof(addr)) {
+		uint max_addr = (1 << (8 * alen)) - 1;
+		if (addr > max_addr)
+			return 0;
+	}
+	return 1;
+}
+
 /* Read bytes */
 int i2c_read(uchar chip, uint addr, int alen, uchar *buffer, int len)
 {
-	int rc;
-	uchar *ptr = buffer;
+	uint offset;
+	int i;
 
-	debug("i2c_read: chip=0x%x, addr=0x%x, len=0x%x\n", chip, addr, len);
-
-	while (len) {
-		rc = i2c_write_data(chip, (uchar *)&addr, 1);
-		if (rc) {
-			debug("i2c_read: error sending (0x%x)\n", addr);
-			return 1;
+	debug("i2c_read: chip=0x%x, addr=0x%x, len=0x%x\n",
+				chip, addr, len);
+	if (!i2c_addr_ok(addr, alen)) {
+		debug("i2c_read: Bad address %x.%d.\n", addr, alen);
+		return 1;
+	}
+	for (offset = 0; offset < len; offset++) {
+		if (alen) {
+			uchar data[alen];
+			for (i = 0; i < alen; i++) {
+				data[alen - i - 1] =
+					(addr + offset) >> (8 * i);
+			}
+			if (i2c_write_data(chip, data, alen)) {
+				debug("i2c_read: error sending (0x%x)\n",
+					addr);
+				return 1;
+			}
 		}
-
-		rc = i2c_read_data(chip, ptr, 1);
-		if (rc) {
+		if (i2c_read_data(chip, buffer + offset, 1)) {
 			debug("i2c_read: error reading (0x%x)\n", addr);
 			return 1;
 		}
-		++addr;
-		++ptr;
-		--len;
 	}
 
 	return 0;
@@ -504,23 +523,24 @@ int i2c_read(uchar chip, uint addr, int alen, uchar *buffer, int len)
 /* Write bytes */
 int i2c_write(uchar chip, uint addr, int alen, uchar *buffer, int len)
 {
-	int rc;
-	uchar local_buffer[4];
-	uchar *ptr = buffer;
+	uint offset;
+	int i;
 
-	debug("i2c_write: chip=0x%x, addr=0x%x, len=0x%x\n", chip, addr, len);
-
-	while (len) {
-		local_buffer[0] = addr & 0xFF;
-		local_buffer[1] = *ptr;
-		rc = i2c_write_data(chip, local_buffer, 2);
-		if (rc) {
+	debug("i2c_write: chip=0x%x, addr=0x%x, len=0x%x\n",
+				chip, addr, len);
+	if (!i2c_addr_ok(addr, alen)) {
+		debug("i2c_write: Bad address %x.%d.\n", addr, alen);
+		return 1;
+	}
+	for (offset = 0; offset < len; offset++) {
+		uchar data[alen + 1];
+		for (i = 0; i < alen; i++)
+			data[alen - i - 1] = (addr + offset) >> (8 * i);
+		data[alen] = buffer[offset];
+		if (i2c_write_data(chip, data, alen + 1)) {
 			debug("i2c_write: error sending (0x%x)\n", addr);
 			return 1;
 		}
-		++addr;
-		++ptr;
-		--len;
 	}
 
 	return 0;
