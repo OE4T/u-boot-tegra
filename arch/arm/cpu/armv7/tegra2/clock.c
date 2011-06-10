@@ -477,8 +477,9 @@ void clock_ll_set_source_divisor(enum periph_id periph_id, int source,
 	u32 *reg = get_periph_source_reg(periph_id);
 	u32 value;
 
-	value = bf_pack(OUT_CLK_SOURCE, source) |
-			bf_pack(OUT_CLK_DIVISOR, divisor);
+	value = readl(reg);
+	bf_update(OUT_CLK_SOURCE, value, source);
+	bf_update(OUT_CLK_DIVISOR, value, divisor);
 	writel(value, reg);
 }
 

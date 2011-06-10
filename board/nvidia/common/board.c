@@ -36,6 +36,7 @@
 #include <asm/arch/usb.h>
 #include <asm/arch/pmc.h>
 #include <asm/arch/fuse.h>
+#include <asm/arch/emc.h>
 #include <spi.h>
 #include <fdt_decode.h>
 #include <i2c.h>
@@ -215,6 +216,8 @@ int board_init(void)
 	i2c_init_board();
 
 	pmu_set_nominal();
+
+	board_emc_init();
 #endif
 
 	return 0;

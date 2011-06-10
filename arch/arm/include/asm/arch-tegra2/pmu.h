@@ -60,4 +60,6 @@
 #define VDD_TRANSITION_STEP	0x06	/* 150mv */
 #define VDD_TRANSITION_RATE	0x07
 
+int tegra2_pmu_is_voltage_nominal(void);
+
 #endif	/* PMU_H */
