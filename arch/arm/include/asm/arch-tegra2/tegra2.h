@@ -33,6 +33,7 @@
 #define NV_PA_GPIO_BASE		0x6000D000
 #define NV_PA_EVP_BASE		0x6000F000
 #define NV_PA_APB_MISC_BASE	0x70000000
+#define NV_PA_APB_MISC_GP_BASE	(NV_PA_APB_MISC_BASE + 0x0800)
 #define NV_PA_APB_UARTA_BASE	(NV_PA_APB_MISC_BASE + 0x6000)
 #define NV_PA_APB_UARTB_BASE	(NV_PA_APB_MISC_BASE + 0x6040)
 #define NV_PA_APB_UARTC_BASE	(NV_PA_APB_MISC_BASE + 0x6200)
@@ -43,8 +44,8 @@
 #define TEGRA2_I2C3_BASE	0x7000C500
 #define TEGRA2_DVC_BASE		0x7000D000
 #define NV_PA_PMC_BASE		0x7000E400
-#define NV_PA_EMC_BASE		0x7000f400
-#define NV_PA_FUSE_BASE         0x7000f800
+#define NV_PA_EMC_BASE		0x7000F400
+#define NV_PA_FUSE_BASE		0x7000F800
 #define NV_PA_CSITE_BASE	0x70040000
 #define NV_PA_USB1_BASE		0xC5000000
 #define NV_PA_USB3_BASE		0xC5008000
@@ -78,5 +79,8 @@ struct timerus {
 #define TEGRA_SOC_T20		(0)
 #define TEGRA_SOC_T25		(1)
 #define TEGRA_SOC_COUNT		(2)
+
+/* Address at which WB code runs, it must not overlap Bootrom's IRAM usage */
+#define AP20_WB_RUN_ADDRESS	0x40020000
 
 #endif	/* TEGRA2_H */

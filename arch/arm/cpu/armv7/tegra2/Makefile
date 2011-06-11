@@ -32,9 +32,15 @@ include $(TOPDIR)/config.mk
 
 LIB	=  $(obj)lib$(SOC).o
 
-SOBJS	:= lowlevel_init.o
-COBJS	:= ap20.o board.o clock.o display.o pinmux.o power.o pwfm.o \
+SOBJS-y	:= lowlevel_init.o
+COBJS-y	:= ap20.o board.o clock.o display.o pinmux.o power.o pwfm.o \
 		sys_info.o timer.o
+
+SOBJS-$(CONFIG_TEGRA2_LP0) += warmboot_avp.o
+COBJS-$(CONFIG_TEGRA2_LP0) += warmboot.o
+
+SOBJS	:= $(SOBJS-y)
+COBJS	:= $(COBJS-y)
 
 SRCS	:= $(SOBJS:.o=.S) $(COBJS:.o=.c)
 OBJS	:= $(addprefix $(obj),$(COBJS) $(SOBJS))

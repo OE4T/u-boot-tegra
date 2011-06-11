@@ -46,6 +46,8 @@
 #include <mmc.h>
 #endif
 
+#include <asm/arch/warmboot.h>
+
 DECLARE_GLOBAL_DATA_PTR;
 
 const struct tegra2_sysinfo sysinfo = {
@@ -218,6 +220,11 @@ int board_init(void)
 	pmu_set_nominal();
 
 	board_emc_init();
+#endif
+
+#ifdef CONFIG_TEGRA2_LP0
+	/* prepare the WB code to LP0 location */
+	warmboot_prepare_code(TEGRA_LP0_ADDR, TEGRA_LP0_SIZE);
 #endif
 
 	return 0;

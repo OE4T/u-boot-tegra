@@ -31,6 +31,7 @@
 #include <asm/arch/pinmux.h>
 #include <asm/arch/scu.h>
 #include <common.h>
+#include <asm/arch/warmboot.h>
 #include "../../../../../board/nvidia/common/board.h"
 
 struct clk_pll_table {
@@ -340,6 +341,11 @@ void init_pmc_scratch(void)
 
 	/* ODMDATA is for kernel use to determine RAM size, LP config, etc. */
 	writel(CONFIG_SYS_BOARD_ODMDATA, &pmc->pmc_scratch20);
+
+#ifdef CONFIG_TEGRA2_LP0
+	/* save Sdram params to PMC 2, 4, and 24 for WB0 */
+	warmboot_save_sdram_params();
+#endif
 }
 
 void tegra2_start(void)
