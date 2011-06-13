@@ -197,16 +197,19 @@
 		params = <0x3c0 0x1a 0x00 0xc 0  0x04 0x66 0x09 0xfe  0xfde8 9>;
 	};
 
-	usb@0xc5000000 {
-		compatible = "nvidia,tegra250-usb";
-		reg = <0xc5000000 0x8000>;
-		status = "disabled";
-	};
-
 	usb@0xc5008000 {
 		compatible = "nvidia,tegra250-usb";
 		reg = <0xc5008000 0x8000>;
+                periph-id = <59>;	// PERIPH_ID_USB3
 		status = "disabled";
 	};
+
+	usb@0xc5000000 {
+		compatible = "nvidia,tegra250-usb";
+		reg = <0xc5000000 0x8000>;
+                periph-id = <22>;	// PERIPH_ID_USBD
+		status = "disabled";
+	};
+
 };
 

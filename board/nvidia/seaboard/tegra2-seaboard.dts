@@ -13,6 +13,8 @@
 
 	aliases {
 		console = "/serial@70006300";
+                usb0 = "/usb@0xc5008000";
+                usb1 = "/usb@0xc5000000";
 	};
 
 	chosen {
@@ -76,7 +78,6 @@
 	usb@0xc5000000 {
 		status = "ok";
 		host-mode = <1>;
-		periph-id = <22>;
 	};
 
 	usbphy: usbphy@0 {
@@ -88,6 +89,5 @@
 		status = "ok";
 		utmi = <&usbphy>;
 		host-mode = <0>;
-		periph-id = <59>;
 	};
 };
