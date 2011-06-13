@@ -209,6 +209,26 @@ int fdt_decode_next_compatible(const void *blob, int node,
 		enum fdt_compat_id id);
 
 /**
+ * Find the next numbered alias for a peripheral. This is used to enumerate
+ * all the peripherals of a certain type.
+ *
+ * Do the first call with *upto = 0. Assuming /aliases/<name>0 exists then
+ * this function will return a pointer to the node the alias points to, and
+ * then update *upto to 1. Next time you call this function, the next node
+ * will be returned.
+ *
+ * All nodes returned will match the compatible ID, as it is assumed that
+ * all peripherals use the same driver.
+ *
+ * @param blob		FDT blob to use
+ * @param name		Root name of alias to search for
+ * @param id		Compatible ID to look for
+ * @return offset of next compatible node, or -FDT_ERR_NOTFOUND if no more
+ */
+int fdt_decode_next_alias(const void *blob, const char *name,
+		enum fdt_compat_id id, int *upto);
+
+/**
  * Returns information from the FDT about the SPI / UART switch on tegra
  * platforms.
  *

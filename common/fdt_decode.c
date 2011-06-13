@@ -271,6 +271,24 @@ int fdt_decode_next_compatible(const void *blob, int node,
 	return fdt_node_offset_by_compatible(blob, node, compat_names[id]);
 }
 
+int fdt_decode_next_alias(const void *blob, const char *name,
+		enum fdt_compat_id id, int *upto)
+{
+#define MAX_STR_LEN 20
+	char str[MAX_STR_LEN + 20];
+	int node, err;
+
+	sprintf(str, "%.*s%d", MAX_STR_LEN, name, *upto);
+	(*upto)++;
+	node = find_alias_node(blob, str);
+	if (node < 0)
+		return node;
+	err = fdt_node_check_compatible(blob, node, compat_names[id]);
+	if (err < 0)
+		return err;
+	return err ? -FDT_ERR_MISSING : node;
+}
+
 int fdt_decode_get_spi_switch(const void *blob, struct fdt_spi_uart *config)
 {
 	int node, uart_node;

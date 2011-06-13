@@ -388,12 +388,12 @@ int board_usb_init(const void *blob)
 #ifdef CONFIG_OF_CONTROL
 	struct fdt_usb config;
 	int clk_done = 0;
-	int node = 0;
+	int node, upto = 0;
 	unsigned osc_freq = clock_get_rate(CLOCK_ID_OSC);
 
 	do {
-		node = fdt_decode_next_compatible(blob, node,
-				COMPAT_NVIDIA_TEGRA250_USB);
+		node = fdt_decode_next_alias(blob, "usb",
+				COMPAT_NVIDIA_TEGRA250_USB, &upto);
 		if (node < 0)
 			break;
 		if (fdt_decode_usb(blob, node, osc_freq, &config))
