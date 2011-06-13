@@ -48,6 +48,15 @@
 
 /* On Seaboard: GPIO_PI3 = Port I = 8, bit = 3 */
 #define UART_DISABLE_GPIO	GPIO_PI3
+
+/* To select the order in which U-Boot sees USB ports */
+#define CONFIG_TEGRA2_USB0      NV_PA_USB3_BASE
+#define CONFIG_TEGRA2_USB1      NV_PA_USB1_BASE
+#define CONFIG_TEGRA2_USB2      0
+#define CONFIG_TEGRA2_USB3      0
+
+/* Put USB1 in host mode */
+#define CONFIG_TEGRA2_USB1_HOST
 #endif
 
 #define CONFIG_TEGRA2_KEYBOARD
@@ -108,15 +117,6 @@
 
 #define CONFIG_ENV_SECT_SIZE    CONFIG_ENV_SIZE
 #define CONFIG_ENV_OFFSET       (SZ_4M - CONFIG_ENV_SECT_SIZE)
-
-/* To select the order in which U-Boot sees USB ports */
-#define CONFIG_TEGRA2_USB0	NV_PA_USB3_BASE
-#define CONFIG_TEGRA2_USB1	NV_PA_USB1_BASE
-#define CONFIG_TEGRA2_USB2	0
-#define CONFIG_TEGRA2_USB3	0
-
-/* Put USB1 in host mode */
-#define CONFIG_TEGRA2_USB1_HOST
 
 /* Keyboard scan matrix configuration */
 #define CONFIG_TEGRA2_KBC_PLAIN_KEYCODES {			\
