@@ -36,10 +36,17 @@
  */
 int ehci_hcd_init(void)
 {
-	/* EHCI registers start at offset 0x100. For now support only port 0*/
-	hccr = (struct ehci_hccr *)(CONFIG_TEGRA2_USB0 + 0x100);
-	hcor = (struct ehci_hcor *)((uint32_t) hccr
-		+ HC_LENGTH(ehci_readl(&hccr->cr_capbase)));
+	u32 our_hccr, our_hcor;
+
+	/*
+	 * Select the first port, as we don't have a way of selecting others
+	 * yet
+	 */
+	if (tegrausb_start_port(0, &our_hccr, &our_hcor))
+		return -1;
+
+	hccr = (struct ehci_hccr *)our_hccr;
+	hcor = (struct ehci_hcor *)our_hcor;
 
 	return 0;
 }
@@ -51,9 +58,6 @@ int ehci_hcd_init(void)
 int ehci_hcd_stop(void)
 {
 	usb_set_host_mode();
-	ehci_writel(&hcor->or_usbcmd, 0);
-	udelay(1000);
-	ehci_writel(&hcor->or_usbcmd, 2);
-	udelay(1000);
+	tegrausb_stop_port();
 	return 0;
 }

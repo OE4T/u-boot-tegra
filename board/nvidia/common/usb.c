@@ -35,6 +35,18 @@
 #include <asm/arch/usb.h>
 #include <fdt_decode.h>
 
+enum {
+	USB_PORTS_MAX	= 4,			/* Maximum ports we allow */
+};
+
+struct usb_port {
+	struct usb_ctlr *reg;
+};
+
+static struct usb_port port[USB_PORTS_MAX];	/* List of valid USB ports */
+static unsigned port_count;			/* Number of available ports */
+static int port_current;			/* Current port (-1 = none) */
+
 /* Record which controller can switch from host to device mode */
 static struct usb_ctlr *host_dev_ctlr;
 
@@ -276,9 +288,23 @@ static void config_clock(const int params[])
 	/* TODO: what should we do with stable_time? */
 }
 
-static void config_port(enum periph_id id, struct usb_ctlr *usbctlr,
+/**
+ * Add a new USB port to the list of available ports
+ *
+ * @param id		peripheral id of port (PERIPH_ID_USB3, for example)
+ * @param usbctlr	register address of controller
+ * @param params	timing parameters
+ * @param utmi		1 if it has an external UTMI transceiver
+ * @return 0 if ok, -1 if error (too many ports)
+ */
+static int add_port(enum periph_id id, struct usb_ctlr *usbctlr,
 		const int params[], int utmi)
 {
+	if (port_count == USB_PORTS_MAX) {
+		debug("tegrausb: Cannot register more than %d ports\n",
+		      USB_PORTS_MAX);
+		return -1;
+	}
 	init_usb_controller(id, usbctlr, params);
 	if (utmi) {
 		/* Disable ICUSB FS/LS transceiver */
@@ -289,6 +315,72 @@ static void config_port(enum periph_id id, struct usb_ctlr *usbctlr,
 		bf_writel(STS, 0, &usbctlr->port_sc1);
 		power_up_port(usbctlr);
 	}
+	port[port_count++].reg = usbctlr;
+	return 0;
+}
+
+#ifndef CONFIG_OF_CONTROL
+static int probe_port(struct usb_ctlr *usbctlr, const int params[])
+{
+	enum periph_id id;
+	int utmi = 0;
+
+	/*
+	 * Get the periph id. Port 1 has an internal transceiver, port 3 is
+	 * external
+	 */
+	switch ((u32)usbctlr) {
+	case NV_PA_USB1_BASE:
+		id = PERIPH_ID_USBD;
+		break;
+
+	case NV_PA_USB3_BASE:
+		id = PERIPH_ID_USB3;
+		utmi = 1;
+		break;
+
+	default:
+		printf("tegrausb: probe_port: no such port %p\n", usbctlr);
+		return -1;
+	}
+
+	return add_port(id, usbctlr, params, utmi);
+}
+#endif
+
+int tegrausb_start_port(unsigned portnum, u32 *hccr, u32 *hcor)
+{
+	struct usb_ctlr *usbctlr;
+
+	if (portnum >= port_count)
+		return -1;
+	tegrausb_stop_port();
+
+	usbctlr = port[portnum].reg;
+	*hccr = (u32)&usbctlr->cap_length;
+	*hcor = (u32)&usbctlr->usb_cmd;
+	port_current = portnum;
+	return 0;
+}
+
+int tegrausb_stop_port(void)
+{
+	struct usb_ctlr *usbctlr;
+
+	if (port_current == -1)
+		return -1;
+
+	usbctlr = port[port_current].reg;
+
+	/* Stop controller */
+	writel(0, &usbctlr->usb_cmd);
+	udelay(1000);
+
+	/* Initiate controller reset */
+	writel(2, &usbctlr->usb_cmd);
+	udelay(1000);
+	port_current = -1;
+	return 0;
 }
 
 int board_usb_init(const void *blob)
@@ -320,8 +412,9 @@ int board_usb_init(const void *blob)
 				return -1;
 			host_dev_ctlr = config.reg;
 		}
-		config_port(config.periph_id, config.reg, config.params,
-			    config.utmi);
+		if (add_port(config.periph_id, config.reg, config.params,
+			    config.utmi))
+			return -1;
 	} while (node);
 #else
 	enum clock_osc_freq freq;
@@ -338,12 +431,10 @@ int board_usb_init(const void *blob)
 #ifdef CONFIG_TEGRA2_USB1_HOST
 	host_dev_ctlr = (struct usb_ctlr *)NV_PA_USB1_BASE;
 #endif
-	/* Port 1 has an internal transceiver, port 3 is external */
-	config_port(PERIPH_ID_USBD, (struct usb_ctlr *)NV_PA_USB1_BASE,
-			params, 0);
-	config_port(PERIPH_ID_USB3, (struct usb_ctlr *)NV_PA_USB3_BASE,
-			params, 1);
+	probe_port((struct usb_ctlr *)CONFIG_TEGRA2_USB0, params);
+	probe_port((struct usb_ctlr *)CONFIG_TEGRA2_USB1, params);
 #endif /* CONFIG_OF_CONTROL */
 	usb_set_host_mode();
+	port_current = -1;
 	return 0;
 }
