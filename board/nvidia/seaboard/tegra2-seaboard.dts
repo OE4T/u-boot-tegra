@@ -16,6 +16,9 @@
 		console = "/serial@70006300";
                 usb0 = "/usb@0xc5008000";
                 usb1 = "/usb@0xc5000000";
+
+		sdmmc0 = "/sdhci@c8000600";
+		sdmmc1 = "/sdhci@c8000400";
 	};
 
 	chosen {
@@ -47,14 +50,16 @@
 
 	sdhci@c8000400 {
 		status = "ok";
+		width = <4>;	/* width of SDIO port */
 		/* Parameter 3 bit 0:1=output, 0=input; bit 1:1=high, 0=low */
-		gpios = <&gpio 69 0>, /* cd, gpio PI5 */
-			<&gpio 57 0>, /* wp, gpio PH1 */
-			<&gpio 70 3>; /* power, gpio PI6 */
+		cd-gpio = <&gpio 69 0>; /* card detect, gpio PI5 */
+		wp-gpio = <&gpio 57 0>; /* write protect, gpio PH1 */
+		power-gpio = <&gpio 70 3>; /* power enable, gpio PI6 */
 	};
 
 	sdhci@c8000600 {
 		status = "ok";
+		width = <4>;	/* width of SDIO port */
 	};
 
 	lcd {
