@@ -27,6 +27,8 @@
 #ifndef _PCI_H
 #define _PCI_H
 
+#include <compiler.h>
+
 /*
  * Under PCI, each device has 256 bytes of configuration address space,
  * of which the first 64 bytes are standardized as follows:
