@@ -25,6 +25,24 @@
  * MA 02111-1307 USA
  */
 
+#include <pci.h>
+#include <asm/pci.h>
+
+static struct pci_controller coreboot_hose;
+
+#define X86_PCI_CONFIG_ADDR 0xCF8
+#define X86_PCI_CONFIG_DATA 0xCFC
+
 void pci_init_board(void)
 {
+	coreboot_hose.first_busno = 0;
+	coreboot_hose.last_busno = 0xff;
+	coreboot_hose.region_count = 0;
+
+	pci_setup_type1(&coreboot_hose, X86_PCI_CONFIG_ADDR,
+		X86_PCI_CONFIG_DATA);
+
+	pci_register_hose(&coreboot_hose);
+
+	coreboot_hose.last_busno = pci_hose_scan(&coreboot_hose);
 }

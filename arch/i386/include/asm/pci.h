@@ -1,5 +1,3 @@
-
-
 /*
  * (C) Copyright 2002
  * Daniel Engström, Omicron Ceti AB, daniel@omicron.se
@@ -24,7 +22,7 @@
  */
 
 #ifndef _PCI_I386_H_
-#define _PCI_I386_H_	1
+#define _PCI_I386_H_
 
 void pci_setup_type1(struct pci_controller* hose, u32 cfg_addr, u32 cfg_data);
 int pci_enable_legacy_video_ports(struct pci_controller* hose);
