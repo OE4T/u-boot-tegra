@@ -79,6 +79,7 @@ COBJS-$(CONFIG_CMD_CROS_BOOTSTUB) += cmd_cros_bootstub.o
 COBJS-$(CONFIG_CMD_CROS_DEVELOPER_FIRMWARE) += cmd_cros_developer_firmware.o
 COBJS-$(CONFIG_CMD_CROS_NORMAL_FIRMWARE) += cmd_cros_normal_firmware.o
 COBJS-$(CONFIG_CMD_CROS_REC) += cmd_cros_rec.o
+COBJS-$(CONFIG_CMD_CROS_ONESTOP_FIRMWARE) += cmd_cros_onestop_firmware.o
 COBJS-$(CONFIG_CMD_CROS_TPM) += cmd_vboot.o
 COBJS-$(CONFIG_DATAFLASH_MMC_SELECT) += cmd_dataflash_mmc_mux.o
 COBJS-$(CONFIG_CMD_DATE) += cmd_date.o

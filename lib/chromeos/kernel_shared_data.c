@@ -113,16 +113,11 @@ int cros_ksd_set_fwid(void *kernel_shared_data, uint8_t *fwid)
 	return 0;
 }
 
-int cros_ksd_set_active_main_firmware(void *kernel_shared_data, int which)
+int cros_ksd_set_active_main_firmware(void *kernel_shared_data,
+		int which, int type)
 {
 	KernelSharedDataType *sd = (KernelSharedDataType *)kernel_shared_data;
 	sd->binf[1] = which;
-	return 0;
-}
-
-int cros_ksd_set_active_firmware_type(void *kernel_shared_data, int type)
-{
-	KernelSharedDataType *sd = (KernelSharedDataType *)kernel_shared_data;
 	sd->binf[3] = type;
 	return 0;
 }

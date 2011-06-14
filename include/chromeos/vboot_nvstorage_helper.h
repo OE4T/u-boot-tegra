@@ -23,6 +23,15 @@
 int read_nvcontext(VbNvContext *nvcxt);
 int write_nvcontext(VbNvContext *nvcxt);
 
+/**
+ * This converts VbNvContext content to a hexdecimal string. This string is
+ * allocated statically.
+ *
+ * @param nvcxt is a VbNvContext object you want to convert
+ * @return a static-allocated string represetns [nvcxt] content
+ */
+char *nvcontext_to_str(VbNvContext *nvcxt);
+
 /* The VbNvContext is stored in mbr of internal storage device */
 #define NVCONTEXT_LBA 0
 

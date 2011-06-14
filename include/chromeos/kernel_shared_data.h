@@ -68,22 +68,15 @@ int cros_ksd_init(void *kernel_shared_data, uint8_t *frid,
 int cros_ksd_set_fwid(void *kernel_shared_data, uint8_t *fwid);
 
 /**
- * This sets active main firmware.
+ * This sets active main firmware and its type.
  *
  * @param kernel_shared_data is the data blob that firmware shares with kernel
  * @param which - recovery: 0; rewritable A: 1; rewritable B: 2
- * @return 0 if it succeeds; non-zero if it fails
- */
-int cros_ksd_set_active_main_firmware(void *kernel_shared_data, int which);
-
-/**
- * This sets active main firmware type.
- *
- * @param kernel_shared_data is the data blob that firmware shares with kernel
  * @param type - recovery: 0; normal: 1; developer: 2
  * @return 0 if it succeeds; non-zero if it fails
  */
-int cros_ksd_set_active_firmware_type(void *kernel_shared_data, int type);
+int cros_ksd_set_active_main_firmware(void *kernel_shared_data,
+		int which, int type);
 
 /**
  * This sets recovery reason.
