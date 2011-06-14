@@ -38,6 +38,7 @@ static const char *compat_names[COMPAT_COUNT] = {
 	COMPAT(NVIDIA_SPI_UART_SWITCH, "nvidia,spi-uart-switch"),
 	COMPAT(SERIAL_NS16550, "ns16550"),
 	COMPAT(NVIDIA_TEGRA20_USB, "nvidia,tegra250-usb"),
+	COMPAT(NVIDIA_TEGRA20_SDHCI, "nvidia,tegra250-sdhci"),
 };
 
 /**
@@ -375,6 +376,25 @@ static int decode_gpio_list(const void *blob, int node, const char *property,
 	return 0;
 }
 
+/**
+ * Decode a single GPIOs from an FDT.
+ *
+ * @param blob		FDT blob to use
+ * @param node		Node to look at
+ * @param property	Node property name
+ * @param gpio		gpio elements to fill from FDT
+ * @return 0 if ok, -FDT_ERR_MISSING if the property is missing.
+ */
+static int decode_gpio(const void *blob, int node, const char *property,
+		 struct fdt_gpio_state *gpio)
+{
+	int err;
+
+	gpio->gpio = FDT_GPIO_NONE;
+	err = decode_gpios(blob, node, property, gpio, 1);
+	return err == 1 ? 0 : err;
+}
+
 void fdt_setup_gpio(struct fdt_gpio_state *gpio)
 {
 	if (!fdt_gpio_isvalid(gpio))
@@ -472,4 +492,20 @@ int fdt_decode_usb(const void *blob, int node, unsigned osc_frequency_mhz,
 
 	return get_int_array(blob, clk_node, "params", config->params,
 			PARAM_COUNT);
+}
+
+int fdt_decode_sdmmc(const void *blob, int node, struct fdt_sdmmc *config)
+{
+	config->reg = (struct tegra2_mmc *)get_addr(blob, node, "reg");
+	config->enabled = get_is_enabled(blob, node, 1);
+	config->periph_id = get_int(blob, node, "periph-id", -1);
+	config->width = get_int(blob, node, "width", -1);
+	if (config->periph_id == -1 || config->width == -1)
+		return -FDT_ERR_MISSING;
+
+	/* These GPIOs are optional */
+	decode_gpio(blob, node, "cd-gpio", &config->cd_gpio);
+	decode_gpio(blob, node, "wp-gpio", &config->wp_gpio);
+	decode_gpio(blob, node, "power-gpio", &config->power_gpio);
+	return 0;
 }

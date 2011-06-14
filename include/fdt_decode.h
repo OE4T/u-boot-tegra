@@ -52,6 +52,7 @@ enum fdt_compat_id {
 	COMPAT_NVIDIA_SPI_UART_SWITCH,	/* SPI / UART switch */
 	COMPAT_SERIAL_NS16550,		/* NS16550 UART */
 	COMPAT_NVIDIA_TEGRA250_USB,	/* Tegra 250 USB port */
+	COMPAT_NVIDIA_TEGRA250_SDMMC,	/* Tegra 250 SDMMC port */
 
 	COMPAT_COUNT,
 };
@@ -152,6 +153,17 @@ struct fdt_usb {
 	int utmi;		/* 1 if port has external tranceiver, else 0 */
 	int enabled;		/* 1 to enable, 0 to disable */
 	enum periph_id periph_id;/* peripheral id */
+};
+
+/* Information about an SDMMC port */
+struct fdt_sdmmc {
+	struct tegra2_mmc *reg;	/* address of registers in physical memory */
+	int width;		/* port width in bits (normally 4) */
+	int enabled;		/* 1 to enable, 0 to disable */
+	struct fdt_gpio_state cd_gpio;		/* card detect GPIO */
+	struct fdt_gpio_state wp_gpio;		/* write protect GPIO */
+	struct fdt_gpio_state power_gpio;	/* power GPIO */
+	enum periph_id periph_id; 		/* peripheral id */
 };
 
 /**
@@ -317,3 +329,22 @@ int fdt_decode_lcd(const void *blob, struct fdt_lcd *config);
  */
 int fdt_decode_usb(const void *blob, int node, unsigned osc_frequency_mhz,
 		struct fdt_usb *config);
+
+/**
+ * Returns information from the FDT about an SDMMC port. This function reads
+ * out the following attributes:
+ *
+ *	reg
+ *	width
+ *	periph-id
+ *	enabled
+ *
+ * @param blob		FDT blob to use
+ * @param node		Node to read from
+ * @param config	structure to use to return information
+ * @returns 0 on success, -ve on error, in which case config may or may not be
+ *			unchanged. If the node is present but expected data is
+ *			missing then this will generally return
+ *			-FDT_ERR_MISSING.
+ */
+int fdt_decode_sdmmc(const void *blob, int node, struct fdt_sdmmc *config);

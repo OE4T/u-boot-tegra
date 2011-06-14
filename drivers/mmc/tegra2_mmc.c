@@ -30,6 +30,7 @@
 #include <malloc.h>
 #include <asm/clocks.h>
 #include "tegra2_mmc.h"
+#include "fdt_decode.h"
 
 enum {
 	MAX_HOSTS	= 4,		/* support 4 mmc hosts */
@@ -669,6 +670,32 @@ int board_mmc_getcd(u8 *cd, struct mmc *mmc)
 
 int tegra2_mmc_init(const void *blob)
 {
+#ifdef CONFIG_OF_CONTROL
+	struct fdt_sdmmc config;
+	int node, upto = 0;
+
+	do {
+		node = fdt_decode_next_alias(blob, "sdmmc",
+				COMPAT_NVIDIA_TEGRA250_SDMMC, &upto);
+		if (node < 0)
+			break;
+		if (fdt_decode_sdmmc(blob, node, &config))
+			return -1;
+		if (!config.enabled)
+			continue;
+
+		/* turn on the power / setup GPIOs */
+		fdt_setup_gpio(&config.power_gpio);
+		fdt_setup_gpio(&config.cd_gpio);
+		fdt_setup_gpio(&config.wp_gpio);
+
+		if (init_port(upto - 1, config.periph_id, config.reg,
+				config.width,
+				fdt_get_gpio_num(&config.cd_gpio),
+				fdt_get_gpio_num(&config.wp_gpio)))
+			return -1;
+	} while (node);
+#else
 	/* For now these are still hard-coded for Seaboard */
 
 	/* init dev 0, eMMC chip, with 4-bit bus */
@@ -686,5 +713,6 @@ int tegra2_mmc_init(const void *blob)
 			(struct tegra2_mmc *)NV_PA_SDMMC3_BASE, 4, GPIO_PI5,
 			GPIO_PH1))
 		return -1;
+#endif
 	return 0;
 }
