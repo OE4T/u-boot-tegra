@@ -23,9 +23,7 @@ COBJS-$(CONFIG_CHROMEOS) += tlcl_stub.o
 COBJS-$(CONFIG_CHROMEOS) += utility.o
 COBJS-$(CONFIG_CHROMEOS) += vboot_nvstorage_helper.o
 COBJS-$(CONFIG_CHROMEOS_BMPBLK) += gbb_bmpblk.o
-COBJS-$(CONFIG_CHROMEOS_FIRMWARE_STORAGE_NAND) += firmware_storage_nand.o
-COBJS-$(CONFIG_CHROMEOS_FIRMWARE_STORAGE_RAM)  += firmware_storage_ram.o
-COBJS-$(CONFIG_CHROMEOS_FIRMWARE_STORAGE_SPI)  += firmware_storage_spi.o
+COBJS-$(CONFIG_CHROMEOS) += firmware_storage_spi.o
 
 COBJS	:= $(COBJS-y)
 OBJS	:= $(addprefix $(obj),$(COBJS))

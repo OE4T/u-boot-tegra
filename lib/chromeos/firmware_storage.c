@@ -12,54 +12,8 @@
 #include <chromeos/common.h>
 #include <chromeos/firmware_storage.h>
 
-#if defined CONFIG_CHROMEOS_DEFAULT_FIRMWARE_STORAGE_SPI && \
-	defined CONFIG_CHROMEOS_DEFAULT_FIRMWARE_STORAGE_NAND
-#error "You can only set one as your default storage"
-#endif
-
-#if defined CONFIG_CHROMEOS_DEFAULT_FIRMWARE_STORAGE_NAND
-#	ifndef CONFIG_CHROMEOS_FIRMWARE_STORAGE_NAND
-#	error "You set NAND as default device, but did not define NAND storage"
-#	endif
-int (*const firmware_storage_init)(firmware_storage_t *file) =
-		firmware_storage_init_nand;
-
-#elif defined CONFIG_CHROMEOS_DEFAULT_FIRMWARE_STORAGE_SPI
-#	ifndef CONFIG_CHROMEOS_FIRMWARE_STORAGE_SPI
-#	error "You set SPI as default device, but did not define SPI storage"
-#	endif
 int (*const firmware_storage_init)(firmware_storage_t *file) =
 		firmware_storage_init_spi;
-
-#else
-#error "No default firmware storage device are set"
-#endif
-
-#define PREFIX "firmware_storage_init: "
-
-#ifndef CONFIG_CHROMEOS_FIRMWARE_STORAGE_NAND
-int firmware_storage_init_nand(firmware_storage_t *file)
-{
-	VBDEBUG(PREFIX "NAND is not supported\n");
-	return -1;
-}
-#endif
-
-#ifndef CONFIG_CHROMEOS_FIRMWARE_STORAGE_SPI
-int firmware_storage_init_spi(firmware_storage_t *file)
-{
-	VBDEBUG(PREFIX "SPI is not supported\n");
-	return -1;
-}
-#endif
-
-#ifndef CONFIG_CHROMEOS_FIRMWARE_STORAGE_RAM
-int firmware_storage_init_ram(firmware_storage_t *file, void *beg, void *end)
-{
-	VBDEBUG(PREFIX "RAM is not supported\n");
-	return -1;
-}
-#endif
 
 #undef PREFIX
 #define PREFIX "firmware_storage_read: "
