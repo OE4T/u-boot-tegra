@@ -27,6 +27,11 @@
 #define CONFIG_LCD_vl_col      1366
 #define CONFIG_LCD_vl_row      768
 
+/* TODO hard-coded mmc device number here */
+#define DEVICE_TYPE             "mmc"
+#define MMC_INTERNAL_DEVICE     0
+#define MMC_EXTERNAL_DEVICE     1
+
 /* entry point of onestop firmware */
 #define CONFIG_CMD_CROS_ONESTOP_FIRMWARE
 
