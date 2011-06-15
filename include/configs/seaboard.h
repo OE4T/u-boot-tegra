@@ -27,6 +27,8 @@
 
 #include <asm/sizes.h>
 
+#define CONFIG_TEGRA2_LP0
+
 #define CONFIG_SPI_UART_SWITCH
 
 /* High-level configuration options */

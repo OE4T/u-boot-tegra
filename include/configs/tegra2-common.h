@@ -25,6 +25,14 @@
 #define __TEGRA2_COMMON_H
 #include <asm/sizes.h>
 
+/*
+ * QUOTE(m) will evaluate to a string version of the value of the macro m
+ * passed in.  The extra level of indirection here is to first evaluate the
+ * macro m before applying the quoting operator.
+ */
+#define QUOTE_(m)	#m
+#define QUOTE(m)	QUOTE_(m)
+
 /* FDT support */
 #define CONFIG_OF_LIBFDT	/* Device tree support */
 #define CONFIG_OF_NO_KERNEL	/* Don't pass device tree to kernel */
@@ -181,6 +189,15 @@
 
 #define CONFIG_SYS_NO_FLASH
 
+#ifdef CONFIG_TEGRA2_LP0
+#define TEGRA_LP0_ADDR			0x1C406000
+#define TEGRA_LP0_SIZE			0x2000
+#define TEGRA_LP0_VEC \
+	"lp0_vec=" QUOTE(TEGRA_LP0_SIZE) "@" QUOTE(TEGRA_LP0_ADDR) " "
+#else
+#define TEGRA_LP0_VEC
+#endif
+
 /* Environment information */
 #define CONFIG_EXTRA_ENV_SETTINGS_COMMON \
 	CONFIG_STD_DEVICES_SETTINGS \
@@ -193,8 +210,10 @@
 	"extra_bootargs=\0" \
 	"platform_extras=" TEGRA2_SYSMEM"\0" \
 	"videospec=tegrafb\0" \
+	"lp0_args=" TEGRA_LP0_VEC "\0" \
 	"regen_all="\
 		"setenv common_bootargs console=${console} " \
+		"${lp0_args} " \
 		"video=${videospec} ${platform_extras} noinitrd; " \
 		"setenv bootargs ${common_bootargs} ${extra_bootargs} " \
 		"${bootdev_bootargs}\0" \
