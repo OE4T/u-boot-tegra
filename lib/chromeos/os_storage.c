@@ -21,12 +21,6 @@
 
 #define PREFIX "os_storage: "
 
-/*
- * MMC dev number of SD card
- * TODO(waihong): Find this number via FDT?
- */
-#define MMC_DEV_NUM_SD 1
-
 #define BACKUP_LBA_OFFSET 0x20
 
 static struct {
