@@ -3,32 +3,6 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are
- * met:
- *
- * * Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * * Redistributions in binary form must reproduce the above
- * copyright notice, this list of conditions and the following disclaimer
- * in the documentation and/or other materials provided with the
- * distribution.
- * * Neither the name of Google Inc. nor the names of its
- * contributors may be used to endorse or promote products derived from
- * this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  * Alternatively, this software may be distributed under the terms of the
  * GNU General Public License ("GPL") version 2 as published by the Free
  * Software Foundation.
@@ -40,9 +14,9 @@
 #include <chromeos/vboot_nvstorage_helper.h>
 
 /* TODO: temporary hack for factory bring up; remove/rewrite when necessary */
-#include <mmc.h>
+#include <malloc.h>
 #include <part.h>
-#include <asm/arch/nv_sdmmc.h>
+#include <chromeos/os_storage.h> /* for initialize_mmc_device */
 #include <linux/string.h>
 
 /*
@@ -56,115 +30,92 @@
 
 #define PREFIX "vboot_nvstorage_helper: "
 
-static int set_mmc_device(int new_device_index, int *last_device_index_ptr)
+/* FIXME: remove this if we do not store nvcontext in mmc device */
+uint64_t get_nvcxt_lba(void)
 {
-	int cur_dev = mmc_get_current_dev_index();
-
-	if (last_device_index_ptr)
-		*last_device_index_ptr = cur_dev;
-
-	if (cur_dev == new_device_index)
-		return 0;
-
-	return initialize_mmc_device(new_device_index);
-}
-
-static int prepare_access_nvcontext(block_dev_desc_t **dev_desc_ptr,
-		uint64_t *nvcxt_lba_ptr)
-{
-	block_dev_desc_t *dev_desc = NULL;
-	uint8_t buf[512];
-
-	dev_desc = get_dev("mmc", 0);
-	if (dev_desc == NULL) {
-		VBDEBUG(PREFIX "get_dev(0) fail\n");
-		return -1;
-	}
-
-	if (dev_desc->block_read(dev_desc->dev, 1, 1, buf) < 0) {
-		VBDEBUG(PREFIX "read primary GPT table fail\n");
-		return -1;
-	}
-
-	*dev_desc_ptr = dev_desc;
-	*nvcxt_lba_ptr = 0; /* Store cookie in MBR */
+	/* we store nvcontext in mbr */
 	return 0;
 }
 
-static int access_nvcontext(VbNvContext *nvcxt, int is_read)
+/**
+ * This reads the VbNvContext from internal (mmc) storage device. If it
+ * succeeds, caller must free buf_ptr. If it fails, both dev_desc_ptr and
+ * buf_ptr will be set to NULL.
+ *
+ * @param dev_desc_ptr stores the pointer to the device descriptor
+ * @param buf_ptr stores the pointer to a buffer holding loaded VbNvContext data
+ * @return 0 if it succeeds; non-zero if it fails
+ */
+static int load_nvcxt(block_dev_desc_t **dev_desc_ptr, uint8_t **buf_ptr)
 {
-	int retval = -1;
-	int last_dev;
-	block_dev_desc_t *dev_desc;
-	uint64_t nvcxt_lba;
-	uint8_t buf[512];
+	const uint64_t nvcxt_lba = get_nvcxt_lba();
+	block_dev_desc_t *dev_desc = NULL;
+	uint8_t *buf = NULL;
 
-	if (set_mmc_device(0, &last_dev)) {
-		VBDEBUG(PREFIX "set_mmc_device(0) fail\n");
+	*dev_desc_ptr = NULL;
+	*buf_ptr = NULL;
+
+	if (initialize_mmc_device(MMC_INTERNAL_DEVICE)) {
+		VBDEBUG(PREFIX "init MMC_INTERNAL_DEVICE fail\n");
 		return -1;
 	}
 
-	VBDEBUG(PREFIX "last_dev: %d\n", last_dev);
+	dev_desc = get_dev("mmc", MMC_INTERNAL_DEVICE);
+	if (dev_desc == NULL) {
+		VBDEBUG(PREFIX "get_dev(mmc, MMC_INTERNAL_DEVICE) fail\n");
+		return -1;
+	}
 
-	if (prepare_access_nvcontext(&dev_desc, &nvcxt_lba)) {
-		VBDEBUG(PREFIX "prepare_access_nvcontext fail\n");
-		goto EXIT;
+	buf = memalign(CACHE_LINE_SIZE, 512);
+	if (!buf) {
+		VBDEBUG(PREFIX "memalign(%d, 512) == NULL\n", CACHE_LINE_SIZE);
+		return -1;
 	}
 
 	if (dev_desc->block_read(dev_desc->dev, nvcxt_lba, 1, buf) < 0) {
 		VBDEBUG(PREFIX "block_read fail\n");
-		goto EXIT;
+		free(buf);
+		return -1;
 	}
 
-	if (is_read)
-		memcpy(nvcxt->raw, buf, VBNV_BLOCK_SIZE);
-	else {
-		memcpy(buf, nvcxt->raw, VBNV_BLOCK_SIZE);
-		if (dev_desc->block_write(dev_desc->dev,
-					nvcxt_lba, 1, buf) < 0) {
-			VBDEBUG(PREFIX "block_write fail\n");
-			goto EXIT;
-		}
-	}
-
-	retval = 0;
-EXIT:
-	/* restore previous device */
-	if (last_dev != -1 && last_dev != 0)
-		set_mmc_device(last_dev, NULL);
-
-	return retval;
-}
-
-uint64_t get_nvcxt_lba(void)
-{
-	int last_dev;
-	block_dev_desc_t *dev_desc;
-	uint64_t nvcxt_lba = ~0ULL;
-
-	if (set_mmc_device(0, &last_dev)) {
-		VBDEBUG(PREFIX "set_mmc_device(0) fail\n");
-		return ~0ULL;
-	}
-
-	if (prepare_access_nvcontext(&dev_desc, &nvcxt_lba))
-		VBDEBUG(PREFIX "prepare_access_nvcontext fail\n");
-
-	/* restore previous device */
-	if (last_dev != -1 && last_dev != 0)
-		set_mmc_device(last_dev, NULL);
-
-	return nvcxt_lba;
+	*dev_desc_ptr = dev_desc;
+	*buf_ptr = buf;
+	return 0;
 }
 
 int read_nvcontext(VbNvContext *nvcxt)
 {
-	return access_nvcontext(nvcxt, 1);
+	block_dev_desc_t *dev_desc;
+	uint8_t *buf;
+
+	if (load_nvcxt(&dev_desc, &buf))
+		return -1;
+
+	memcpy(nvcxt->raw, buf, VBNV_BLOCK_SIZE);
+
+	free(buf);
+	return 0;
 }
 
 int write_nvcontext(VbNvContext *nvcxt)
 {
-	return access_nvcontext(nvcxt, 0);
+	const uint64_t nvcxt_lba = get_nvcxt_lba();
+	block_dev_desc_t *dev_desc;
+	uint8_t *buf;
+	int ret = 0;
+
+	if (load_nvcxt(&dev_desc, &buf))
+		return -1;
+
+	memcpy(buf, nvcxt->raw, VBNV_BLOCK_SIZE);
+
+	ret = dev_desc->block_write(dev_desc->dev, nvcxt_lba, 1, buf);
+	free(buf);
+
+	if (ret < 0)
+		VBDEBUG(PREFIX "block_write fail\n");
+
+	return ret;
 }
 
 int clear_recovery_request(void)
