@@ -194,7 +194,7 @@ EXIT:
 		sd->vbnv[1] = VBNV_BLOCK_SIZE;
 
 		firmware_storage_t file;
-		firmware_storage_init(&file);
+		firmware_storage_open_spi(&file);
 		firmware_storage_read(&file,
 				CONFIG_OFFSET_FMAP, CONFIG_LENGTH_FMAP,
 				sd->shared_data_body);

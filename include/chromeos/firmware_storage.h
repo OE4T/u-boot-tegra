@@ -19,11 +19,8 @@ enum whence_t { SEEK_SET, SEEK_CUR, SEEK_END };
 
 /*
  * The semantic (argument and return value) is similar with system
- * call lseek(2), read(2) and write(2), except that file description
- * is replaced by <context>.
- *
- * <context> stores current status of the storage device and
- * local states of the driver.
+ * call lseek(2), read(2) and write(2), except that file descriptor
+ * is replaced by [context].
  */
 typedef struct {
 	off_t (*seek)(void *context, off_t offset, enum whence_t whence);
@@ -31,24 +28,33 @@ typedef struct {
 	ssize_t (*write)(void *context, const void *buf, size_t count);
 	int (*close)(void *context);
 
-	/* Returns 0 if success, nonzero if error. */
+	/**
+	 * This locks the storage device, i.e., enables write protect.
+	 *
+	 * @return 0 if it succeeds, non-zero if it fails
+	 */
 	int (*lock_device)(void *context);
 
 	void *context;
 } firmware_storage_t;
 
-/* Returns 0 if success, nonzero if error. */
-int firmware_storage_init_nand(firmware_storage_t *file);
-int firmware_storage_init_spi(firmware_storage_t *file);
-int firmware_storage_init_ram(firmware_storage_t *file, void *beg, void *end);
-
-extern int (*const firmware_storage_init)(firmware_storage_t *file);
-
-/*
- * Read/write <count> bytes, starting from <offset>, from/to firmware storage
- * device <file> into/from buffer <buf>.
+/**
+ * This opens SPI flash device
  *
- * Return 0 on success, non-zero on error.
+ * @param file - the opened SPI flash device
+ * @return 0 if it succeeds, non-zero if it fails
+ */
+int firmware_storage_open_spi(firmware_storage_t *file);
+
+/**
+ * These read or write [count] bytes starting from [offset] of storage into or
+ * from the [buf]. These are really wrappers of file->{seek,read,write}.
+ *
+ * @param file - storage device you access
+ * @param offset - where on the device you access
+ * @param count - the amount of data in byte you access
+ * @param buf - the data that these functions read from or write to
+ * @return 0 if it succeeds, non-zero if it fails
  */
 int firmware_storage_read(firmware_storage_t *file,
 		const off_t offset, const size_t count, void *buf);

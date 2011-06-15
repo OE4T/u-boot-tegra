@@ -206,7 +206,7 @@ static int lock_spi(void *context)
 	return 0;
 }
 
-int firmware_storage_init_spi(firmware_storage_t *file)
+int firmware_storage_open_spi(firmware_storage_t *file)
 {
 	const unsigned int bus = 0;
 	const unsigned int cs = 0;

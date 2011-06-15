@@ -12,17 +12,15 @@
 #include <chromeos/common.h>
 #include <chromeos/firmware_storage.h>
 
-int (*const firmware_storage_init)(firmware_storage_t *file) =
-		firmware_storage_init_spi;
-
-#undef PREFIX
-#define PREFIX "firmware_storage_read: "
+#define PREFIX "firmware_storage: "
 
 int firmware_storage_read(firmware_storage_t *file,
 		const off_t offset, const size_t count, void *buf)
 {
 	ssize_t size;
 	size_t remain;
+
+	VBDEBUG(PREFIX "read\n");
 
 	if (file->seek(file->context, offset, SEEK_SET) < 0) {
 		VBDEBUG(PREFIX "seek to address 0x%08lx fail\n", offset);
@@ -50,14 +48,13 @@ int firmware_storage_read(firmware_storage_t *file,
 	return 0;
 }
 
-#undef PREFIX
-#define PREFIX "firmware_storage_write: "
-
 int firmware_storage_write(firmware_storage_t *file,
 		const off_t offset, const size_t count, const void *buf)
 {
 	ssize_t size;
 	size_t remain;
+
+	VBDEBUG(PREFIX "write\n");
 
 	if (file->seek(file->context, offset, SEEK_SET) < 0) {
 		VBDEBUG(PREFIX "seek to address 0x%08lx fail\n", offset);
