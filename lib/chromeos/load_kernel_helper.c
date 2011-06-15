@@ -72,15 +72,14 @@ int load_kernel_wrapper_core(LoadKernelParams *params,
 	params->gbb_size = gbb_size;
 
 	params->boot_flags = boot_flags;
-	params->shared_data_blob = shared_data_blob ? shared_data_blob :
-			(uint8_t *) CONFIG_VB_SHARED_DATA_BLOB;
-	params->shared_data_size = CONFIG_VB_SHARED_DATA_SIZE;
+	params->shared_data_blob = shared_data_blob;
+	params->shared_data_size = VB_SHARED_DATA_REC_SIZE;
 
 	params->bytes_per_lba = get_bytes_per_lba();
 	params->ending_lba = get_ending_lba();
 
-	params->kernel_buffer = (uint8_t *) CONFIG_LOADADDR;
-	params->kernel_buffer_size = CONFIG_MAX_KERNEL_SIZE;
+	params->kernel_buffer = (uint8_t*)CONFIG_CHROMEOS_KERNEL_LOADADDR;
+	params->kernel_buffer_size = CONFIG_CHROMEOS_KERNEL_BUFSIZE;
 
 	params->nv_context = nvcxt;
 
