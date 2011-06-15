@@ -114,8 +114,8 @@ static ssize_t read_spi(void *context, void *buf, size_t count)
 static void align_to_sector(size_t *offset_ptr, size_t *length_ptr)
 {
 	VBDEBUG(PREFIX "before adjustment\n");
-	VBDEBUG(PREFIX "offset: 0x%lx\n", *offset_ptr);
-	VBDEBUG(PREFIX "length: 0x%lx\n", *length_ptr);
+	VBDEBUG(PREFIX "offset: 0x%x\n", *offset_ptr);
+	VBDEBUG(PREFIX "length: 0x%x\n", *length_ptr);
 
 	/* Adjust if offset is not multiple of SECTOR_SIZE */
 	if (*offset_ptr & (SECTOR_SIZE - 1ul)) {
@@ -129,8 +129,8 @@ static void align_to_sector(size_t *offset_ptr, size_t *length_ptr)
 	}
 
 	VBDEBUG(PREFIX "after adjustment\n");
-	VBDEBUG(PREFIX "offset: 0x%lx\n", *offset_ptr);
-	VBDEBUG(PREFIX "length: 0x%lx\n", *length_ptr);
+	VBDEBUG(PREFIX "offset: 0x%x\n", *offset_ptr);
+	VBDEBUG(PREFIX "length: 0x%x\n", *length_ptr);
 }
 
 static ssize_t write_spi(void *context, const void *buf, size_t count)
@@ -152,7 +152,7 @@ static ssize_t write_spi(void *context, const void *buf, size_t count)
 	if (border_check(flash, offset, &tmp))
 		return -1;
 	if (tmp != length) {
-		VBDEBUG(PREFIX "cannot erase range [%08lx:%08lx]: %08lx\n",
+		VBDEBUG(PREFIX "cannot erase range [%08x:%08x]: %08x\n",
 				offset, offset + length, offset + tmp);
 		return -1;
 	}
@@ -169,8 +169,8 @@ static ssize_t write_spi(void *context, const void *buf, size_t count)
 		goto EXIT;
 	}
 
-	VBDEBUG(PREFIX "cxt->offset: 0x%08lx\n", cxt->offset);
-	VBDEBUG(PREFIX "offset:      0x%08lx\n", offset);
+	VBDEBUG(PREFIX "cxt->offset: 0x%08x\n", cxt->offset);
+	VBDEBUG(PREFIX "offset:      0x%08x\n", offset);
 
 	/* combine data we want to write and backup data */
 	memcpy(backup_buf + (cxt->offset - offset), buf, count);

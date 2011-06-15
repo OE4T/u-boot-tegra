@@ -25,7 +25,7 @@ int firmware_storage_read(firmware_storage_t *file,
 	size_t remain;
 
 	if (file->seek(file->context, offset, SEEK_SET) < 0) {
-		VBDEBUG(PREFIX "seek to address 0x%08x fail\n", offset);
+		VBDEBUG(PREFIX "seek to address 0x%08lx fail\n", offset);
 		return -1;
 	}
 
@@ -38,12 +38,12 @@ int firmware_storage_read(firmware_storage_t *file,
 	}
 
 	if (size < 0) {
-		VBDEBUG(PREFIX "an error occur when read firmware: %ld\n", size);
+		VBDEBUG(PREFIX "an error occur when read firmware: %u\n", size);
 		return -1;
 	}
 
 	if (remain > 0) {
-		VBDEBUG(PREFIX "cannot read all data: %ld\n", remain);
+		VBDEBUG(PREFIX "cannot read all data: %u\n", remain);
 		return -1;
 	}
 
@@ -60,7 +60,7 @@ int firmware_storage_write(firmware_storage_t *file,
 	size_t remain;
 
 	if (file->seek(file->context, offset, SEEK_SET) < 0) {
-		VBDEBUG(PREFIX "seek to address 0x%08x fail\n", offset);
+		VBDEBUG(PREFIX "seek to address 0x%08lx fail\n", offset);
 		return -1;
 	}
 
@@ -73,12 +73,12 @@ int firmware_storage_write(firmware_storage_t *file,
 	}
 
 	if (size < 0) {
-		VBDEBUG(PREFIX "an error occur when write firmware: %ld\n", size);
+		VBDEBUG(PREFIX "an error occur when write firmware: %d\n", size);
 		return -1;
 	}
 
 	if (remain > 0) {
-		VBDEBUG(PREFIX "cannot write all data: %ld\n", remain);
+		VBDEBUG(PREFIX "cannot write all data: %u\n", remain);
 		return -1;
 	}
 

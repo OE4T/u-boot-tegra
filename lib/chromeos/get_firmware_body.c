@@ -57,11 +57,11 @@ int GetFirmwareBody(LoadFirmwareParams *params, uint64_t index)
 	ssize_t n;
 	uint8_t *firmware_body;
 
-	VBDEBUG(PREFIX "firmware index: %d\n", index);
+	VBDEBUG(PREFIX "firmware index: %llu\n", index);
 
 	/* index = 0: firmware A; 1: firmware B; anything else: invalid */
 	if (index != 0 && index != 1) {
-		VBDEBUG(PREFIX "incorrect index: %d\n", index);
+		VBDEBUG(PREFIX "incorrect index: %llu\n", index);
 		return 1;
 	}
 

@@ -249,12 +249,13 @@ int load_kernel_wrapper(LoadKernelParams *params,
 static int load_kernel_config(uint64_t bootloader_address)
 {
 	char buf[80 + CROS_CONFIG_SIZE];
+	const uint32_t addr = (uint32_t)bootloader_address;
 
 	strcpy(buf, "setenv bootargs ${bootargs} ");
 
 	/* Use the bootloader address to find the kernel config location. */
-	strncat(buf, (char *)(bootloader_address - CROS_PARAMS_SIZE -
-			CROS_CONFIG_SIZE), CROS_CONFIG_SIZE);
+	strncat(buf, (char*)(addr - CROS_PARAMS_SIZE - CROS_CONFIG_SIZE),
+			CROS_CONFIG_SIZE);
 
 	/*
 	 * Use run_command instead of setenv because we need variable
@@ -386,7 +387,7 @@ static int boot_kernel(LoadKernelParams *params)
 
 	if (load_kernel_config(params->bootloader_address)) {
 		VBDEBUG(PREFIX "error: load kernel config failed\n");
-		return;
+		return LOAD_KERNEL_INVALID;
 	}
 
 	if ((cmdline = getenv("bootargs"))) {
