@@ -10,6 +10,7 @@
 #include <configs/chromeos_seaboard_common.h>
 
 #define CONFIG_VBOOT_WRAPPER
+#define CONFIG_CMD_VBEXPORT_TEST
 
 #undef CONFIG_BOOTDELAY
 #define CONFIG_BOOTDELAY	-1	/* disable auto boot */
