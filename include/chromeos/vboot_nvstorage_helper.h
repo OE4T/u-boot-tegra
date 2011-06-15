@@ -11,31 +11,19 @@
 #ifndef CHROMEOS_VBOOT_NVSTORAGE_HELPER_H_
 #define CHROMEOS_VBOOT_NVSTORAGE_HELPER_H_
 
-#include <linux/types.h>
-#include <chromeos/firmware_storage.h>
-
 #include <vboot_nvstorage.h>
 
-/*
- * Read/write non-volatile storage: return zero if success, non-zero if fail.
+/**
+ * These read/write VbNvContext from internal storage devcie. Before calling
+ * these functions, caller must have initialized the storage device first.
  *
- * <nvram> must be at least VBNV_BLOCK_SIZE bytes.
- *
- * See vboot_reference/firmware/include/vboot_nvstorage.h
+ * @param nvcxt points to a VbNvContext these functions read from or write to
+ * @return 0 if it succeeds; non-zero if it fails
  */
 int read_nvcontext(VbNvContext *nvcxt);
 int write_nvcontext(VbNvContext *nvcxt);
 
-/*
- * Set the recovery request in the non-volatile storage.
- *
- * Return zero if success, non-zero if fail.
- */
-int clear_recovery_request(void);
-
-/*
- * Set the recovery request to <reason> and reboot. This function never returns.
- */
-void reboot_to_recovery_mode(uint32_t reason);
+/* The VbNvContext is stored in mbr of internal storage device */
+#define NVCONTEXT_LBA 0
 
 #endif /* CHROMEOS_VBOOT_NVSTORAGE_HELPER_H_ */
