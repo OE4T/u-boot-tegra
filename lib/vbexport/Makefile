@@ -13,6 +13,7 @@ include $(TOPDIR)/config.mk
 LIB	= $(obj)libvbexport.a
 
 COBJS-$(CONFIG_VBOOT_WRAPPER) += utility.o
+COBJS-$(CONFIG_VBOOT_WRAPPER) += tlcl_stub.o
 
 COBJS	:= $(COBJS-y)
 OBJS	:= $(addprefix $(obj),$(COBJS))
