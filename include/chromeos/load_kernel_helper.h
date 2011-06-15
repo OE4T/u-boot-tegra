@@ -12,38 +12,26 @@
 #define CHROMEOS_LOAD_KERNEL_HELPER_H_
 
 #include <linux/types.h>
-
-#include <load_kernel_fw.h>
 #include <vboot_nvstorage.h>
 
-/*
- * Wrapper of LoadKernel() function. Returns the return value of LoadKernel().
+/**
+ * This loads and verifies the kernel image on storage device that is specified
+ * by set_bootdev. The caller of this functions must have called set_bootdev
+ * first.
  *
- * See vboot_reference/firmware/include/load_kernel_fw.h for documentation.
- *
- * If <shared_data_blob> is NULL, it will use a system default location.
+ * @param boot_flags are bitwise-or'ed of flags in load_kernel_fw.h
+ * @param gbb_data points to a GBB blob
+ * @param gbb_size is the size of the GBB blob
+ * @param vbshared_data points to VbSharedData blob
+ * @param vbshared_size is the size of the VbSharedData blob
+ * @param nvcxt points to a VbNvContext object
+ * @return error codes, e.g., LOAD_KERNEL_INVALID if either the verification
+ *         fails or the kernel is not bootable; otherwise, this function
+ *         boots the kernel and never returns to its caller
  */
-int load_kernel_wrapper(LoadKernelParams *params,
-		void *gbb_data, uint64_t gbb_size, uint64_t boot_flags,
-		VbNvContext *nvcxt, uint8_t *shared_data_blob);
-
-/*
- * Actual wrapper implementation. Most callers invoke it with
- * 'bypass_load_kernel' set to False. If it is set to True - the shared memory
- * is intialized, but the actual kernel load function is not invoked. This
- * facilitates debugging when the kernel is loaded by some other means (for
- * instance netbooted)
- */
-int load_kernel_wrapper_core(LoadKernelParams *params, void *gbb_data,
-			     uint64_t gbb_size, uint64_t boot_flags,
-			     VbNvContext *nvcxt, uint8_t *shared_data_blob,
-			     int bypass_load_kernel);
-
-/*
- * Call load_kernel_wrapper and boot the loaded kernel if load_kernel_wrapper
- * returns success.
- */
-int load_and_boot_kernel(void *gbb_data, uint64_t gbb_size,
-		uint64_t boot_flags);
+int boot_kernel(uint64_t boot_flags,
+		void *gbb_data, uint32_t gbb_size,
+		void *vbshared_data, uint32_t vbshared_size,
+		VbNvContext *nvcxt);
 
 #endif /* CHROMEOS_LOAD_KERNEL_HELPER_H_ */

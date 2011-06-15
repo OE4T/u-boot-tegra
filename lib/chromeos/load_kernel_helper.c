@@ -9,13 +9,14 @@
  */
 
 #include <common.h>
-#include <part.h>
 #include <chromeos/common.h>
-#include <chromeos/gpio.h>
-#include <chromeos/kernel_shared_data.h>
 #include <chromeos/load_kernel_helper.h>
 #include <chromeos/os_storage.h>
 #include <chromeos/vboot_nvstorage_helper.h>
+
+/* TODO move to somewhere else */
+#include <chromeos/gpio.h>
+#include <chromeos/kernel_shared_data.h>
 
 /* TODO For load fmap; remove when not used */
 #include <chromeos/firmware_storage.h>
@@ -34,19 +35,30 @@ int do_bootm(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 
 #include <load_kernel_fw.h>
 #include <vboot_nvstorage.h>
-#include <vboot_struct.h>
+#include <vboot_struct.h> /* for VB_SHARED_DATA_REC_SIZE */
 
 /* This is used to keep u-boot and kernel in sync */
 #define SHARED_MEM_VERSION 1
 
-#undef PREFIX
-#define PREFIX "load_kernel_wrapper: "
+#define PREFIX "load_kernel_helper: "
 
-int load_kernel_wrapper_core(LoadKernelParams *params,
-			     void *gbb_data, uint64_t gbb_size,
-			     uint64_t boot_flags, VbNvContext *nvcxt,
-			     uint8_t *shared_data_blob,
-			     int bypass_load_kernel)
+/**
+ * This is a wrapper of LoadKernel, which verifies the kernel image specified
+ * by set_bootdev. The caller of this functions must have called set_bootdev
+ * first.
+ *
+ * @param boot_flags are bitwise-or'ed of flags in load_kernel_fw.h
+ * @param gbb_data points to a GBB blob
+ * @param gbb_size is the size of the GBB blob
+ * @param vbshared_data points to VbSharedData blob
+ * @param vbshared_size is the size of the VbSharedData blob
+ * @param nvcxt points to a VbNvContext object
+ * @return LoadKernel's return value
+ */
+static int load_kernel_wrapper(LoadKernelParams *params, uint64_t boot_flags,
+		void *gbb_data, uint32_t gbb_size,
+		void *vbshared_data, uint32_t vbshared_size,
+		VbNvContext *nvcxt)
 {
 	/*
 	 * TODO(clchiou): Hack for bringing up factory; preserve recovery
@@ -56,29 +68,21 @@ int load_kernel_wrapper_core(LoadKernelParams *params,
 	VbNvGet(nvcxt, VBNV_RECOVERY_REQUEST, &reason);
 
 	int status = LOAD_KERNEL_NOT_FOUND;
-	block_dev_desc_t *dev_desc;
 
 	memset(params, '\0', sizeof(*params));
 
-	if (!bypass_load_kernel) {
-		dev_desc = get_bootdev();
-		if (!dev_desc) {
-			VBDEBUG(PREFIX "get_bootdev fail\n");
-			goto EXIT;
-		}
-	}
+	params->boot_flags = boot_flags;
 
 	params->gbb_data = gbb_data;
 	params->gbb_size = gbb_size;
 
-	params->boot_flags = boot_flags;
-	params->shared_data_blob = shared_data_blob;
-	params->shared_data_size = VB_SHARED_DATA_REC_SIZE;
+	params->shared_data_blob = vbshared_data;
+	params->shared_data_size = vbshared_size;
 
 	params->bytes_per_lba = get_bytes_per_lba();
 	params->ending_lba = get_ending_lba();
 
-	params->kernel_buffer = (uint8_t*)CONFIG_CHROMEOS_KERNEL_LOADADDR;
+	params->kernel_buffer = (void*)CONFIG_CHROMEOS_KERNEL_LOADADDR;
 	params->kernel_buffer_size = CONFIG_CHROMEOS_KERNEL_BUFSIZE;
 
 	params->nv_context = nvcxt;
@@ -97,14 +101,8 @@ int load_kernel_wrapper_core(LoadKernelParams *params,
 	VBDEBUG(PREFIX "boot_flags:           0x%08x\n",
 			(int) params->boot_flags);
 
-	if (!bypass_load_kernel) {
-		status = LoadKernel(params);
-	} else {
-		status = LOAD_KERNEL_SUCCESS;
-		params->partition_number = 2;
-	}
+	status = LoadKernel(params);
 
-EXIT:
 	VBDEBUG(PREFIX "LoadKernel status: %d\n", status);
 	if (status == LOAD_KERNEL_SUCCESS) {
 		VBDEBUG(PREFIX "partition_number:   0x%08x\n",
@@ -114,6 +112,7 @@ EXIT:
 		VBDEBUG(PREFIX "bootloader_size:    0x%08x\n",
 				(int) params->bootloader_size);
 
+		/* TODO(clchiou): deprecated when we fix crosbug:14022 */
 		if (params->partition_number == 2) {
 			setenv("kernelpart", "2");
 			setenv("rootpart", "3");
@@ -231,35 +230,34 @@ EXIT:
 	return status;
 }
 
-int load_kernel_wrapper(LoadKernelParams *params,
-			void *gbb_data, uint64_t gbb_size,
-			uint64_t boot_flags, VbNvContext *nvcxt,
-			uint8_t *shared_data_blob)
-{
-	return load_kernel_wrapper_core(params, gbb_data, gbb_size, boot_flags,
-					nvcxt, shared_data_blob, 0);
-}
-
 /* Maximum kernel command-line size */
 #define CROS_CONFIG_SIZE 4096
 
 /* Size of the x86 zeropage table */
 #define CROS_PARAMS_SIZE 4096
 
-static int load_kernel_config(uint64_t bootloader_address)
+/**
+ * This loads kernel command line from the buffer that holds the loaded kernel
+ * image. This function calculates the address of the command line from the
+ * bootloader address.
+ *
+ * @param bootloader_address is the address of the bootloader in the buffer
+ * @return 0 if it succeeds; non-zero if it fails
+ */
+static int load_kernel_config(void *bootloader_address)
 {
 	char buf[80 + CROS_CONFIG_SIZE];
-	const uint32_t addr = (uint32_t)bootloader_address;
 
 	strcpy(buf, "setenv bootargs ${bootargs} ");
 
 	/* Use the bootloader address to find the kernel config location. */
-	strncat(buf, (char*)(addr - CROS_PARAMS_SIZE - CROS_CONFIG_SIZE),
+	strncat(buf, bootloader_address - CROS_PARAMS_SIZE - CROS_CONFIG_SIZE,
 			CROS_CONFIG_SIZE);
 
 	/*
-	 * Use run_command instead of setenv because we need variable
-	 * substitutions.
+	 * TODO(clchiou): Use run_command instead of setenv because we need
+	 * variable substitutions. This shouldn't be the case after we fix
+	 * crosbug:14022
 	 */
 	if (run_command(buf, 0)) {
 		VBDEBUG(PREFIX "run_command(%s) fail\n", buf);
@@ -310,17 +308,22 @@ static char *emit_guid(char *dst, uint8_t *guid)
 	return dst;
 }
 
-/*
- * Replace:
+/**
+ * This replaces:
  *   %D -> device number
  *   %P -> partition number
  *   %U -> GUID
+ * in kernel command line.
  *
  * For example:
  *   ("root=/dev/sd%D%P", 2, 3)      -> "root=/dev/sdc3"
  *   ("root=/dev/mmcblk%Dp%P", 0, 5) -> "root=/dev/mmcblk0p5".
  *
- * <cmdline> must have sufficient space for in-place update.
+ * @param src - input string
+ * @param devnum - device number of the storage device we will mount
+ * @param partnum - partition number of the root file system we will mount
+ * @param guid - guid of the kernel partition
+ * @param dst - output string; a copy of [src] with special characters replaced
  */
 static void update_cmdline(char *src, int devnum, int partnum, uint8_t *guid,
 		char *dst)
@@ -373,7 +376,14 @@ static void update_cmdline(char *src, int devnum, int partnum, uint8_t *guid,
 	*dst = '\0';
 }
 
-static int boot_kernel(LoadKernelParams *params)
+/**
+ * This boots kernel specified in [parmas].
+ *
+ * @param params that specifies where to boot from
+ * @return LOAD_KERNEL_INVALID if it fails to boot; otherwise it never returns
+ *         to its caller
+ */
+static int boot_kernel_helper(LoadKernelParams *params)
 {
 	char *cmdline, cmdline_buf[4096];
 	char load_address[32];
@@ -385,7 +395,12 @@ static int boot_kernel(LoadKernelParams *params)
 	VBDEBUG(PREFIX "bootloader_address: 0x%08x\n",
 			(int) params->bootloader_address);
 
-	if (load_kernel_config(params->bootloader_address)) {
+	/*
+	 * casting bootloader_address of uint64_t type to uint32_t before
+	 * further casting it to void* to avoid compiler warning
+	 * "cast to pointer from integer of different size"
+	 */
+	if (load_kernel_config((void*)(uint32_t)params->bootloader_address)) {
 		VBDEBUG(PREFIX "error: load kernel config failed\n");
 		return LOAD_KERNEL_INVALID;
 	}
@@ -398,16 +413,15 @@ static int boot_kernel(LoadKernelParams *params)
 				params->partition_guid,
 				cmdline_buf);
 		setenv("bootargs", cmdline_buf);
-		VBDEBUG(PREFIX "cmdline after update:  %s\n", getenv("bootargs"));
+		VBDEBUG(PREFIX "cmdline after update:  %s\n",
+				getenv("bootargs"));
 	} else {
 		VBDEBUG(PREFIX "bootargs == NULL\n");
 	}
 
 	/*
-	 * FIXME: So far bootloader in kernel partition isn't really a
-	 * bootloader; instead, it is merely a u-boot scripts that sets kernel
-	 * parameters. And therefore we still have to boot kernel to here
-	 * by calling do_bootm.
+	 * TODO(clchiou): we probably should minimize calls to other u-boot
+	 * commands inside verified boot for security reasons?
 	 */
 	sprintf(load_address, "0x%p", params->kernel_buffer);
 	VBDEBUG(PREFIX "run command: %s %s\n", argv[0], argv[1]);
@@ -418,47 +432,30 @@ static int boot_kernel(LoadKernelParams *params)
 	return LOAD_KERNEL_INVALID;
 }
 
-static void prepare_bootargs(void)
-{
-	/* TODO move to u-boot-config */
-	run_command("setenv console console=ttyS0,115200n8", 0);
-	run_command("setenv bootargs "
-			"${bootargs} ${console} ${platform_extras}", 0);
-}
-
-int load_and_boot_kernel(void *gbb_data, uint64_t gbb_size,
-		uint64_t boot_flags)
+int boot_kernel(uint64_t boot_flags,
+		void *gbb_data, uint32_t gbb_size,
+		void *vbshared_data, uint32_t vbshared_size,
+		VbNvContext *nvcxt)
 {
 	LoadKernelParams params;
-	VbNvContext nvcxt;
 	int status;
 
-	if (read_nvcontext(&nvcxt)) {
-		/*
-		 * Even if we can't read nvcxt, we continue anyway because this
-		 * is developer firmware
-		 */
-		VBDEBUG(PREFIX "fail to read nvcontext\n");
-	}
-
-	prepare_bootargs();
-
-	status = load_kernel_wrapper(&params, gbb_data, gbb_size,
-			boot_flags, &nvcxt, NULL);
+	status = load_kernel_wrapper(&params, boot_flags, gbb_data, gbb_size,
+			vbshared_data, vbshared_size, nvcxt);
 
 	VBDEBUG(PREFIX "load_kernel_wrapper returns %d\n", status);
 
-	if (VbNvTeardown(&nvcxt) ||
-			(nvcxt.raw_changed && write_nvcontext(&nvcxt))) {
-		/*
-		 * Even if we can't read nvcxt, we continue anyway because this
-		 * is developer firmware
-		 */
-		VBDEBUG(PREFIX "fail to write nvcontext\n");
-	}
+	/*
+	 * Failure of tearing down or writing back VbNvContext is non-fatal. So
+	 * we just complain about it, but don't return error code for it.
+	 */
+	if (VbNvTeardown(nvcxt))
+		VBDEBUG(PREFIX "fail to tear down VbNvContext\n");
+	else if (nvcxt->raw_changed && write_nvcontext(nvcxt))
+		VBDEBUG(PREFIX "fail to write back nvcontext\n");
 
 	if (status == LOAD_KERNEL_SUCCESS)
-		return boot_kernel(&params);
+		return boot_kernel_helper(&params);
 
 	return status;
 }
