@@ -10,13 +10,9 @@
 
 #include <common.h>
 #include <malloc.h>
-#ifdef CONFIG_MMC
 #include <mmc.h>
-#endif
 #include <part.h>
-#ifdef CONFIG_USB_STORAGE
 #include <usb.h>
-#endif
 #include <chromeos/common.h>
 #include <chromeos/os_storage.h>
 #include <linux/string.h> /* for strcmp */
@@ -192,48 +188,34 @@ int BootDeviceWriteLBA(uint64_t lba_start, uint64_t lba_count,
 	return 0;
 }
 
-#ifdef CONFIG_MMC
-int is_mmc_storage_present(int mmc_device_number)
+int initialize_mmc_device(int dev)
 {
-	if (mmc_device_number >= MMC_DEV_INSTANCES) {
-		VBDEBUG(PREFIX "%d >= MMC_DEV_INSTANCES\n", mmc_device_number);
-		return 0;
+	struct mmc *mmc;
+	int err;
+
+	mmc = find_mmc_device(dev);
+	if (!mmc) {
+		VBDEBUG(PREFIX "no mmc device found for dev %d\n", dev);
+		return -1;
 	}
 
-	/* TODO(waihong): Better way to probe MMC than restart it */
-	return initialize_mmc_device(mmc_device_number) == 0;
-}
-#else
-int is_mmc_storage_present(int mmc_device_number)
-{
-	printf("MMC storage is not enabled\n");
+	if ((err = mmc_init(mmc))) {
+		VBDEBUG(PREFIX "mmc_init() failed: %d\n", err);
+		return -1;
+	}
+
 	return 0;
 }
-#endif
 
-#ifdef CONFIG_USB_STORAGE
-int is_usb_storage_present(int usb_controller_number)
+int is_mmc_storage_present(int mmc_device_number)
 {
-	if (usb_controller_number >= CONFIG_USB_CONTROLLER_INSTANCES) {
-		VBDEBUG(PREFIX "%d >= CONFIG_USB_CONTROLLER_INSTANCES\n",
-				usb_controller_number);
-		return 0;
-	}
+	return find_mmc_device(mmc_device_number) != NULL;
+}
 
+int is_usb_storage_present(void)
+{
 	/* TODO(waihong): Better way to probe USB than restart it */
 	usb_stop();
-
-#ifdef CONFIG_TEGRA2
-	extern int USB_EHCI_TEGRA_BASE_ADDR;
-	extern int USB_base_addr[];
-	if (!USB_base_addr[usb_controller_number]) {
-		VBDEBUG(PREFIX "unknown USB controller: %d\n",
-				usb_controller_number);
-		return 0;
-	}
-	USB_EHCI_TEGRA_BASE_ADDR = USB_base_addr[usb_controller_number];
-#endif /* CONFIG_TEGRA2 */
-
 	if (usb_init() >= 0) {
 		/* Scanning bus for storage devices, mode = 1. */
 		return usb_stor_scan(1) == 0;
@@ -241,38 +223,38 @@ int is_usb_storage_present(int usb_controller_number)
 
 	return 1;
 }
-#else
-int is_usb_storage_present(int usb_controller_number)
-{
-	printf("USB storage is not enabled\n");
-	return 0;
-}
-#endif /* CONFIG_USB_STORAGE */
 
 int is_any_storage_device_plugged(int boot_probed_device)
 {
-	int bus;
-
-#ifdef CONFIG_MMC
-	if (is_mmc_storage_present(MMC_DEV_NUM_SD)) {
-		if (boot_probed_device == NOT_BOOT_PROBED_DEVICE ||
-				!set_bootdev("mmc", MMC_DEV_NUM_SD, 0))
+	VBDEBUG(PREFIX "probe external mmc\n");
+	if (is_mmc_storage_present(MMC_EXTERNAL_DEVICE)) {
+		if (boot_probed_device == NOT_BOOT_PROBED_DEVICE) {
+			VBDEBUG(PREFIX "probed external mmc\n");
 			return 1;
-	}
-#else
-	VBDEBUG(PREFIX "MMC storage is not enabled\n");
-#endif
+		}
 
-#ifdef CONFIG_USB_STORAGE
-	for (bus = 0; bus < CONFIG_USB_CONTROLLER_INSTANCES; bus ++) {
-		if (is_usb_storage_present(bus))
-			if (boot_probed_device == NOT_BOOT_PROBED_DEVICE ||
-					!set_bootdev("usb", 0, 0))
-				return 1;
+		VBDEBUG(PREFIX "try to set boot device to external mmc\n");
+		if (!initialize_mmc_device(MMC_EXTERNAL_DEVICE) &&
+				!set_bootdev("mmc", MMC_EXTERNAL_DEVICE, 0)) {
+			VBDEBUG(PREFIX "set external mmc as boot device\n");
+			return 1;
+		}
 	}
-#else
-	VBDEBUG(PREFIX "USB storage is not enabled\n");
-#endif
 
+	VBDEBUG(PREFIX "probe usb\n");
+	if (is_usb_storage_present()) {
+		if (boot_probed_device == NOT_BOOT_PROBED_DEVICE) {
+			VBDEBUG(PREFIX "probed usb\n");
+			return 1;
+		}
+
+		VBDEBUG(PREFIX "try to set boot device to usb\n");
+		if (!set_bootdev("usb", 0, 0)) {
+			VBDEBUG(PREFIX "set usb as boot device\n");
+			return 1;
+		}
+	}
+
+	VBDEBUG(PREFIX "found nothing\n");
 	return 0;
 }

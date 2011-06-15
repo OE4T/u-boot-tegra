@@ -37,9 +37,11 @@ ulong get_limit(void);
 uint64_t get_bytes_per_lba(void);
 uint64_t get_ending_lba(void);
 
+int initialize_mmc_device(int dev);
+
 /* Probe whether external storage device presents */
 int is_mmc_storage_present(int mmc_device_number);
-int is_usb_storage_present(int usb_controller_number);
+int is_usb_storage_present(void);
 
 /*
  * When BOOT_PROBED_DEVICE is passed to is_any_storage_device_plugged(), the

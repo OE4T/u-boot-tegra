@@ -288,14 +288,11 @@ struct mmc *find_mmc_device(int dev_num);
 int mmc_set_dev(int dev_num);
 void print_mmc_devices(char separator);
 int board_mmc_getcd(u8 *cd, struct mmc *mmc);
-int initialize_mmc_device(int dev);
 
 #ifdef CONFIG_GENERIC_MMC
 int atmel_mci_init(void *regs);
 #else
 int mmc_legacy_init(int verbose);
-/* TODO: temporary hack for factory bring up; remove/rewrite when necessary */
-int get_mmc_current_device(void);
 #endif
 
 #endif /* _MMC_H_ */
