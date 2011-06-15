@@ -244,10 +244,18 @@ static int do_elf_reloc_fixups(void)
 	Elf32_Rel *re_src = (Elf32_Rel *)(&__rel_dyn_start);
 	Elf32_Rel *re_end = (Elf32_Rel *)(&__rel_dyn_end);
 
+	/* The size of the region of u-boot that runs out of RAM. */
+	uintptr_t size = &__bss_end - &__text_start;
+
 	do {
-		if (re_src->r_offset >= CONFIG_SYS_TEXT_BASE)
-			if (*(Elf32_Addr *)(re_src->r_offset + gd->reloc_off) >= CONFIG_SYS_TEXT_BASE)
-				*(Elf32_Addr *)(re_src->r_offset + gd->reloc_off) += gd->reloc_off;
+		if (re_src->r_offset >= CONFIG_SYS_TEXT_BASE) {
+			Elf32_Addr *addr = (Elf32_Addr *)
+				(re_src->r_offset + gd->reloc_off);
+			if (*addr >= CONFIG_SYS_TEXT_BASE &&
+				*addr < (CONFIG_SYS_TEXT_BASE + size)) {
+				*addr += gd->reloc_off;
+			}
+		}
 	} while (re_src++ < re_end);
 
 	return 0;
