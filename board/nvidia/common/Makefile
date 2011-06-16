@@ -20,7 +20,7 @@
 include $(TOPDIR)/config.mk
 
 ifneq ($(OBJTREE),$(SRCTREE))
-$(shell mkdir -p $(obj)board/$(VENDOR)/common)
+$(shell mkdir -p $(obj)crypto)
 endif
 
 LIB	= $(obj)lib$(VENDOR).o
