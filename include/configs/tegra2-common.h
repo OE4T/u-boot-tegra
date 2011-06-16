@@ -215,11 +215,12 @@
 	"videospec=tegrafb\0" \
 	"lp0_args=" TEGRA_LP0_VEC "\0" \
 	"mmcdev=" TEGRA2_MMC_DEFAULT_DEVICE "\0" \
+	"dev_extras=\0" \
 	\
 	"regen_all="\
 		"setenv common_bootargs console=${console} " \
 		"${lp0_args} video=${videospec} ${platform_extras} " \
-		"noinitrd; " \
+		"${dev_extras} noinitrd; " \
 		"setenv bootargs ${common_bootargs} ${extra_bootargs} " \
 		"${bootdev_bootargs}\0" \
 	"regen_net_bootargs=setenv bootdev_bootargs " \
