@@ -259,8 +259,8 @@ enum pmux_func {
 };
 
 /* return 1 if a pmux_func is in range */
-#define pmux_func_isvalid(func) ((func) >= 0 && (func) < FUNC_COUNT && \
-		(func) != FUNC_RSVD)
+#define pmux_func_isvalid(func) ((func) >= 0 && (func) < PMUX_FUNC_COUNT && \
+		(func) != PMUX_FUNC_RSVD)
 
 /* The pullup/pulldown state of a pin group */
 enum pmux_pull {

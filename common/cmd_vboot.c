@@ -101,12 +101,6 @@ static int test_enable(void)
 	return 0;
 }
 
-#define assert(XCOND) do { \
-	if (!(XCOND)) { \
-		printf("\tassert : " #XCOND "\n"); \
-	} \
-} while (0)
-
 #define reboot() do { \
 	printf("\trebooting...\n"); \
 	reset_cpu(0); \

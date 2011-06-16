@@ -30,14 +30,6 @@
 #include <common.h>
 #include <div64.h>
 
-#ifdef DEBUG
-#define assert(x) 	\
-	({ if (!(x)) printf("Assertion failure '%s' %s line %d\n", \
-		#x, __FILE__, __LINE__); })
-#else
-#define assert(x)
-#endif
-
 /*
  * This is our record of the current clock rate of each clock. We don't
  * fill all of these in since we are only really interested in clocks which
@@ -677,7 +669,8 @@ unsigned clock_adjust_periph_pll_div(enum periph_id periph_id,
 	if (adjust_periph_pll(periph_id, parent, divider))
 		return -1U;
 	debug("periph %d, rate=%d, reg=%p = %x\n", periph_id, rate,
-	       reg, readl(get_periph_source_reg(periph_id)));
+		get_periph_source_reg(periph_id),
+		readl(get_periph_source_reg(periph_id)));
 
 	/* Check what we ended up with. This shouldn't matter though */
 	effective_rate = clock_get_periph_rate(periph_id, parent);

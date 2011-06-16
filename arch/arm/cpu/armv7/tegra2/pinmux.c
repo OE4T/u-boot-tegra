@@ -27,14 +27,6 @@
 #include <asm/arch/pinmux.h>
 #include <common.h>
 
-#ifdef DEBUG
-#define assert(x) 	\
-	({ if (!(x)) printf("Assertion failure '%s' %s line %d\n", \
-		#x, __FILE__, __LINE__); })
-#else
-#define assert(x)
-#endif
-
 /*
  * This defines the order of the pin mux control bits in the registers. For
  * some reason there is no correspendence between the tristate, pin mux and

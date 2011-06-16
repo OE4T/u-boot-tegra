@@ -119,9 +119,22 @@ typedef volatile unsigned char	vu_char;
 #ifdef	DEBUG
 #define debug(fmt,args...)	printf (fmt ,##args)
 #define debugX(level,fmt,args...) if (DEBUG>=level) printf(fmt,##args);
+
+/*
+ * An assertion is run-time check done in debug mode only. If DEBUG is not
+ * defined then it is skipped. It does not BUG or halt U-Boot, but tries to
+ * continue execution in any case. It is hoped that all failing assertions
+ * are found before release, and after release it is hoped that they don't
+ * matter, but in any case cannot be fixed with a reset (which will just do
+ * the same again).
+ */
+#define assert(x)	\
+	({ if (!(x)) printf("Assertion failure '%s' %s line %d\n", \
+		#x, __FILE__, __LINE__); })
 #else
 #define debug(fmt,args...)
 #define debugX(level,fmt,args...)
+#define assert(x)
 #endif	/* DEBUG */
 
 #define error(fmt, args...) do {					\
