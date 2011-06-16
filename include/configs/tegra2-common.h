@@ -214,16 +214,19 @@
 	"platform_extras=" TEGRA2_SYSMEM"\0" \
 	"videospec=tegrafb\0" \
 	"lp0_args=" TEGRA_LP0_VEC "\0" \
+	"mmcdev=" TEGRA2_MMC_DEFAULT_DEVICE "\0" \
+	\
 	"regen_all="\
 		"setenv common_bootargs console=${console} " \
-		"${lp0_args} " \
-		"video=${videospec} ${platform_extras} noinitrd; " \
+		"${lp0_args} video=${videospec} ${platform_extras} " \
+		"noinitrd; " \
 		"setenv bootargs ${common_bootargs} ${extra_bootargs} " \
 		"${bootdev_bootargs}\0" \
 	"regen_net_bootargs=setenv bootdev_bootargs " \
 		"dev=/dev/nfs4 rw nfsroot=${nfsserverip}:${rootpath} " \
 		"ip=dhcp; " \
 		"run regen_all\0" \
+	\
 	"dhcp_setup=setenv tftppath " CONFIG_TFTPPATH "; " \
 		"setenv rootpath " CONFIG_ROOTPATH "; " \
 		"setenv autoload n; " \
@@ -231,7 +234,7 @@
 	"dhcp_boot=run dhcp_setup; " \
 		"bootp; tftpboot ${loadaddr} ${tftpserverip}:${tftppath}; " \
 		"bootm ${loadaddr}\0" \
-	"mmcdev=" TEGRA2_MMC_DEFAULT_DEVICE "\0" \
+	\
 	"mmc_setup=setenv bootdev_bootargs " \
 		"root=/dev/mmcblk${mmcdev}p3 rw rootwait; " \
 		"run regen_all\0" \
@@ -239,6 +242,7 @@
 		"mmc rescan ${mmcdev}; " \
 		"ext2load mmc ${mmcdev}:3 ${loadaddr} /boot/${bootfile}; " \
 		"bootm ${loadaddr}\0" \
+	\
 	"usb_setup=setenv bootdev_bootargs root=/dev/sda3 rw rootwait; " \
 		"run regen_all\0" \
 	"usb_boot=run usb_setup; " \
@@ -250,7 +254,8 @@
   "if test ${ethact} != \"\"; then "\
     "run dhcp_boot ; " \
   "fi ; " \
-  "run usb_boot ; "
+  "run usb_boot ; " \
+  "run mmc_boot ; "
 
 #define CONFIG_LOADADDR		0x408000	/* def. location for kernel */
 #define CONFIG_BOOTDELAY	0		/* -1 to disable auto boot */
