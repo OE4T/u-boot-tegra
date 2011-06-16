@@ -1,0 +1,82 @@
+/dts-v1/;
+
+/memreserve/ 0x1c000000 0x04000000;
+/include/ "../../../arch/arm/cpu/armv7/tegra2/tegra250.dtsi"
+
+/ {
+	model = "Google Kaen";
+	compatible = "google,kaen", "nvidia,tegra250";
+
+	config {
+		silent_console = <0>;
+	};
+
+	aliases {
+		console = "/serial@70006040";
+                usb0 = "/usb@0xc5008000";
+                usb1 = "/usb@0xc5000000";
+	};
+
+	chosen {
+		bootargs = "";
+	};
+
+	memory {
+		device_type = "memory";
+		reg = <0x00000000 0x40000000>;
+	};
+
+	serial@70006040 {
+		status = "ok";
+		clock-frequency = <216000000>;
+	};
+
+	sdhci@c8000400 {
+		status = "ok";
+		gpios = <&gpio 69 0>, /* cd, gpio PI5 */
+			<&gpio 57 0>, /* wp, gpio PH1 */
+			<&gpio 70 0>; /* power, gpio PI6 */
+	};
+
+	sdhci@c8000600 {
+		status = "ok";
+	};
+
+	lcd {
+		compatible = "nvidia,tegra2-lcd";
+		width = <1366>;
+		height = <768>;
+		bits_per_pixel = <16>;
+		pwfm = <&pwfm2>;
+		display = <&display1>;
+		frame-buffer = <0x1C022000>;
+
+		pixel_clock = <62200000>;
+
+		/* Timing: ref_to_sync, sync_width. back_porch, front_porch */
+		horiz_timing = <11 58 58 58>;
+		vert_timing = <1 4 4 4>;
+
+		/* For these the third parameter is 0=low, 1=high */
+		gpios = <&gpio 28 1>,	/* backlight PD4 */
+			<&gpio 10 1>,	/* lvds shutdown PB2 */
+			<&gpio 176 1>,	/* backlight vdd PW0 */
+			<&gpio 22 1>;	/* enable vdd pnl PC6 */
+	};
+
+	usb@0xc5000000 {
+		status = "ok";
+		host-mode = <1>;
+	};
+
+	usbphy: usbphy@0 {
+		compatible = "smsc,usb3315";
+		status = "ok";
+	};
+
+	usb@0xc5008000 {
+		status = "ok";
+		utmi = <&usbphy>;
+		host-mode = <0>;
+	};
+};
