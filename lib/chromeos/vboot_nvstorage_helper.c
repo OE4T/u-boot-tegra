@@ -46,7 +46,7 @@ static int load_nvcxt(block_dev_desc_t **dev_desc_ptr, uint8_t **buf_ptr)
 		return -1;
 	}
 
-	if (dev_desc->block_read(dev_desc->dev, NVCONTEXT_LBA, 1, buf) < 0) {
+	if (1 != dev_desc->block_read(dev_desc->dev, NVCONTEXT_LBA, 1, buf)) {
 		VBDEBUG(PREFIX "block_read fail\n");
 		free(buf);
 		return -1;
@@ -75,18 +75,17 @@ int write_nvcontext(VbNvContext *nvcxt)
 {
 	block_dev_desc_t *dev_desc;
 	uint8_t *buf;
-	int ret = 0;
+	int nblk;
 
 	if (load_nvcxt(&dev_desc, &buf))
 		return -1;
 
 	memcpy(buf, nvcxt->raw, VBNV_BLOCK_SIZE);
 
-	ret = dev_desc->block_write(dev_desc->dev, NVCONTEXT_LBA, 1, buf);
-	free(buf);
-
-	if (ret < 0)
+	nblk = dev_desc->block_write(dev_desc->dev, NVCONTEXT_LBA, 1, buf);
+	if (1 != nblk)
 		VBDEBUG(PREFIX "block_write fail\n");
 
-	return ret;
+	free(buf);
+	return 1 != nblk;
 }

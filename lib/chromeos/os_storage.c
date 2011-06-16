@@ -155,9 +155,9 @@ int BootDeviceReadLBA(uint64_t lba_start, uint64_t lba_count, void *buffer)
 	if (lba_start + lba_count > bootdev_config.limit)
 		return 1; /* read out of range */
 
-	if (dev_desc->block_read(dev_desc->dev,
+	if (lba_count != dev_desc->block_read(dev_desc->dev,
 				bootdev_config.offset + lba_start, lba_count,
-				buffer) < 0)
+				buffer))
 		return 1; /* error reading blocks */
 
 	return 0;
@@ -174,9 +174,9 @@ int BootDeviceWriteLBA(uint64_t lba_start, uint64_t lba_count,
 	if (lba_start + lba_count > bootdev_config.limit)
 		return 1; /* read out of range */
 
-	if (dev_desc->block_write(dev_desc->dev,
+	if (lba_count != dev_desc->block_write(dev_desc->dev,
 				bootdev_config.offset + lba_start, lba_count,
-				buffer) < 0)
+				buffer))
 		return 1; /* error reading blocks */
 
 	return 0;
