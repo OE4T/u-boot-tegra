@@ -72,7 +72,13 @@ int dram_init(void)
 #ifdef CONFIG_DISPLAY_BOARDINFO
 int checkboard(void)
 {
-	printf("Board: %s\n", sysinfo.board_string);
+	const char* board_name;
+#ifdef CONFIG_OF_CONTROL
+	board_name = get_board_name();
+#else
+	board_name = sysinfo.board_string;
+#endif
+	printf("Board: %s\n", board_name);
 	return 0;
 }
 #endif	/* CONFIG_DISPLAY_BOARDINFO */

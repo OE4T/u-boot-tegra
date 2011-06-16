@@ -33,8 +33,7 @@
 
 /* High-level configuration options */
 #define TEGRA2_SYSMEM		"mem=384M@0M nvmem=128M@384M mem=512M@512M"
-#define V_PROMPT		"Tegra2 (SeaBoard) # "
-#define CONFIG_TEGRA2_BOARD_STRING	"NVIDIA Seaboard"
+#define V_PROMPT		"Tegra2 # "
 
 #include "tegra2-common.h"
 
@@ -59,7 +58,9 @@
 
 /* Put USB1 in host mode */
 #define CONFIG_TEGRA2_USB1_HOST
-#endif
+#define CONFIG_MACH_TYPE	MACH_TYPE_SEABOARD
+
+#endif /* CONFIG_OF_CONTROL not defined ^^^^^^^ */
 
 #define CONFIG_TEGRA2_KEYBOARD
 #define CONFIG_KEYBOARD
@@ -70,7 +71,6 @@
 					"stdout=serial,lcd\0" \
 					"stderr=serial,lcd\0"
 
-#define CONFIG_MACH_TYPE		MACH_TYPE_SEABOARD
 #define CONFIG_SYS_BOARD_ODMDATA	0x300d8011 /* lp1, 1GB */
 
 #define CONFIG_BOARD_EARLY_INIT_F

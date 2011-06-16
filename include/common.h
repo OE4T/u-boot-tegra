@@ -769,4 +769,9 @@ int cpu_release(int nr, int argc, char * const argv[]);
 #define ALIGN(x,a)		__ALIGN_MASK((x),(typeof(x))(a)-1)
 #define __ALIGN_MASK(x,mask)	(((x)+(mask))&~(mask))
 
+#ifdef CONFIG_OF_CONTROL
+extern const char* get_board_name(void);
+extern ulong get_arch_number(void);
+#endif
+
 #endif	/* __COMMON_H_ */

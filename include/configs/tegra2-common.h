@@ -83,7 +83,9 @@
 #define CONFIG_SYS_NS16550
 #define CONFIG_SYS_NS16550_REG_SIZE	(-4)
 
-#ifndef CONFIG_OF_CONTROL
+#ifdef CONFIG_OF_CONTROL
+#define CONFIG_COMPAT_STRING		"nvidia,tegra250"
+#else
 #define V_NS16550_CLK			216000000	/* 216MHz (pllp_out0) */
 
 #define CONFIG_SYS_NS16550_SERIAL
@@ -93,7 +95,7 @@
  * select serial console configuration
  */
 #define CONFIG_CONS_INDEX	1
-#endif /* CONFIG_OF_CONTROL */
+#endif /* CONFIG_OF_CONTROL ^^^^^ not defined */
 
 #define CONFIG_ENV_SIZE         SZ_4K
 
