@@ -46,8 +46,6 @@
 #define CONFIG_MACH_TYPE		MACH_TYPE_HARMONY
 #define CONFIG_SYS_BOARD_ODMDATA	0x300d8011 /* lp1, 1GB */
 
-#define CONFIG_BOARD_EARLY_INIT_F
-
 /* Environment not stored */
 #define CONFIG_ENV_IS_NOWHERE
 
