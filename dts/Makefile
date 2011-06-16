@@ -24,6 +24,12 @@ include $(TOPDIR)/config.mk
 
 LIB	= $(obj)libdts.o
 
+ifeq ($(DEV_TREE_SRC),)
+DEVICE_TREE = $(subst ",,$(CONFIG_DEFAULT_DEVICE_TREE))
+else
+DEVICE_TREE = $(DEV_TREE_SRC)
+endif
+
 # Use a constant name for this so we can access it from C code.
 # objcopy doesn't seem to allow us to set the symbol name independently of
 # the filename.

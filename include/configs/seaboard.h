@@ -192,4 +192,6 @@
 	CONFIG_EXTRA_ENV_SETTINGS_COMMON \
 	"board=seaboard\0" \
 
+#define CONFIG_DEFAULT_DEVICE_TREE "tegra2-seaboard"
+
 #endif /* __CONFIG_H */
