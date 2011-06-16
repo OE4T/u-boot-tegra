@@ -47,14 +47,14 @@ static enum spi_uart_switch switch_pos; /* Current switch position */
 
 static void get_config(const void *blob, struct fdt_spi_uart *config)
 {
+	config->gpio = -1; /* just in case the config does not exist */
+
 #ifdef CONFIG_OF_CONTROL
 	fdt_decode_get_spi_switch(blob, config);
 #elif defined CONFIG_SPI_CORRUPTS_UART
 	config->gpio = UART_DISABLE_GPIO;
 	config->regs = (NS16550_t)CONFIG_SPI_CORRUPTS_UART;
 	config->port = CONFIG_SPI_CORRUPTS_UART_NR;
-#else
-	config->gpio = -1;
 #endif
 }
 
