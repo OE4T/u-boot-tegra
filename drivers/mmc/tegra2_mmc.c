@@ -26,6 +26,7 @@
 #include <asm/io.h>
 #include <asm/arch/clk_rst.h>
 #include <asm/arch/clock.h>
+#include <asm/arch/gpio.h>
 #include <malloc.h>
 #include <asm/clocks.h>
 #include "tegra2_mmc.h"
@@ -40,6 +41,8 @@ struct mmc_host {
 	unsigned int version;	/* SDHCI spec. version */
 	unsigned int clock;	/* Current clock (MHz) */
 	enum periph_id mmc_id;	/* Peripheral ID of the SDMMC we are using */
+	int cd_gpio;		/* GPIO of card detect, or -1 if none */
+	int wp_gpio;		/* GPIO of write protect, or -1 if none */
 
 	/*
 	 * We need a per-host bounce buffer that will be optionally used
@@ -596,7 +599,8 @@ static int mmc_core_init(struct mmc *mmc)
 }
 
 static int init_port(unsigned dev_index, enum periph_id mmc_id,
-		struct tegra2_mmc *reg, int bus_width)
+		struct tegra2_mmc *reg, int bus_width, int cd_gpio,
+		int wp_gpio)
 {
 	struct mmc_host *host;
 	struct mmc *mmc;
@@ -618,6 +622,8 @@ static int init_port(unsigned dev_index, enum periph_id mmc_id,
 	host->mmc_id = mmc_id;
 	host->bounce = NULL;
 	host->bounce_size = 0;
+	host->cd_gpio = cd_gpio;
+	host->wp_gpio = wp_gpio;
 
 	mmc->priv = host;
 	mmc->send_cmd = mmc_send_cmd;
@@ -645,6 +651,21 @@ static int init_port(unsigned dev_index, enum periph_id mmc_id,
 	return 0;
 }
 
+/* this is a weak define that we are overriding */
+int board_mmc_getcd(u8 *cd, struct mmc *mmc)
+{
+	struct mmc_host *host = (struct mmc_host *)mmc->priv;
+
+	debug("board_mmc_getcd called\n");
+	*cd = 1;			/* Assume card is inserted, or eMMC */
+
+	if (host->cd_gpio != -1) {
+		if (gpio_get_value(host->cd_gpio))
+			*cd = 0;
+	}
+
+	return 0;
+}
 
 int tegra2_mmc_init(const void *blob)
 {
@@ -652,12 +673,18 @@ int tegra2_mmc_init(const void *blob)
 
 	/* init dev 0, eMMC chip, with 4-bit bus */
 	if (init_port(0, PERIPH_ID_SDMMC4,
-			(struct tegra2_mmc *)NV_PA_SDMMC4_BASE, 4))
+			(struct tegra2_mmc *)NV_PA_SDMMC4_BASE, 4, -1, -1))
 		return -1;
 
-	/* init dev 1, SD slot, with 4-bit bus */
+	/* init dev 1, SD slot, with 4-bit bus; set EN_VDDIO_SD (GPIO I6) */
+	gpio_direction_output(GPIO_PI6, 1);
+
+	/* Config pin as GPI for Card Detect (GPIO I5) */
+	gpio_direction_input(GPIO_PI5);
+
 	if (init_port(1, PERIPH_ID_SDMMC3,
-			(struct tegra2_mmc *)NV_PA_SDMMC3_BASE, 4))
+			(struct tegra2_mmc *)NV_PA_SDMMC3_BASE, 4, GPIO_PI5,
+			GPIO_PH1))
 		return -1;
 	return 0;
 }

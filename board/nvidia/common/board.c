@@ -312,9 +312,9 @@ int arch_cpu_init(void)
 int board_mmc_init(bd_t *bd)
 {
 	debug("board_mmc_init called\n");
-	/* Enable clocks, muxes, etc. for SDMMC controllers */
+
+	/* Enable muxes, etc. for SDMMC controllers */
 	pin_mux_mmc();
-	gpio_config_mmc();
 
 	tegra2_mmc_init(gd->blob);
 
