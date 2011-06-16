@@ -25,6 +25,9 @@ include $(TOPDIR)/config.mk
 LIB	= $(obj)libdts.o
 
 ifeq ($(DEV_TREE_SRC),)
+$(if $(CONFIG_DEFAULT_DEVICE_TREE),,\
+$(error Please define CONFIG_DEFAULT_DEVICE_TREE in your board header \
+	file or define DEV_TREE_SRC in your environment))
 DEVICE_TREE = $(subst ",,$(CONFIG_DEFAULT_DEVICE_TREE))
 else
 DEVICE_TREE = $(DEV_TREE_SRC)
@@ -43,7 +46,9 @@ $(obj)dt.o: $(TOPDIR)/board/$(BOARDDIR)/$(DEVICE_TREE).dts
 		$(notdir ${DT_BIN}) $@
 	rm $(DT_BIN)
 
-OBJS	:= dt.o
+OBJS-$(CONFIG_OF_EMBED)	:= dt.o
+
+OBJS	:= $(OBJS-y)
 
 OBJS	:= $(addprefix $(obj),$(OBJS))
 
