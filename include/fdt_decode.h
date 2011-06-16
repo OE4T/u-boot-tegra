@@ -80,13 +80,16 @@ struct fdt_spi_uart {
 
 enum {
 	FDT_GPIO_NONE = 255,	/* an invalid GPIO used to end our list */
-	FDT_GPIO_MAX  = 254,	/* maximum value GPIO number */
+	FDT_GPIO_MAX  = 224,	/* maximum value GPIO number on Tegra2 */
+
+	FDT_GPIO_OUTPUT	= 1 << 0,	/* set as output (else input) */
+	FDT_GPIO_HIGH	= 1 << 1,	/* set output as high (else low) */
 };
 
 /* This is the state of a GPIO pin. For now it only handles output pins */
 struct fdt_gpio_state {
-	u8 gpio;		/* GPIO number */
-	u8 high;		/* 1=high, 0 = low */
+	u8 gpio;		/* GPIO number, or FDT_GPIO_NONE if none */
+	u8 flags;		/* FDT_GPIO_... flags */
 };
 
 /* This tells us whether a fdt_gpio_state record is valid or not */
@@ -239,11 +242,27 @@ int fdt_decode_next_alias(const void *blob, const char *name,
 int fdt_decode_get_spi_switch(const void *blob, struct fdt_spi_uart *config);
 
 /**
+ * Set up a GPIO pin according to the provided gpio. This sets it to either
+ * input or output. If an output, then the defined value is assigned.
+ *
+ * @param gpio		GPIO to set up
+ */
+void fdt_setup_gpio(struct fdt_gpio_state *gpio);
+
+/**
  * Set up GPIO pins according to the list provided.
  *
  * @param gpio_list	List of GPIOs to set up
  */
 void fdt_setup_gpios(struct fdt_gpio_state *gpio_list);
+
+/**
+ * Converts an FDT GPIO record into a number and returns it.
+ *
+ * @param gpio		GPIO to check
+ * @return gpio number, or -1 if none or not valid
+ */
+int fdt_get_gpio_num(struct fdt_gpio_state *gpio);
 
 /**
  * Returns information from the FDT about the LCD display. This function reads
@@ -281,6 +300,7 @@ int fdt_decode_lcd(const void *blob, struct fdt_lcd *config);
  *	host-mode
  *	utmi
  *	periph-id
+ *	enabled
  *
  * The params are read out according to the supplied clock frequency. This is
  * done by looking for a compatible 'nvidia,tegra250-usbparams' node with

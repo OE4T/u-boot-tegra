@@ -314,16 +314,17 @@ int fdt_decode_get_spi_switch(const void *blob, struct fdt_spi_uart *config)
 }
 
 /**
- * Decode a list of GPIOs from an FDT. This creates a list of GPIOs with the
- * last one being GPIO_NONE
+ * Decode a list of GPIOs from an FDT. This creates a list of GPIOs with no
+ * terminating item.
  *
  * @param blob		FDT blob to use
  * @param node		Node to look at
  * @param property	Node property name
- * @param gpio		Array of gpio elements to fill from FDT
+ * @param gpio		Array of gpio elements to fill from FDT. This will be
+ *			untouched if either 0 or an error is returned
  * @param max_count	Maximum number of elements allowed
- * @return 0 if ok, -FDT_ERR_BADLAYOUT if max_count would be exceeded, or
- *		-FDT_ERR_MISSING if the property is missing.
+ * @return number of GPIOs read if ok, -FDT_ERR_BADLAYOUT if max_count would
+ * be exceeded, or -FDT_ERR_MISSING if the property is missing.
  */
 static int decode_gpios(const void *blob, int node, const char *property,
 		 struct fdt_gpio_state *gpio, int max_count)
@@ -331,23 +332,58 @@ static int decode_gpios(const void *blob, int node, const char *property,
 	const u32 *cell;
 	int len, i;
 
+	assert(max_count > 0);
 	cell = fdt_getprop(blob, node, property, &len);
 	if (!cell)
 		return -FDT_ERR_MISSING;
 
 	len /= sizeof(u32) * 3;		/* 3 cells per GPIO record */
-	if (len >= max_count) {
-		printf("FDT: decode_gpios: too many GPIOs\n");
+	if (len > max_count) {
+		printf("FDT: decode_gpios: too many GPIOs / cells for "
+			"property '%s'\n", property);
 		return -FDT_ERR_BADLAYOUT;
 	}
 	for (i = 0; i < len; i++, cell += 3) {
 		gpio[i].gpio = fdt32_to_cpu(cell[1]);
-		gpio[i].high = fdt32_to_cpu(cell[2]);
+		gpio[i].flags = fdt32_to_cpu(cell[2]);
 	}
+	return len;
+}
+
+/**
+ * Decode a list of GPIOs from an FDT. This creates a list of GPIOs with the
+ * last one being GPIO_NONE.
+ *
+ * @param blob		FDT blob to use
+ * @param node		Node to look at
+ * @param property	Node property name
+ * @param gpio		Array of gpio elements to fill from FDT
+ * @param max_count	Maximum number of elements allowed, including the
+ *			terminator
+ * @return 0 if ok, -FDT_ERR_BADLAYOUT if max_count would be exceeded, or
+ *		-FDT_ERR_MISSING if the property is missing.
+ */
+static int decode_gpio_list(const void *blob, int node, const char *property,
+		 struct fdt_gpio_state *gpio, int max_count)
+{
+	int err = decode_gpios(blob, node, property, gpio, max_count - 1);
 
 	/* terminate the list */
-	gpio[len].gpio = FDT_GPIO_NONE;
+	if (err < 0)
+		return err;
+	gpio[err].gpio = FDT_GPIO_NONE;
 	return 0;
+}
+
+void fdt_setup_gpio(struct fdt_gpio_state *gpio)
+{
+	if (!fdt_gpio_isvalid(gpio))
+		return;
+
+	if (gpio->flags & FDT_GPIO_OUTPUT)
+		gpio_direction_output(gpio->gpio, gpio->flags & FDT_GPIO_HIGH);
+	else
+		gpio_direction_input(gpio->gpio);
 }
 
 void fdt_setup_gpios(struct fdt_gpio_state *gpio_list)
@@ -361,9 +397,13 @@ void fdt_setup_gpios(struct fdt_gpio_state *gpio_list)
 			printf("FDT: fdt_setup_gpios: too many GPIOs\n");
 			return;
 		}
-		gpio_direction_output(gpio->gpio, 1);
-		gpio_set_value(gpio->gpio, gpio->high);
+		fdt_setup_gpio(gpio);
 	}
+}
+
+int fdt_get_gpio_num(struct fdt_gpio_state *gpio)
+{
+	return fdt_gpio_isvalid(gpio) ? gpio->gpio : -1;
 }
 
 int fdt_decode_lcd(const void *blob, struct fdt_lcd *config)
@@ -404,7 +444,8 @@ int fdt_decode_lcd(const void *blob, struct fdt_lcd *config)
 			!config->pwfm || !config->disp)
 		return -FDT_ERR_MISSING;
 	config->frame_buffer = get_addr(blob, node, "frame-buffer");
-	return decode_gpios(blob, node, "gpios", config->gpios, FDT_LCD_GPIOS);
+	return decode_gpio_list(blob, node, "gpios", config->gpios,
+				FDT_LCD_GPIOS);
 }
 
 int fdt_decode_usb(const void *blob, int node, unsigned osc_frequency_mhz,
