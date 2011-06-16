@@ -14,33 +14,12 @@
 #include <chromeos/os_storage.h>
 #include <chromeos/vboot_nvstorage_helper.h>
 
-/* TODO move to somewhere else */
-#include <chromeos/gpio.h>
-#include <chromeos/kernel_shared_data.h>
+#include <load_kernel_fw.h>
 
-/* TODO For load fmap; remove when not used */
-#include <chromeos/firmware_storage.h>
-
-/* TODO For strcpy; remove when not used */
-#include <linux/string.h>
-
-/* TODO For GoogleBinaryBlockHeader; remove when not used */
-#include <gbb_header.h>
-
-/* TODO remove when not used */
-extern uint64_t get_nvcxt_lba(void);
+#define PREFIX "load_kernel_helper: "
 
 /* defined in common/cmd_bootm.c */
 int do_bootm(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
-
-#include <load_kernel_fw.h>
-#include <vboot_nvstorage.h>
-#include <vboot_struct.h> /* for VB_SHARED_DATA_REC_SIZE */
-
-/* This is used to keep u-boot and kernel in sync */
-#define SHARED_MEM_VERSION 1
-
-#define PREFIX "load_kernel_helper: "
 
 /**
  * This is a wrapper of LoadKernel, which verifies the kernel image specified
@@ -60,13 +39,6 @@ static int load_kernel_wrapper(LoadKernelParams *params, uint64_t boot_flags,
 		void *vbshared_data, uint32_t vbshared_size,
 		VbNvContext *nvcxt)
 {
-	/*
-	 * TODO(clchiou): Hack for bringing up factory; preserve recovery
-	 * reason before LoadKernel destroys it. Remove when not needed.
-	 */
-	uint32_t reason = 0;
-	VbNvGet(nvcxt, VBNV_RECOVERY_REQUEST, &reason);
-
 	int status = LOAD_KERNEL_NOT_FOUND;
 
 	memset(params, '\0', sizeof(*params));
@@ -124,107 +96,6 @@ static int load_kernel_wrapper(LoadKernelParams *params, uint64_t boot_flags,
 					(int) params->partition_number);
 			status = LOAD_KERNEL_NOT_FOUND;
 		}
-	}
-
-	/*
-	 * TODO(clchiou): This is an urgent hack for bringing up factory. We
-	 * fill in data that will be used by kernel at last 1MB space.
-	 *
-	 * Rewrite this part after the protocol specification between
-	 * Chrome OS firmware and kernel is finalized.
-	 */
-	if (status == LOAD_KERNEL_SUCCESS) {
-		KernelSharedDataType *sd = get_kernel_shared_data();
-
-		GoogleBinaryBlockHeader *gbbh =
-			(GoogleBinaryBlockHeader*) gbb_data;
-		int i;
-
-		VBDEBUG(PREFIX "kernel shared data at %p\n", sd);
-
-		strcpy((char*) sd->signature, "CHROMEOS");
-		sd->version = SHARED_MEM_VERSION;
-
-		/*
-		 * chsw bit value
-		 *   bit 0x00000002 : recovery button pressed
-		 *   bit 0x00000020 : developer mode enabled
-		 *   bit 0x00000200 : firmware write protect disabled
-		 */
-		if (params->boot_flags & BOOT_FLAG_RECOVERY)
-			sd->chsw |= 0x002;
-		if (params->boot_flags & BOOT_FLAG_DEVELOPER)
-			sd->chsw |= 0x020;
-		if (!is_firmware_write_protect_gpio_asserted())
-			sd->chsw |= 0x200; /* write protect is disabled */
-
-		strncpy((char*) sd->hwid,
-				gbb_data + gbbh->hwid_offset, gbbh->hwid_size);
-
-		/* boot reason; always 0 */
-		sd->binf[0] = 0;
-
-		/* active main firmware; TODO: rewritable B (=2) */
-		if (params->boot_flags & BOOT_FLAG_RECOVERY)
-			sd->binf[1] = 0;
-		else
-			sd->binf[1] = 1; /* rewritable A */
-
-		/* active EC firmware; TODO: rewritable (=1) */
-		sd->binf[2] = 0;
-
-		/* active firmware type */
-		if (params->boot_flags & BOOT_FLAG_RECOVERY)
-			sd->binf[3] = 0;
-		else if (params->boot_flags & BOOT_FLAG_DEVELOPER)
-			sd->binf[3] = 2;
-		else
-			sd->binf[3] = 1;
-
-		/* recovery reason */
-		sd->binf[4] = reason;
-
-		sd->write_protect_sw =
-			is_firmware_write_protect_gpio_asserted();
-		sd->recovery_sw = is_recovery_mode_gpio_asserted();
-		sd->developer_sw = is_developer_mode_gpio_asserted();
-
-		sd->vbnv[0] = 0;
-		sd->vbnv[1] = VBNV_BLOCK_SIZE;
-
-		firmware_storage_t file;
-		firmware_storage_open_spi(&file);
-		firmware_storage_read(&file,
-				CONFIG_OFFSET_FMAP, CONFIG_LENGTH_FMAP,
-				sd->shared_data_body);
-		file.close(file.context);
-		sd->fmap_base = (uint32_t)sd->shared_data_body;
-
-		sd->total_size = sizeof(*sd);
-
-		sd->nvcxt_lba = get_nvcxt_lba();
-
-		memcpy(sd->nvcxt_cache,
-				params->nv_context->raw, VBNV_BLOCK_SIZE);
-
-		VBDEBUG(PREFIX "version  %08x\n", sd->version);
-		VBDEBUG(PREFIX "chsw     %08x\n", sd->chsw);
-		for (i = 0; i < 5; i++)
-			VBDEBUG(PREFIX "binf[%2d] %08x\n", i, sd->binf[i]);
-		VBDEBUG(PREFIX "vbnv[ 0] %08x\n", sd->vbnv[0]);
-		VBDEBUG(PREFIX "vbnv[ 1] %08x\n", sd->vbnv[1]);
-		VBDEBUG(PREFIX "nvcxt    %08llx\n", sd->nvcxt_lba);
-		VBDEBUG(PREFIX "nvcxt_c  ");
-		for (i = 0; i < VBNV_BLOCK_SIZE; i++)
-			VBDEBUG("%02x", sd->nvcxt_cache[i]);
-		putc('\n');
-		VBDEBUG(PREFIX "write_protect_sw %d\n", sd->write_protect_sw);
-		VBDEBUG(PREFIX "recovery_sw      %d\n", sd->recovery_sw);
-		VBDEBUG(PREFIX "developer_sw     %d\n", sd->developer_sw);
-		VBDEBUG(PREFIX "hwid     \"%s\"\n", sd->hwid);
-		VBDEBUG(PREFIX "fwid     \"%s\"\n", sd->fwid);
-		VBDEBUG(PREFIX "frid     \"%s\"\n", sd->frid);
-		VBDEBUG(PREFIX "fmap     %08x\n", sd->fmap_base);
 	}
 
 	return status;
