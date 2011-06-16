@@ -34,6 +34,9 @@
 
 /* Board-specific serial config */
 #define CONFIG_SERIAL_MULTI
+
+#ifndef CONFIG_OF_CONTROL
+
 #define CONFIG_TEGRA2_ENABLE_UARTD
 
 /* UARTD: keyboard satellite board UART, default */
@@ -43,6 +46,17 @@
 #define CONFIG_SYS_NS16550_COM2		NV_PA_APB_UARTA_BASE
 #endif
 
+/* To select the order in which U-Boot sees USB ports */
+#define CONFIG_TEGRA2_USB0      NV_PA_USB3_BASE
+#define CONFIG_TEGRA2_USB1      NV_PA_USB1_BASE
+#define CONFIG_TEGRA2_USB2      0
+#define CONFIG_TEGRA2_USB3      0
+
+/* Put USB1 in host mode */
+#define CONFIG_TEGRA2_USB1_HOST
+#endif /* CONFIG_OF_CONTROL */
+
+
 #define CONFIG_MACH_TYPE		MACH_TYPE_HARMONY
 #define CONFIG_SYS_BOARD_ODMDATA	0x300d8011 /* lp1, 1GB */
 
@@ -51,4 +65,6 @@
 
 #define CONFIG_TEGRA2_GPIO
 #define CONFIG_CMD_TEGRA2_GPIO_INFO
+
+#define CONFIG_DEFAULT_DEVICE_TREE "tegra2-harmony"
 #endif /* __CONFIG_H */

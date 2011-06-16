@@ -145,6 +145,7 @@ static void pin_mux_uart(int uart_ids)
 	}
 }
 
+#ifdef CONFIG_TEGRA2_MMC
 /*
  * Routine: pin_mux_mmc
  * Description: setup the pin muxes/tristate values for the SDMMC(s)
@@ -169,6 +170,7 @@ static void pin_mux_mmc(void)
 	pinmux_tristate_disable(PINGRP_SDD);
 	pinmux_tristate_disable(PINGRP_SDB);
 }
+#endif
 
 /*
  * Routine: pinmux_init
