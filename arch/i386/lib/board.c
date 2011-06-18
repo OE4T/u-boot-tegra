@@ -245,7 +245,8 @@ static int do_elf_reloc_fixups(void)
 	Elf32_Rel *re_end = (Elf32_Rel *)(&__rel_dyn_end);
 
 	/* The size of the region of u-boot that runs out of RAM. */
-	uintptr_t size = &__bss_end - &__text_start;
+	uintptr_t size = (uintptr_t)&__bss_end -
+	                 (uintptr_t)&__text_start;
 
 	do {
 		if (re_src->r_offset >= CONFIG_SYS_TEXT_BASE) {
