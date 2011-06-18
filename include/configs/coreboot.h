@@ -86,6 +86,7 @@
 /************************************************************
  * DISK Partition support
  ************************************************************/
+#define CONFIG_EFI_PARTITION
 #define CONFIG_DOS_PARTITION
 #define CONFIG_MAC_PARTITION
 #define CONFIG_ISO_PARTITION		/* Experimental */
