@@ -356,9 +356,7 @@ static int sign_wb_code(u32 start, u32 length, int use_zero_key)
 int warmboot_prepare_code(u32 seg_address, u32 seg_length)
 {
 	int err = 0;
-	u32 start;			/* start of the actual code */
 	u32 length;			/* length of the signed/encrypt code */
-	struct wb_header *src_header;	/* Pointer to src WB header */
 	struct wb_header *dst_header;	/* Pointer to dest WB header */
 	int is_encrypted;		/* Segment is encrypted */
 	int is_signed;			/* Segment is signed */
@@ -368,8 +366,7 @@ int warmboot_prepare_code(u32 seg_address, u32 seg_length)
 	determine_crypto_options(&is_encrypted, &is_signed, &use_zero_key);
 
 	/* Get the actual code limits. */
-	start = (u32)wb_start;
-	length = roundup(((u32)wb_end - start), 16);
+	length = roundup(((u32)wb_end - (u32)wb_start), 16);
 
 	/*
 	 * The region specified by seg_address must not be in IRAM and must be
@@ -387,21 +384,20 @@ int warmboot_prepare_code(u32 seg_address, u32 seg_length)
 		goto fail;
 	}
 
-	/* Will the code fit? */
-	if (seg_length < length) {
+	/* Will the code fit? (destination includes wb_header + wb code) */
+	if (seg_length < (length + sizeof(struct wb_header))) {
 		err = -EINVAL;
 		goto fail;
 	}
 
-	/* Get a pointers to the source and destination region header. */
-	src_header = (struct wb_header *)start;
 	dst_header = (struct wb_header *)seg_address;
+	memset((char *)dst_header, 0, sizeof(struct wb_header));
 
 	/* Populate the random_aes_block as requested. */
 	{
-		u32 *aes_block = (u32 *)&(src_header->random_aes_block);
+		u32 *aes_block = (u32 *)&(dst_header->random_aes_block);
 		u32 *end = (u32 *)(((u32)aes_block) +
-				   sizeof(src_header->random_aes_block));
+				   sizeof(dst_header->random_aes_block));
 
 		do {
 #if defined(RANDOM_AES_BLOCK_IS_RANDOM)
@@ -419,11 +415,11 @@ int warmboot_prepare_code(u32 seg_address, u32 seg_length)
 	}
 
 	/* Populate the header. */
-	src_header->length_in_secure = length;
-	src_header->length_secure = length;
-	src_header->destination = AP20_WB_RUN_ADDRESS;
-	src_header->entry_point = AP20_WB_RUN_ADDRESS;
-	src_header->code_length = length - sizeof(struct wb_header);
+	dst_header->length_in_secure = length + sizeof(struct wb_header);
+	dst_header->length_secure = length + sizeof(struct wb_header);
+	dst_header->destination = AP20_WB_RUN_ADDRESS;
+	dst_header->entry_point = AP20_WB_RUN_ADDRESS;
+	dst_header->code_length = length;
 
 	if (is_encrypted) {
 		printf("!!!! Encryption is not supported !!!!\n");
@@ -431,14 +427,12 @@ int warmboot_prepare_code(u32 seg_address, u32 seg_length)
 		err = -EACCES;
 		goto fail;
 	} else
-		/* No, just copy the code directly. */
-		memcpy(dst_header, src_header, length);
-
-	/* Clear the signature in the destination code segment. */
-	memset(&(dst_header->hash), 0, sizeof(dst_header->hash));
+		/* copy the wb code directly following dst_header. */
+		memcpy((char *)(dst_header+1), (char *)wb_start, length);
 
 	if (is_signed)
-		err = sign_wb_code(seg_address, length, use_zero_key);
+		err = sign_wb_code(seg_address, dst_header->length_in_secure,
+				   use_zero_key);
 
 fail:
 	if (err)

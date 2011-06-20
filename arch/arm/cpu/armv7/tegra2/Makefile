@@ -25,8 +25,10 @@
 
 # The AVP is ARMv4T architecture so we must use special compiler
 # flags for any files it might use.
+
 CFLAGS_arch/arm/cpu/armv7/tegra2/ap20.o += -march=armv4t
 CFLAGS_arch/arm/cpu/armv7/tegra2/clock.o += -march=armv4t
+CFLAGS_arch/arm/cpu/armv7/tegra2/warmboot_avp.o += -march=armv4t
 
 include $(TOPDIR)/config.mk
 
@@ -36,8 +38,8 @@ SOBJS-y	:= lowlevel_init.o
 COBJS-y	:= ap20.o board.o clock.o display.o pinmux.o power.o pwfm.o \
 		sys_info.o timer.o
 
-SOBJS-$(CONFIG_TEGRA2_LP0) += warmboot_avp.o
 COBJS-$(CONFIG_TEGRA2_LP0) += warmboot.o
+COBJS-$(CONFIG_TEGRA2_LP0) += warmboot_avp.o
 
 SOBJS	:= $(SOBJS-y)
 COBJS	:= $(COBJS-y)
