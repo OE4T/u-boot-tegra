@@ -35,7 +35,6 @@
 
 /* FDT support */
 #define CONFIG_OF_LIBFDT	/* Device tree support */
-#define CONFIG_OF_NO_KERNEL	/* Don't pass device tree to kernel */
 #define CONFIG_OF_CONTROL	/* Use the device tree to set up U-Boot */
 #define CONFIG_OF_EMBED		/* Embed the device tree in U-Boot */
 
@@ -311,5 +310,15 @@
 #define CONFIG_SYS_INIT_SP_ADDR		(CONFIG_SYS_INIT_RAM_ADDR + \
 						CONFIG_SYS_INIT_RAM_SIZE - \
 						GENERATED_GBL_DATA_SIZE)
+
+/* kernel Device tree booting support */
+#define CONFIG_FIT	1
+#define CONFIG_CMD_IMI	1
+
+/*
+ * 32M is what it takes the u-boot to allocate enough room for the kernel
+ * loader to inflate the kernel and keep a copy of the device tree handy.
+ */
+#define CONFIG_SYS_BOOTMAPSZ	(1 << 25)
 
 #endif /* __TEGRA2_COMMON_H */
