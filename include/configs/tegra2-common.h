@@ -36,7 +36,11 @@
 /* FDT support */
 #define CONFIG_OF_LIBFDT	/* Device tree support */
 #define CONFIG_OF_CONTROL	/* Use the device tree to set up U-Boot */
-#define CONFIG_OF_EMBED		/* Embed the device tree in U-Boot */
+
+/* Embed the device tree in U-Boot, if not otherwise handled */
+#ifndef CONFIG_OF_SEPARATE
+#define CONFIG_OF_EMBED
+#endif
 
 /*
  * High Level Configuration Options

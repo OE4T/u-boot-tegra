@@ -194,6 +194,9 @@ endif
 ifeq ($(CPU),ixp)
 LIBS += arch/arm/cpu/ixp/npe/libnpe.o
 endif
+ifdef DEV_TREE_SEPARATE
+ALL += $(obj)u-boot.dtb
+endif
 ifeq ($(CONFIG_OF_EMBED),y)
 LIBS += dts/dt.o
 endif
@@ -344,6 +347,10 @@ $(obj)u-boot-cflags.mk:
 		echo "CC = $(CC)" > $@ ; \
 		echo $(CFLAGS) | \
 			awk -v RS='[ \t\n]+' -v ORS='' -- '$(AWK_SRC)' >> $@
+
+$(obj)u-boot.dtb:	$(obj)u-boot
+		$(MAKE) -C dts binary
+		mv $(obj)dts/dt.dtb $@
 
 $(obj)u-boot.hex:	$(obj)u-boot
 		$(OBJCOPY) ${OBJCFLAGS} -O ihex $< $@

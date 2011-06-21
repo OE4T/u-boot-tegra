@@ -24,6 +24,9 @@ include $(TOPDIR)/config.mk
 
 LIB	= $(obj)libdts.o
 
+# We use DEV_TREE_SRC as the name of the device tree, if defined
+# If not, we use CONFIG_DEFAULT_DEVICE_TREE
+
 ifeq ($(DEV_TREE_SRC),)
 $(if $(CONFIG_DEFAULT_DEVICE_TREE),,\
 $(error Please define CONFIG_DEFAULT_DEVICE_TREE in your board header \
@@ -38,9 +41,11 @@ endif
 # the filename.
 DT_BIN	:= $(obj)dt.dtb
 
-# TODO: get arch properly for objcopy line.
-$(obj)dt.o: $(TOPDIR)/board/$(BOARDDIR)/$(DEVICE_TREE).dts
+$(DT_BIN): $(TOPDIR)/board/$(BOARDDIR)/$(DEVICE_TREE).dts
 	$(DTC) -R 4 -p 0x1000 -O dtb -o ${DT_BIN} $<
+
+# TODO: get arch properly for objcopy line.
+$(obj)dt.o: $(DT_BIN)
 	cd $(dir ${DT_BIN}) && \
 	$(OBJCOPY) -B armv5te -I binary -O elf32-littlearm \
 		$(notdir ${DT_BIN}) $@
@@ -54,7 +59,9 @@ OBJS	:= $(addprefix $(obj),$(OBJS))
 
 all:	$(obj).depend $(LIB)
 
-$(LIB):	$(OBJS)
+binary:	$(DT_BIN)
+
+$(LIB):	$(OBJS) $(DTB)
 	$(call cmd_link_o_target, $(OBJS))
 
 clean:

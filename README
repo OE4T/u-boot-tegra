@@ -734,6 +734,11 @@ The following options need to be configured:
 		is then picked up in board_init_f() and made available through
 		the global data structure as gd->blob.
 
+		CONFIG_OF_SEPARATE
+		If this variable is defined, U-Boot will build a device tree
+		binary. It will be called u-boot.dtb. Architecture-specific
+		code will locate it at run-time.
+
 - Watchdog:
 		CONFIG_WATCHDOG
 		If this variable is defined, it enables watchdog
