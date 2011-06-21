@@ -335,6 +335,16 @@ ALL += $(obj)u-boot.srec $(obj)u-boot.bin $(obj)System.map $(U_BOOT_NAND) $(U_BO
 
 all:		$(ALL)
 
+# awk script for extract part of CFLAGS we want to export
+AWK_SRC = BEGIN { print "CFLAGS =" } \
+	!/^-[DI]/ { printf " %s", $$1 } \
+	END { print "\n" }
+
+$(obj)u-boot-cflags.mk:
+		echo "CC = $(CC)" > $@ ; \
+		echo $(CFLAGS) | \
+			awk -v RS='[ \t\n]+' -v ORS='' -- '$(AWK_SRC)' >> $@
+
 $(obj)u-boot.hex:	$(obj)u-boot
 		$(OBJCOPY) ${OBJCFLAGS} -O ihex $< $@
 
