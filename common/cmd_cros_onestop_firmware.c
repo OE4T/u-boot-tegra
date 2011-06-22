@@ -213,8 +213,10 @@ static uint32_t init_internal_state(void)
 
 static uint32_t get_recovery_request(void)
 {
-	if (_state.boot_flags & BOOT_FLAG_RECOVERY)
+	if (_state.boot_flags & BOOT_FLAG_RECOVERY) {
+		VBDEBUG(PREFIX "do recovery boot as requested\n");
 		return VBNV_RECOVERY_RO_MANUAL;
+	}
 	return _state.recovery_request;
 }
 
@@ -287,7 +289,7 @@ static uint32_t load_kernel_subkey_a(void *vblock)
  * @return VBNV_RECOVERY_NOT_REQUESTED if it succeeds; recovery reason if it
  *         fails
  */
-static uint32_t init_vbshared_data(void)
+static uint32_t init_vbshared_data(int dev_mode)
 {
 	/*
 	 * This function is adapted from LoadFirmware(). The differences between
@@ -314,7 +316,8 @@ static uint32_t init_vbshared_data(void)
 		return VBNV_RECOVERY_RO_SHARED_DATA;
 	}
 
-	if (is_developer_boot_requested())
+	reason = VBNV_RECOVERY_RO_UNSPECIFIED;
+	if (dev_mode)
 		_state.shared->flags |= VBSD_LF_DEV_SWITCH_ON;
 
 	VbNvSet(&_state.nvcxt, VBNV_TRY_B_COUNT, 0);
@@ -322,15 +325,15 @@ static uint32_t init_vbshared_data(void)
 	_state.shared->firmware_index = 0;
 
 	vblock = malloc(CONFIG_LENGTH_VBLOCK_A);
-	if (!vblock) {
+	if (vblock) {
+		reason = load_kernel_subkey_a(vblock);
+		if (reason != VBNV_RECOVERY_NOT_REQUESTED)
+			VBDEBUG(PREFIX "fail to load kernel subkey A\n");
+		free(vblock);
+	} else {
 		VBDEBUG(PREFIX "vblock == NULL\n");
-		return VBNV_RECOVERY_RO_UNSPECIFIED;
 	}
-	reason = load_kernel_subkey_a(vblock);
-	if (reason != VBNV_RECOVERY_NOT_REQUESTED)
-		VBDEBUG(PREFIX "fail to load kernel subkey A\n");
 
-	free(vblock);
 	return reason;
 }
 
@@ -414,11 +417,11 @@ static void recovery_boot(uint32_t reason)
 	 * 2. test_clear_mem_regions()
 	 * 3. clear_ram_not_in_use()
 	 */
-
 	cros_ksd_set_active_main_firmware(ksd, RECOVERY_FIRMWARE,
 			RECOVERY_TYPE);
 	cros_ksd_set_recovery_reason(ksd, reason);
 
+	/* can we remove this if? What is it for */
 	if (!is_developer_boot_requested()) {
 		/* wait user unplugging external storage device */
 		while (is_any_storage_device_plugged(NOT_BOOT_PROBED_DEVICE)) {
@@ -444,9 +447,6 @@ static void recovery_boot(uint32_t reason)
 			udelay(WAIT_MS_SHOW_ERROR * 1000);
 		}
 	}
-
-	/* It should never reach here; something terrible happens! */
-	cold_reboot();
 }
 
 /**
@@ -456,7 +456,7 @@ static void recovery_boot(uint32_t reason)
  * @return VBNV_RECOVERY_NOT_REQUESTED if it succeeds; recovery reason if it
  *         fails
  */
-static uint32_t rewritable_boot_init(void)
+static uint32_t rewritable_boot_init(int boot_type)
 {
 	void *ksd = get_last_1mb_of_ram();
 	uint8_t fwid[ID_LEN];
@@ -470,8 +470,7 @@ static uint32_t rewritable_boot_init(void)
 
 	cros_ksd_set_fwid(ksd, fwid);
 	cros_ksd_set_active_main_firmware(ksd, REWRITABLE_FIRMWARE_A,
-			is_developer_boot_requested() ?
-			DEVELOPER_TYPE : NORMAL_TYPE);
+			boot_type);
 
 	if (TlclStubInit() != TPM_SUCCESS) {
 		VBDEBUG(PREFIX "fail to init tpm\n");
@@ -522,20 +521,23 @@ static uint32_t developer_boot(void)
 		c = getc();
 		VBDEBUG(PREFIX "getc() == 0x%x\n", c);
 
-		/* boot from internal storage when user pressed Ctrl-D */
-		if (KEY_BOOT_INTERNAL == c)
-			break;
+		switch (c) {
+		/* boot from internal storage */
+		case KEY_BOOT_INTERNAL:
+			return VBNV_RECOVERY_NOT_REQUESTED;
 
 		/* load and boot kernel from USB or SD card */
-		if (KEY_BOOT_EXTERNAL == c) {
+		case KEY_BOOT_EXTERNAL:
 			/* even if boot_kernel_helper fails, we don't care */
 			if (is_any_storage_device_plugged(BOOT_PROBED_DEVICE))
 				boot_kernel_helper();
 			beep();
-		}
+			break;
 
-		if (c == ' ' || c == '\r' || c == '\n' ||
-				c == KEY_GOTO_RECOVERY) {
+		case ' ':
+		case '\r':
+		case '\n':
+		case KEY_GOTO_RECOVERY:
 			VBDEBUG(PREFIX "goto recovery\n");
 			return VBNV_RECOVERY_RW_DEV_SCREEN;
 		}
@@ -564,85 +566,58 @@ static uint32_t normal_boot(void)
 }
 
 /**
- * This is the main entry point of onestop firmware. If it returns to its
- * caller, the caller should reboot.
+ * This is the main entry point of onestop firmware. It will generally do
+ * a normal boot, but if it returns to its caller, the caller should enter
+ * recovery or reboot.
+ *
+ * @param ksd	Pointer to kernel shared data
+ * @return required action for caller:
+ *	REBOOT_TO_CURRENT_MODE	Reboot
+ *	anything else		Go into recovery
  */
-static void onestop_boot(void)
+static unsigned onestop_boot(void)
 {
-	uint32_t reason = VBNV_RECOVERY_NOT_REQUESTED;
+	unsigned reason = VBNV_RECOVERY_NOT_REQUESTED;
+	int dev_mode;
 
-	/*
-	 * At this point, we pretend to be "bootstub firmware" that selects
-	 * one of the main firmware (recovery or rewritable A/B).
-	 */
-
-	clear_screen();
-
+	/* Work through our initialization one step at a time */
 	reason = init_internal_state();
-	if (reason != VBNV_RECOVERY_NOT_REQUESTED) {
-		VBDEBUG(PREFIX "fail to init internal state\n");
-		recovery_boot(reason);
-	}
-
-	reason = get_recovery_request();
-	if (reason != VBNV_RECOVERY_NOT_REQUESTED) {
-		VBDEBUG(PREFIX "do recovery boot as requested\n");
-		recovery_boot(reason);
-	}
-
-	/*
-	 * At this point, we pretent to select one of rewritable (A versus B)
-	 * main firmware. In fact, we always select A here.
-	 *
-	 * Note: initializing VbShareData is required for developer and normal
-	 * boot, but not for recovery boot.
-	 */
-
-	reason = init_vbshared_data();
-	if (reason != VBNV_RECOVERY_NOT_REQUESTED) {
-		VBDEBUG(PREFIX "fail to init VbSharedData\n");
-		recovery_boot(reason);
-	}
-
-	/*
-	 * At this point, we pretend to be "rewritable firmware A". As a
-	 * result, all recovery reasons after this point must be one of
-	 * VBNV_RECOVERY_RW_*.
-	 *
-	 * Here we act like a Cr-48 style of rewritable firmware. That is, it
-	 * has the capability to do both developer boot and normal boot.
-	 */
-
-	reason = rewritable_boot_init();
-	if (reason != VBNV_RECOVERY_NOT_REQUESTED) {
-		VBDEBUG(PREFIX "fail to pretend booting from r/w fw\n");
-		recovery_boot(reason);
-	}
-
-	if (is_developer_boot_requested())
-		reason = developer_boot();
-
-	/*
-	 * If developer boot flow exits normally or is not requested, try
-	 * normal boot flow.
-	 */
+	dev_mode = is_developer_boot_requested();
 	if (reason == VBNV_RECOVERY_NOT_REQUESTED)
-		reason = normal_boot();
+		reason = get_recovery_request();
 
-	if (reason == REBOOT_TO_CURRENT_MODE)
-		cold_reboot();
+	if (reason == VBNV_RECOVERY_NOT_REQUESTED)
+		reason = init_vbshared_data(dev_mode);
 
-	/*
-	 * If normal boot flow fails, we should reboot to recovery mode. But
-	 * here we take a short cut, and just go to recovery boot flow.
-	 */
-	recovery_boot(reason);
+	if (reason == VBNV_RECOVERY_NOT_REQUESTED)
+		reason = rewritable_boot_init(dev_mode ?
+			DEVELOPER_TYPE : NORMAL_TYPE);
+
+	if (reason == VBNV_RECOVERY_NOT_REQUESTED) {
+		if (dev_mode)
+			reason = developer_boot();
+
+		/*
+		* If developer boot flow exits normally or is not requested,
+		* try normal boot flow.
+		*/
+		if (reason == VBNV_RECOVERY_NOT_REQUESTED)
+			reason = normal_boot();
+	}
+
+	/* Give up and fall through to recovery */
+	return reason;
 }
 
 int do_cros_onestop_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 		char * const argv[])
 {
-	onestop_boot();
+	unsigned reason;
+
+	clear_screen();
+	reason = onestop_boot();
+	if (reason != REBOOT_TO_CURRENT_MODE)
+		recovery_boot(reason);
 	cold_reboot();
 	return 0;
 }
