@@ -57,21 +57,20 @@ static struct internal_state_t {
  * This loads VbNvContext to internal state. The caller has to initialize
  * internal mmc device first.
  *
- * @return VBNV_RECOVERY_NOT_REQUESTED if it succeeds; recovery reason if it
- *         fails
+ * @return 0 if it succeeds; 1 if it fails
  */
 static uint32_t init_internal_state_nvcontext(void)
 {
 	if (read_nvcontext(&_state.nvcxt)) {
 		VBDEBUG(PREFIX "fail to read nvcontext\n");
-		return VBNV_RECOVERY_RO_UNSPECIFIED;
+		return 1;
 	}
 	VBDEBUG(PREFIX "nvcxt: %s\n", nvcontext_to_str(&_state.nvcxt));
 
 	if (VbNvGet(&_state.nvcxt, VBNV_RECOVERY_REQUEST,
 				&_state.recovery_request)) {
 		VBDEBUG(PREFIX "fail to read recovery request\n");
-		return VBNV_RECOVERY_RO_UNSPECIFIED;
+		return 1;
 	}
 	VBDEBUG(PREFIX "recovery_request = 0x%x\n", _state.recovery_request);
 
@@ -82,23 +81,23 @@ static uint32_t init_internal_state_nvcontext(void)
 	if (VbNvSet(&_state.nvcxt, VBNV_RECOVERY_REQUEST,
 				VBNV_RECOVERY_NOT_REQUESTED)) {
 		VBDEBUG(PREFIX "fail to clear recovery request\n");
-		return VBNV_RECOVERY_RO_UNSPECIFIED;
+		return 1;
 	}
 	if (VbNvTeardown(&_state.nvcxt)) {
 		VBDEBUG(PREFIX "fail to tear down nvcontext\n");
-		return VBNV_RECOVERY_RO_UNSPECIFIED;
+		return 1;
 	}
 	if (_state.nvcxt.raw_changed && write_nvcontext(&_state.nvcxt)) {
 		VBDEBUG(PREFIX "fail to write back nvcontext\n");
-		return VBNV_RECOVERY_RO_UNSPECIFIED;
+		return 1;
 	}
 
-	return VBNV_RECOVERY_NOT_REQUESTED;
+	return 0;
 }
 
 /**
- * This initializes data blob that firmware shares with kernel. The caller has
- * to initialize:
+ * This initializes data blob that firmware shares with kernel after checking
+ * the GPIOs for recovery/developer. The caller has to initialize:
  *   firmware storage device
  *   gbb
  *   nvcontext
@@ -107,11 +106,24 @@ static uint32_t init_internal_state_nvcontext(void)
  * @return VBNV_RECOVERY_NOT_REQUESTED if it succeeds; recovery reason if it
  *         fails
  */
-static uint32_t init_internal_state_ksd(void *ksd, int write_protect_sw,
-		int recovery_sw, int developer_sw)
+static uint32_t init_internal_state_bottom_half(void *ksd, int *dev_mode)
 {
 	uint8_t frid[ID_LEN], fmap[CONFIG_LENGTH_FMAP];
+	int write_protect_sw, recovery_sw, developer_sw;
 
+	/* fetch gpios at once */
+	write_protect_sw = is_firmware_write_protect_gpio_asserted();
+	recovery_sw = is_recovery_mode_gpio_asserted();
+	developer_sw = is_developer_mode_gpio_asserted();
+	if (developer_sw) {
+		_state.boot_flags |= BOOT_FLAG_DEVELOPER;
+		_state.boot_flags |= BOOT_FLAG_DEV_FIRMWARE;
+		*dev_mode = 1;
+	}
+	if (recovery_sw) {
+		_state.boot_flags |= BOOT_FLAG_RECOVERY;
+		_state.recovery_request = VBNV_RECOVERY_RO_MANUAL;
+	}
 	if (firmware_storage_read(&_state.file, CONFIG_OFFSET_RO_FRID,
 				CONFIG_LENGTH_RO_FRID, frid)) {
 		VBDEBUG(PREFIX "read frid fail\n");
@@ -141,17 +153,12 @@ static uint32_t init_internal_state_ksd(void *ksd, int write_protect_sw,
  * @return VBNV_RECOVERY_NOT_REQUESTED if it succeeds; recovery reason if it
  *         fails
  */
-static uint32_t init_internal_state(void *ksd)
+static uint32_t init_internal_state(void *ksd, int *dev_mode)
 {
-	int write_protect_sw, recovery_sw, developer_sw;
 	uint32_t reason;
 
-	/* fetch gpios at once */
-	write_protect_sw = is_firmware_write_protect_gpio_asserted();
-	recovery_sw = is_recovery_mode_gpio_asserted();
-	developer_sw = is_developer_mode_gpio_asserted();
-
 	memset(&_state, '\0', sizeof(_state));
+	*dev_mode = 0;
 
 	/* sad enough, SCREEN_BLANK != 0 */
 	_state.current_screen = SCREEN_BLANK;
@@ -185,43 +192,20 @@ static uint32_t init_internal_state(void *ksd)
 		VBDEBUG(PREFIX "mmc %d init fail\n", MMC_INTERNAL_DEVICE);
 		return VBNV_RECOVERY_RO_UNSPECIFIED;
 	}
-	reason = init_internal_state_nvcontext();
-	if (reason != VBNV_RECOVERY_NOT_REQUESTED) {
+	if (init_internal_state_nvcontext()) {
 		VBDEBUG(PREFIX "fail to load nvcontext\n");
-		return reason;
+		return VBNV_RECOVERY_RO_UNSPECIFIED;
 	}
 
-	reason = init_internal_state_ksd(ksd, write_protect_sw, recovery_sw,
-				developer_sw);
+	reason = init_internal_state_bottom_half(ksd, dev_mode);
 	if (reason != VBNV_RECOVERY_NOT_REQUESTED) {
 		VBDEBUG(PREFIX "init ksd fail\n");
 		return reason;
 	}
 
-	_state.boot_flags = 0;
-	if (developer_sw) {
-		_state.boot_flags |= BOOT_FLAG_DEVELOPER;
-		_state.boot_flags |= BOOT_FLAG_DEV_FIRMWARE;
-	}
-	if (recovery_sw)
-		_state.boot_flags |= BOOT_FLAG_RECOVERY;
 	VBDEBUG(PREFIX "boot_flags = 0x%llx\n", _state.boot_flags);
 
 	return VBNV_RECOVERY_NOT_REQUESTED;
-}
-
-static uint32_t get_recovery_request(void)
-{
-	if (_state.boot_flags & BOOT_FLAG_RECOVERY) {
-		VBDEBUG(PREFIX "do recovery boot as requested\n");
-		return VBNV_RECOVERY_RO_MANUAL;
-	}
-	return _state.recovery_request;
-}
-
-static int is_developer_boot_requested(void)
-{
-	return (_state.boot_flags & BOOT_FLAG_DEVELOPER);
 }
 
 /* forward declare a (private) struct of vboot_reference */
@@ -291,8 +275,8 @@ static uint32_t load_kernel_subkey_a(void *vblock)
 static uint32_t init_vbshared_data(int dev_mode)
 {
 	/*
-	 * This function is adapted from LoadFirmware(). The differences between
-	 * the two include:
+	 * This function is adapted from LoadFirmware(). The differences
+	 * between the two include:
 	 *
 	 *   We always pretend that we "boot" from firmware A, assuming that
 	 *   you have the right kernel subkey there. We also fill in respective
@@ -418,8 +402,8 @@ static void recovery_boot(void *ksd, uint32_t reason)
 			RECOVERY_TYPE);
 	cros_ksd_set_recovery_reason(ksd, reason);
 
-	/* can we remove this if? What is it for */
-	if (!is_developer_boot_requested()) {
+	/* can we remove this if? What is it for? */
+	if (!(_state.boot_flags & BOOT_FLAG_DEVELOPER)) {
 		/* wait user unplugging external storage device */
 		while (is_any_storage_device_plugged(NOT_BOOT_PROBED_DEVICE)) {
 			show_screen(SCREEN_RECOVERY_MODE);
@@ -487,6 +471,7 @@ static uint32_t developer_boot(void)
 	ulong start = 0, time = 0, last_time = 0;
 	int c, is_after_20_seconds = 0;
 
+	VBDEBUG(PREFIX "developer_boot\n");
 	show_screen(SCREEN_DEVELOPER_MODE);
 
 	start = get_timer(0);
@@ -577,10 +562,9 @@ static unsigned onestop_boot(void *ksd)
 	int dev_mode;
 
 	/* Work through our initialization one step at a time */
-	reason = init_internal_state(ksd);
-	dev_mode = is_developer_boot_requested();
+	reason = init_internal_state(ksd, &dev_mode);
 	if (reason == VBNV_RECOVERY_NOT_REQUESTED)
-		reason = get_recovery_request();
+		reason = _state.recovery_request;
 
 	if (reason == VBNV_RECOVERY_NOT_REQUESTED)
 		reason = init_vbshared_data(dev_mode);
