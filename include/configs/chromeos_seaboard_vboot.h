@@ -11,6 +11,7 @@
 
 #define CONFIG_VBOOT_WRAPPER
 #define CONFIG_CMD_VBEXPORT_TEST
+#define CONFIG_CMD_VBOOT_TEST
 
 #undef CONFIG_BOOTDELAY
 #define CONFIG_BOOTDELAY	-1	/* disable auto boot */
