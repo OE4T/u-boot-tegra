@@ -22,27 +22,27 @@
 #include <vboot/firmware_storage.h>
 
 typedef struct {
+	/*
+	 * These fields are the offsets of firmware data sections,
+	 * from beginning of firmware storage device.
+	 */
+	off_t offset;
+
+	/*
+	 * These fields are the sizes of firmware data sections.
+	 */
+	size_t size;
+
+	/*
+	 * These pointers will point to firmware data bodies loaded by
+	 * VbExHashFirmwareBody().
+	 */
+	uint8_t *buffer;
+} firmware_info_t;
+
+typedef struct {
 	firmware_storage_t *file;
-
-	struct {
-		/*
-		 * These fields are the offsets of firmware data sections,
-		 * from beginning of firmware storage device.
-		 */
-		off_t offset;
-
-		/*
-		 * These fields are the sizes of firmware data sections.
-		 */
-		size_t size;
-
-		/*
-		 * These pointers will point to firmware data bodies loaded by
-		 * VbExHashFirmwareBody().
-		 */
-		uint8_t *buffer;
-	} infos[2];
-
+	firmware_info_t infos[2];
 } firmware_cache_t;
 
 /* Initialize fields of firmware cache. */
