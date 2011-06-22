@@ -62,35 +62,36 @@ static struct internal_state_t {
  *
  * @return 0 if it succeeds; 1 if it fails
  */
-static uint32_t init_internal_state_nvcontext(void)
+static uint32_t init_internal_state_nvcontext(VbNvContext *nvcxt,
+			uint32_t *recovery_request)
 {
-	if (read_nvcontext(&_state.nvcxt)) {
+	if (read_nvcontext(nvcxt)) {
 		VBDEBUG(PREFIX "fail to read nvcontext\n");
 		return 1;
 	}
-	VBDEBUG(PREFIX "nvcxt: %s\n", nvcontext_to_str(&_state.nvcxt));
+	VBDEBUG(PREFIX "nvcxt: %s\n", nvcontext_to_str(nvcxt));
 
-	if (VbNvGet(&_state.nvcxt, VBNV_RECOVERY_REQUEST,
-				&_state.recovery_request)) {
+	if (VbNvGet(nvcxt, VBNV_RECOVERY_REQUEST,
+				recovery_request)) {
 		VBDEBUG(PREFIX "fail to read recovery request\n");
 		return 1;
 	}
-	VBDEBUG(PREFIX "recovery_request = 0x%x\n", _state.recovery_request);
+	VBDEBUG(PREFIX "recovery_request = 0x%x\n", *recovery_request);
 
 	/*
 	 * we have to clean recovery request once we have it so that we will
 	 * not be trapped in recovery boot
 	 */
-	if (VbNvSet(&_state.nvcxt, VBNV_RECOVERY_REQUEST,
+	if (VbNvSet(nvcxt, VBNV_RECOVERY_REQUEST,
 				VBNV_RECOVERY_NOT_REQUESTED)) {
 		VBDEBUG(PREFIX "fail to clear recovery request\n");
 		return 1;
 	}
-	if (VbNvTeardown(&_state.nvcxt)) {
+	if (VbNvTeardown(nvcxt)) {
 		VBDEBUG(PREFIX "fail to tear down nvcontext\n");
 		return 1;
 	}
-	if (_state.nvcxt.raw_changed && write_nvcontext(&_state.nvcxt)) {
+	if (nvcxt->raw_changed && write_nvcontext(nvcxt)) {
 		VBDEBUG(PREFIX "fail to write back nvcontext\n");
 		return 1;
 	}
@@ -160,7 +161,6 @@ static uint32_t init_internal_state(void *ksd, int *dev_mode)
 {
 	uint32_t reason;
 
-	memset(&_state, '\0', sizeof(_state));
 	*dev_mode = 0;
 
 	/* sad enough, SCREEN_BLANK != 0 */
@@ -190,7 +190,8 @@ static uint32_t init_internal_state(void *ksd, int *dev_mode)
 		VBDEBUG(PREFIX "mmc %d init fail\n", MMC_INTERNAL_DEVICE);
 		return VBNV_RECOVERY_RO_UNSPECIFIED;
 	}
-	if (init_internal_state_nvcontext()) {
+	if (init_internal_state_nvcontext(&_state.nvcxt,
+			&_state.recovery_request)) {
 		VBDEBUG(PREFIX "fail to load nvcontext\n");
 		return VBNV_RECOVERY_RO_UNSPECIFIED;
 	}
