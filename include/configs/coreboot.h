@@ -131,8 +131,17 @@
 #define CONFIG_CMD_FAT
 #define CONFIG_CMD_EXT2
 
-#define CONFIG_BOOTDELAY			2
-#define CONFIG_BOOTARGS				"root=/dev/mtdblock0 console=ttyS0,9600"
+#define CONFIG_BOOTDELAY			-1
+#define CONFIG_BOOTARGS				"console=uart8250,mmio,0xe0401000,115200n8 "\
+						"root=/dev/sda3 "\
+						"init=/sbin/init "\
+						"i915.modeset=1 "\
+						"rootwait "\
+						"ro "\
+						"cros_legacy"
+
+#define CONFIG_BOOTCOMMAND			"fatload ide 0:c 3000000 syslinux/vmlinuz.a; "\
+						"zboot 3000000; "
 
 #if defined(CONFIG_CMD_KGDB)
 #define CONFIG_KGDB_BAUDRATE			115200
