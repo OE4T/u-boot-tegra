@@ -51,6 +51,9 @@ static struct internal_state_t {
 	uint64_t boot_flags;
 	uint32_t recovery_request;
 	ScreenIndex current_screen;
+
+	/* Can we make this a non-pointer, and avoid a malloc? */
+	VbKeyBlockHeader *key_block;
 } _state;
 
 /**
@@ -165,15 +168,10 @@ static uint32_t init_internal_state(void *ksd, int *dev_mode)
 
 	/* malloc spaces for buffers */
 	_state.gbb_data = malloc(CONFIG_LENGTH_GBB);
-	if (!_state.gbb_data) {
-		VBDEBUG(PREFIX "malloc gbb_data == NULL\n");
-		return VBNV_RECOVERY_RO_UNSPECIFIED;
-	}
 	_state.shared = malloc(VB_SHARED_DATA_REC_SIZE);
-	if (!_state.shared) {
-		VBDEBUG(PREFIX "malloc shared == NULL\n");
+	_state.key_block = (VbKeyBlockHeader *)malloc(CONFIG_LENGTH_VBLOCK_A);
+	if (!_state.gbb_data || !_state.shared || !_state.key_block)
 		return VBNV_RECOVERY_RO_UNSPECIFIED;
-	}
 
 	/* open firmware storage device and load gbb */
 	if (firmware_storage_open_spi(&_state.file)) {
@@ -229,20 +227,18 @@ struct RSAPublicKey *PublicKeyToRSA(const VbPublicKey *key);
  * @return VBNV_RECOVERY_NOT_REQUESTED if it succeeds; recovery reason if it
  *         fails
  */
-static uint32_t load_kernel_subkey_a(void *vblock)
+static uint32_t load_kernel_subkey_a(VbKeyBlockHeader *key_block)
 {
-	VbKeyBlockHeader *key_block;
 	VbFirmwarePreambleHeader *preamble;
 	struct RSAPublicKey *data_key;
 
+	VBDEBUG(PREFIX "reading kernel subkey A\n");
 	if (firmware_storage_read(&_state.file,
 				CONFIG_OFFSET_VBLOCK_A, CONFIG_LENGTH_VBLOCK_A,
-				vblock)) {
+				key_block)) {
 		VBDEBUG(PREFIX "read verification block fail\n");
 		return VBNV_RECOVERY_RO_SHARED_DATA;
 	}
-
-	key_block = (VbKeyBlockHeader *)vblock;
 
 	data_key = PublicKeyToRSA(&key_block->data_key);
 	if (!data_key) {
@@ -250,7 +246,7 @@ static uint32_t load_kernel_subkey_a(void *vblock)
 		return VBNV_RECOVERY_RO_SHARED_DATA;
 	}
 
-	preamble = (VbFirmwarePreambleHeader *)(vblock +
+	preamble = (VbFirmwarePreambleHeader *)((char *)key_block +
 			key_block->key_block_size);
 	if (VerifyFirmwarePreamble(preamble, CONFIG_LENGTH_VBLOCK_A -
 				key_block->key_block_size, data_key)) {
@@ -290,16 +286,11 @@ static uint32_t init_vbshared_data(int dev_mode)
 	 *    We do not call VbGetTimer() because we have conflicting symbols
 	 *    when include utility.h.
 	 */
-
-	uint32_t reason;
-	uint8_t *vblock;
-
 	if (VbSharedDataInit(_state.shared, VB_SHARED_DATA_REC_SIZE)) {
 		VBDEBUG(PREFIX "VbSharedDataInit fail\n");
 		return VBNV_RECOVERY_RO_SHARED_DATA;
 	}
 
-	reason = VBNV_RECOVERY_RO_UNSPECIFIED;
 	if (dev_mode)
 		_state.shared->flags |= VBSD_LF_DEV_SWITCH_ON;
 
@@ -307,17 +298,7 @@ static uint32_t init_vbshared_data(int dev_mode)
 	_state.shared->check_fw_a_result = VBSD_LF_CHECK_VALID;
 	_state.shared->firmware_index = 0;
 
-	vblock = malloc(CONFIG_LENGTH_VBLOCK_A);
-	if (vblock) {
-		reason = load_kernel_subkey_a(vblock);
-		if (reason != VBNV_RECOVERY_NOT_REQUESTED)
-			VBDEBUG(PREFIX "fail to load kernel subkey A\n");
-		free(vblock);
-	} else {
-		VBDEBUG(PREFIX "vblock == NULL\n");
-	}
-
-	return reason;
+	return load_kernel_subkey_a(_state.key_block);
 }
 
 static void beep(void)
