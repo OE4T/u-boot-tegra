@@ -131,6 +131,7 @@ int cros_ksd_set_recovery_reason(void *kernel_shared_data, uint32_t reason)
 
 void cros_ksd_dump(void *kernel_shared_data)
 {
+#ifdef VBOOT_DEBUG /* decleare inside ifdef so that compiler doesn't complain */
 	KernelSharedDataType *sd = (KernelSharedDataType *)kernel_shared_data;
 	int i;
 
@@ -160,4 +161,5 @@ void cros_ksd_dump(void *kernel_shared_data)
 	_p("\"%s\"",	frid);
 	_p("%08x",	fmap_base);
 #undef _p
+#endif
 }
