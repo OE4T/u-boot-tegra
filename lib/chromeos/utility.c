@@ -62,7 +62,7 @@ void debug(const char *format, ...)
 
 void *Malloc(size_t size)
 {
-	void *p = malloc(size);
+	void *p = memalign(CACHE_LINE_SIZE, size);
 	if (!p) {
 		/* Fatal Error. We must abort. */
 		_abort();
