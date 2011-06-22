@@ -107,10 +107,9 @@ static uint32_t init_internal_state_nvcontext(void)
  * @return VBNV_RECOVERY_NOT_REQUESTED if it succeeds; recovery reason if it
  *         fails
  */
-static uint32_t init_internal_state_ksd(int write_protect_sw, int recovery_sw,
-		int developer_sw)
+static uint32_t init_internal_state_ksd(void *ksd, int write_protect_sw,
+		int recovery_sw, int developer_sw)
 {
-	void *ksd = get_last_1mb_of_ram();
 	uint8_t frid[ID_LEN], fmap[CONFIG_LENGTH_FMAP];
 
 	if (firmware_storage_read(&_state.file, CONFIG_OFFSET_RO_FRID,
@@ -142,7 +141,7 @@ static uint32_t init_internal_state_ksd(int write_protect_sw, int recovery_sw,
  * @return VBNV_RECOVERY_NOT_REQUESTED if it succeeds; recovery reason if it
  *         fails
  */
-static uint32_t init_internal_state(void)
+static uint32_t init_internal_state(void *ksd)
 {
 	int write_protect_sw, recovery_sw, developer_sw;
 	uint32_t reason;
@@ -192,7 +191,7 @@ static uint32_t init_internal_state(void)
 		return reason;
 	}
 
-	reason = init_internal_state_ksd(write_protect_sw, recovery_sw,
+	reason = init_internal_state_ksd(ksd, write_protect_sw, recovery_sw,
 				developer_sw);
 	if (reason != VBNV_RECOVERY_NOT_REQUESTED) {
 		VBDEBUG(PREFIX "init ksd fail\n");
@@ -405,10 +404,8 @@ static uint32_t boot_kernel_helper(void)
  *
  * @param reason - recovery reason
  */
-static void recovery_boot(uint32_t reason)
+static void recovery_boot(void *ksd, uint32_t reason)
 {
-	void *ksd = get_last_1mb_of_ram();
-
 	VBDEBUG(PREFIX "recovery boot\n");
 
 	/*
@@ -456,9 +453,8 @@ static void recovery_boot(uint32_t reason)
  * @return VBNV_RECOVERY_NOT_REQUESTED if it succeeds; recovery reason if it
  *         fails
  */
-static uint32_t rewritable_boot_init(int boot_type)
+static uint32_t rewritable_boot_init(void *ksd, int boot_type)
 {
-	void *ksd = get_last_1mb_of_ram();
 	uint8_t fwid[ID_LEN];
 
 	/* we pretend we boot from r/w firmware A */
@@ -575,13 +571,13 @@ static uint32_t normal_boot(void)
  *	REBOOT_TO_CURRENT_MODE	Reboot
  *	anything else		Go into recovery
  */
-static unsigned onestop_boot(void)
+static unsigned onestop_boot(void *ksd)
 {
 	unsigned reason = VBNV_RECOVERY_NOT_REQUESTED;
 	int dev_mode;
 
 	/* Work through our initialization one step at a time */
-	reason = init_internal_state();
+	reason = init_internal_state(ksd);
 	dev_mode = is_developer_boot_requested();
 	if (reason == VBNV_RECOVERY_NOT_REQUESTED)
 		reason = get_recovery_request();
@@ -590,7 +586,7 @@ static unsigned onestop_boot(void)
 		reason = init_vbshared_data(dev_mode);
 
 	if (reason == VBNV_RECOVERY_NOT_REQUESTED)
-		reason = rewritable_boot_init(dev_mode ?
+		reason = rewritable_boot_init(ksd, dev_mode ?
 			DEVELOPER_TYPE : NORMAL_TYPE);
 
 	if (reason == VBNV_RECOVERY_NOT_REQUESTED) {
@@ -612,12 +608,13 @@ static unsigned onestop_boot(void)
 int do_cros_onestop_firmware(cmd_tbl_t *cmdtp, int flag, int argc,
 		char * const argv[])
 {
+	void *ksd = get_last_1mb_of_ram();
 	unsigned reason;
 
 	clear_screen();
-	reason = onestop_boot();
+	reason = onestop_boot(ksd);
 	if (reason != REBOOT_TO_CURRENT_MODE)
-		recovery_boot(reason);
+		recovery_boot(ksd, reason);
 	cold_reboot();
 	return 0;
 }
