@@ -12,6 +12,7 @@ include $(TOPDIR)/config.mk
 
 LIB	= $(obj)libvboot.a
 
+COBJS-$(CONFIG_VBOOT_WRAPPER) += firmware_cache.o
 COBJS-$(CONFIG_VBOOT_WRAPPER) += firmware_storage.o
 COBJS-$(CONFIG_VBOOT_WRAPPER) += firmware_storage_spi.o
 
