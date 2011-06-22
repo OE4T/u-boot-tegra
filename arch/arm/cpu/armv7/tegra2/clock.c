@@ -794,6 +794,79 @@ unsigned clock_get_rate(enum clock_id clkid)
 	return rate;
 }
 
+/**
+ * Set the output frequency you want for each PLL clock.
+ * PLL output frequencies are programmed by setting their N, M and P values.
+ * The governing equations are:
+ *     VCO = (Fi / m) * n, Fo = VCO / (2^p)
+ *     where Fo is the output frequency from the PLL.
+ * Example: Set the output frequency to 216Mhz(Fo) with 12Mhz OSC(Fi)
+ *     216Mhz = ((12Mhz / m) * n) / (2^p) so n=432,m=12,p=1
+ * Please see Tegra TRM section 5.3 to get the detail for PLL Programming
+ *
+ * @param n PLL feedback divider(DIVN)
+ * @param m PLL input divider(DIVN)
+ * @param p post divider(DIVP)
+ * @param cpcon base PLL charge pump(CPCON)
+ * @return 0 if ok, -1 on error (the requested PLL cannot be overriden)
+ */
+static int clock_set_rate(enum clock_id clkid, u32 n, u32 m, u32 p, u32 cpcon)
+{
+	u32 base_reg;
+	u32 misc_reg;
+	struct clk_pll *pll;
+
+	pll = get_pll(clkid);
+
+	base_reg = readl(&pll->pll_base);
+
+	if(clkid == CLOCK_ID_PERIPH)
+		if(base_reg & bf_mask(PLL_BASE_OVRRIDE))
+			return -1;
+
+	/* Set BYPASS, m, n and p to PLL_BASE */
+	bf_update(PLL_BYPASS, base_reg, 1);
+	if(clkid == CLOCK_ID_PERIPH)
+		bf_update(PLL_BASE_OVRRIDE, base_reg, 1);
+	bf_update(PLL_DIVM, base_reg, m);
+	bf_update(PLL_DIVN, base_reg, n);
+	bf_update(PLL_DIVP, base_reg, p);
+	writel(base_reg, &pll->pll_base);
+
+	/* Set cpcon to PLL_MISC */
+	misc_reg = readl(&pll->pll_misc);
+	bf_update(PLL_CPCON, misc_reg, cpcon);
+	writel(misc_reg, &pll->pll_misc);
+
+	/* Enable PLL */
+	bf_update(PLL_ENABLE, base_reg, 1);
+	writel(base_reg, &pll->pll_base);
+
+	/* Disable BYPASS */
+	bf_update(PLL_BYPASS, base_reg, 0);
+	writel(base_reg, &pll->pll_base);
+
+	return 0;
+}
+
+void common_pll_init(void)
+{
+	/*
+	 * PLLP output frequency set to 216Mh
+	 * PLLC output frequency set to 600Mhz
+	 */
+	switch (clock_get_rate(CLOCK_ID_OSC)) {
+	case 12000000: /* OSC is 12Mhz */
+		clock_set_rate(CLOCK_ID_PERIPH, 432, 12, 1, 8);
+		clock_set_rate(CLOCK_ID_CGENERAL, 600, 12, 0, 8);
+		break;
+	case 26000000: /* OSC is 26Mhz */
+		clock_set_rate(CLOCK_ID_PERIPH, 432, 26, 1, 8);
+		clock_set_rate(CLOCK_ID_CGENERAL, 600, 26, 0, 8);
+		break;
+	}
+}
+
 void clock_init(void)
 {
 	pll_rate[CLOCK_ID_MEMORY] = clock_get_rate(CLOCK_ID_MEMORY);

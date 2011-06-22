@@ -92,29 +92,10 @@ static void enable_uart(enum periph_id pid)
 
 /*
  * Routine: clock_init_uart
- * Description: init the PLL and clock for the UART(s)
+ * Description: init clock for the UART(s)
  */
 static void clock_init_uart(int uart_ids)
 {
-	struct clk_rst_ctlr *clkrst = (struct clk_rst_ctlr *)NV_PA_CLK_RST_BASE;
-	struct clk_pll *pll = &clkrst->crc_pll[CLOCK_ID_PERIPH];
-	u32 reg;
-
-	reg = readl(&pll->pll_base);
-	if (!(reg & bf_mask(PLL_BASE_OVRRIDE))) {
-		/* Override pllp setup for 216MHz operation. */
-		reg = bf_mask(PLL_BYPASS) | bf_mask(PLL_BASE_OVRRIDE) |
-			bf_pack(PLL_DIVP, 1) | bf_pack(PLL_DIVM, 0xc);
-		reg |= bf_pack(PLL_DIVN, NVRM_PLLP_FIXED_FREQ_KHZ / 500);
-		writel(reg, &pll->pll_base);
-
-		reg |= bf_mask(PLL_ENABLE);
-		writel(reg, &pll->pll_base);
-
-		reg &= ~bf_mask(PLL_BYPASS);
-		writel(reg, &pll->pll_base);
-	}
-
 	if (uart_ids & UARTA)
 		enable_uart(PERIPH_ID_UART1);
 	if (uart_ids & UARTB)
@@ -275,7 +256,10 @@ int board_early_init_f(void)
 	/* We didn't do this init in start.S, so do it now */
 	cpu_init_crit();
 
-	/* Initialize essential periph clocks */
+	/* Initialize essential common plls */
+	common_pll_init();
+
+	/* Initialize UART clocks */
 	clock_init_uart(uart_ids);
 
 	/* Initialize periph pinmuxes */

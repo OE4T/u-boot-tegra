@@ -355,5 +355,8 @@ unsigned clock_get_rate(enum clock_id clkid);
 /* Initialize the clocks */
 void clock_init(void);
 
+/* Initialize the plls */
+void common_pll_init(void);
+
 #endif
 
