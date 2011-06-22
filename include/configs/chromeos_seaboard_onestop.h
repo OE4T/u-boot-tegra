@@ -34,6 +34,8 @@
 
 /* entry point of onestop firmware */
 #define CONFIG_CMD_CROS_ONESTOP_FIRMWARE
+#undef CONFIG_BOOTCOMMAND
+#define CONFIG_BOOTCOMMAND "run regen_all; cros_onestop_firmware"
 
 /*
  * Use a smaller firmware image layout for Seaboard because it has
