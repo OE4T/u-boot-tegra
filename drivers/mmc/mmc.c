@@ -548,7 +548,7 @@ retry_scr:
 	if (!(__be32_to_cpu(buffer[3]) & SD_HIGHSPEED_SUPPORTED))
 		goto out;
 
-	err = sd_switch(mmc, SD_SWITCH_SWITCH, 0, 1, (u8 *)&buffer);
+	err = sd_switch(mmc, SD_SWITCH_SWITCH, 0, 1, (u8 *)buffer);
 
 	if (err)
 		goto failure;
