@@ -154,6 +154,9 @@ static uint32_t init_internal_state(void)
 
 	memset(&_state, '\0', sizeof(_state));
 
+	/* sad enough, SCREEN_BLANK != 0 */
+	_state.current_screen = SCREEN_BLANK;
+
 	/* malloc spaces for buffers */
 	_state.gbb_data = malloc(CONFIG_LENGTH_GBB);
 	if (!_state.gbb_data) {
@@ -347,6 +350,8 @@ static void clear_screen(void)
 
 static void show_screen(ScreenIndex screen)
 {
+	VBDEBUG(PREFIX "show_screen: %d\n", (int) screen);
+
 	if (_state.current_screen == screen)
 		return;
 
