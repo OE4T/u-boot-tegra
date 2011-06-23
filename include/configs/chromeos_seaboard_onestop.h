@@ -22,6 +22,7 @@
 #define CONFIG_CHROMEOS_BMPBLK
 #define CONFIG_LCD_BMP_RLE8
 #define CONFIG_LZMA
+#define CONFIG_SPLASH_SCREEN
 
 /* lcd dimension; this is used when packing stuff in chromeos-bootimage */
 #define CONFIG_LCD_vl_col      1366
