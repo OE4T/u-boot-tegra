@@ -26,6 +26,8 @@
 #include <common.h>
 #include <flash.h>
 #include <netdev.h>
+#include <asm/ic/coreboot/tables.h>
+#include <asm/ic/coreboot/sysinfo.h>
 
 #ifdef CONFIG_HW_WATCHDOG
 #include <watchdog.h>
@@ -39,6 +41,15 @@ unsigned long monitor_flash_len = CONFIG_SYS_MONITOR_LEN;
 /*
  * Miscellaneous platform dependent initializations
  */
+int cpu_init_f(void)
+{
+	int ret = get_coreboot_info(&lib_sysinfo);
+	if (ret != 0) {
+		printf("Failed to parse coreboot tables.\n");
+	}
+	return ret;
+}
+
 int board_early_init_f(void)
 {
 	return 0;
