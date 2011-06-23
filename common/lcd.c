@@ -637,36 +637,38 @@ void bitmap_plot (int x, int y)
 #define BMP_RLE8_EOBMP		1
 #define BMP_RLE8_DELTA		2
 
-static void draw_unencoded_bitmap(ushort **fbp, uchar *bmap, ushort *cmap,
+static uchar *draw_unencoded_bitmap(uchar *fb, uchar *bmap, ushort *cmap,
 				  int cnt)
 {
+	ushort *fb_short = (ushort *)fb;
 	while (cnt > 0) {
-		*(*fbp)++ = cmap[*bmap++];
+		*fb_short++ = cmap[*bmap++];
 		cnt--;
 	}
+	return (uchar *)fb_short;
 }
 
-static void draw_encoded_bitmap(ushort **fbp, ushort c, int cnt)
+static uchar *draw_encoded_bitmap(uchar *fb, ushort c, int cnt)
 {
-	ushort *fb = *fbp;
+	ushort *fb_short = (ushort *)fb;
 	int cnt_8copy = cnt >> 3;
 	cnt -= cnt_8copy << 3;
 	while (cnt_8copy > 0) {
-		*fb++ = c;
-		*fb++ = c;
-		*fb++ = c;
-		*fb++ = c;
-		*fb++ = c;
-		*fb++ = c;
-		*fb++ = c;
-		*fb++ = c;
+		*fb_short++ = c;
+		*fb_short++ = c;
+		*fb_short++ = c;
+		*fb_short++ = c;
+		*fb_short++ = c;
+		*fb_short++ = c;
+		*fb_short++ = c;
+		*fb_short++ = c;
 		cnt_8copy--;
 	}
 	while (cnt > 0) {
-		*fb++ = c;
+		*fb_short++ = c;
 		cnt--;
 	}
-	(*fbp) = fb;
+	return (uchar *)fb_short;
 }
 
 /* Do not call this function directly, must be called from
@@ -722,8 +724,7 @@ static int lcd_display_rle8_bitmap(bmp_image_t *bmp, ushort *cmap, uchar *fb,
 							cnt = width - x;
 						else
 							cnt = runlen;
-						draw_unencoded_bitmap(
-							(ushort **)&fb,
+						fb = draw_unencoded_bitmap(fb,
 							bmap, cmap, cnt);
 					}
 					x += runlen;
@@ -748,7 +749,7 @@ static int lcd_display_rle8_bitmap(bmp_image_t *bmp, ushort *cmap, uchar *fb,
 						cnt = width - x;
 					else
 						cnt = runlen;
-					draw_encoded_bitmap((ushort **)&fb,
+					fb = draw_encoded_bitmap(fb,
 						cmap[bmap[1]], cnt);
 				}
 				x += runlen;
