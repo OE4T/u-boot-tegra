@@ -203,7 +203,13 @@ int initialize_mmc_device(int dev)
 
 int is_mmc_storage_present(int mmc_device_number)
 {
-	return find_mmc_device(mmc_device_number) != NULL;
+	/*
+	 * mmc_init tests the SD card's version and tries its operating
+	 * condition. It should be the minimally required code for probing
+	 * an SD card.
+	 */
+	struct mmc *mmc = find_mmc_device(mmc_device_number);
+	return mmc != NULL && mmc_init(mmc) == 0;
 }
 
 int is_usb_storage_present(void)
