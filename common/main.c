@@ -38,6 +38,10 @@
 #include <hush.h>
 #endif
 
+#ifdef CONFIG_OF_CONTROL
+#include <fdt_decode.h>
+#endif /* CONFIG_OF_CONTROL */
+
 #include <post.h>
 
 #if defined(CONFIG_SILENT_CONSOLE) || defined(CONFIG_POST) || defined(CONFIG_CMDLINE_EDITING)
@@ -384,6 +388,11 @@ void main_loop (void)
 	else
 #endif /* CONFIG_BOOTCOUNT_LIMIT */
 		s = getenv ("bootcmd");
+#ifdef CONFIG_OF_CONTROL
+	/* Load bootcmd from fdt if none of above env variables exist. */
+	if (!s)
+		s = fdt_decode_get_config_string(gd->blob, "bootcmd");
+#endif /* CONFIG_OF_CONTROL */
 
 	debug ("### main_loop: bootcmd=\"%s\"\n", s ? s : "<UNDEFINED>");
 

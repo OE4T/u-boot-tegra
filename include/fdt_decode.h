@@ -348,3 +348,13 @@ int fdt_decode_usb(const void *blob, int node, unsigned osc_frequency_mhz,
  *			-FDT_ERR_MISSING.
  */
 int fdt_decode_sdmmc(const void *blob, int node, struct fdt_sdmmc *config);
+
+/**
+ * Look in the FDT for a config item with the given name and return its value
+ * as a string.
+ *
+ * @param blob		FDT blob
+ * @param prop_name	property name to look up
+ * @returns property string, NULL on error.
+ */
+char *fdt_decode_get_config_string(const void *blob, const char *prop_name);

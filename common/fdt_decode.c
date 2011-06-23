@@ -509,3 +509,20 @@ int fdt_decode_sdmmc(const void *blob, int node, struct fdt_sdmmc *config)
 	decode_gpio(blob, node, "power-gpio", &config->power_gpio);
 	return 0;
 }
+
+char *fdt_decode_get_config_string(const void *blob, const char *prop_name)
+{
+	const char *nodep;
+	int nodeoffset;
+	int len;
+
+	nodeoffset = fdt_path_offset(blob, "/config");
+	if (nodeoffset < 0)
+		return NULL;
+
+	nodep = fdt_getprop(blob, nodeoffset, prop_name, &len);
+	if (!nodep)
+		return NULL;
+
+	return (char *)nodep;
+}
