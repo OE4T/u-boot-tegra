@@ -22,13 +22,30 @@
  * MA 02111-1307 USA
  */
 
+#include <common.h>
 #include <asm/u-boot-i386.h>
 #include <asm/global_data.h>
+#include <asm/ic/coreboot/sysinfo.h>
+#include <asm/ic/coreboot/tables.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
 int dram_init_f(void) {
-	gd->ram_size = 64*1024*1024;
+	int i;
+	phys_size_t ram_size = 0;
+	for (i = 0; i < lib_sysinfo.n_memranges; i++) {
+		unsigned long long end = \
+			lib_sysinfo.memrange[i].base +
+			lib_sysinfo.memrange[i].size;
+		if (lib_sysinfo.memrange[i].type == CB_MEM_RAM &&
+			end > ram_size) {
+			ram_size = end;
+		}
+	}
+	gd->ram_size = ram_size;
+	if (ram_size == 0) {
+		return -1;
+	}
 	return 0;
 }
 
