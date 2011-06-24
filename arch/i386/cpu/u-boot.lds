@@ -84,7 +84,6 @@ SECTIONS
 	__bios_start = LOADADDR(.bios);
 	__bios_size = SIZEOF(.bios);
 
-#if !defined NO_RESET_CODE
 	/*
 	 * The following expressions place the 16-bit Real-Mode code and
 	 * Reset Vector at the end of the Flash ROM
@@ -94,5 +93,4 @@ SECTIONS
 
 	. = RESET_VEC_LOC;
 	.resetvec : AT (CONFIG_SYS_TEXT_BASE + (FLASH_SIZE - RESET_SEG_SIZE + RESET_VEC_LOC)) { KEEP(*(.resetvec)); }
-#endif
 }

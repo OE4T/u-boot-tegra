@@ -24,6 +24,10 @@
 
 /* Reset vector, jumps to start16.S */
 
+#include <config.h>
+
+#if !defined CONFIG_NO_RESET_CODE
+
 .extern start16
 
 .section .resetvec, "ax"
@@ -35,3 +39,5 @@ reset_vector:
 
 	.org 0xf
 	nop
+
+#endif

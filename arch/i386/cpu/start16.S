@@ -24,10 +24,13 @@
 
 #include <asm/global_data.h>
 #include <asm/processor-flags.h>
+#include <config.h>
 
 #define BOOT_SEG	0xffff0000	/* linear segment of boot code */
 #define a32		.byte 0x67;
 #define o32		.byte 0x66;
+
+#if !defined CONFIG_NO_RESET_CODE
 
 .section .start16, "ax"
 .code16
@@ -107,3 +110,5 @@ gdt:
 	.word	0x0		/* base address = 0 */
 	.word	0x9300		/* data read/write */
 	.word	0x00CF		/* granularity = 4096, 386 (+5th nibble of limit) */
+
+#endif

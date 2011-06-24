@@ -34,6 +34,5 @@
 # Software Foundation.
 #
 
-LDPPFLAGS += -DNO_RESET_CODE
 HOSTCFLAGS_autoconf.mk.dep = -Wno-variadic-macros
 LD := $(LD).bfd

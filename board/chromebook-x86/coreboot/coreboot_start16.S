@@ -28,12 +28,18 @@
  * that is used by U-boot to its final destination.
  */
 
+#include <config.h>
+
+#if !defined CONFIG_NO_RESET_CODE
+
 .text
 .section .start16, "ax"
 .code16
 .globl board_init16
 board_init16:
 	jmp	board_init16_ret
+
+#endif
 
 .section .bios, "ax"
 .code16
