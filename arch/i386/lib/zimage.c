@@ -53,6 +53,16 @@
 
 #define COMMAND_LINE_SIZE   2048
 
+unsigned generic_install_e820_map(unsigned max_entries,
+				  struct e820entry *entries)
+{
+	return 0;
+}
+
+unsigned install_e820_map(unsigned max_entries,
+			  struct e820entry *entries)
+	__attribute__((weak, alias("generic_install_e820_map")));
+
 static void build_command_line(char *command_line, int auto_boot)
 {
 	char *env_command_line;
