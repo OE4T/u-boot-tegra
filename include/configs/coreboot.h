@@ -226,6 +226,16 @@
  * Network device support
  */
 #define CONFIG_NET_MULTI
+/* this will have to be enabled to get the bitmaps to work...
+#define CONFIG_LCD	1
+*/
 
+#define CONFIG_CHROMEOS_HWID	"COREBOOT U-BOOT 0000"
+#define CONFIG_OFFSET_GBB	0x000d0000
+#define CONFIG_LENGTH_GBB	0x00020000
+#define CONFIG_OFFSET_FMAP	0x001a0000
+#define CONFIG_LENGTH_FMAP	0x00000400
+#define CONFIG_LCD_vl_col	1366
+#define CONFIG_LCD_vl_row	768
 
 #endif	/* __CONFIG_H */
