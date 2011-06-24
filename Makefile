@@ -1171,15 +1171,15 @@ clean:
 	@rm -f $(ONENAND_BIN)
 	@rm -f $(obj)onenand_ipl/u-boot.lds
 	@rm -f $(TIMESTAMP_FILE) $(VERSION_FILE)
-	@rm -f $(obj)dts/dt.dtb
 	@find $(OBJTREE) -type f \
 		\( -name 'core' -o -name '*.bak' -o -name '*~' \
-		-o -name '*.o'	-o -name '*.a' -o -name '*.exe'	\) -print \
+		-o -name '*.o'	-o -name '*.a' -o -name '*.exe' \) -print \
 		| xargs rm -f
 
 clobber:	clean
 	@find $(OBJTREE) -type f \( -name '*.depend' \
-		-o -name '*.srec' -o -name '*.bin' -o -name u-boot.img \) \
+		-o -name '*.srec' -o -name '*.bin' -o -name u-boot.img \
+		-o -name '*.dtb' \) \
 		-print0 \
 		| xargs -0 rm -f
 	@rm -f $(OBJS) $(obj)*.bak $(obj)ctags $(obj)etags $(obj)TAGS \
