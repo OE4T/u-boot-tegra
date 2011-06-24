@@ -353,6 +353,7 @@ struct arch_name_map {
 static struct arch_name_map name_map[] = {
 	{"Google Kaen", MACH_TYPE_KAEN},
 	{"NVIDIA Seaboard", MACH_TYPE_SEABOARD},
+	{"Google Aebl", MACH_TYPE_AEBL},
 	{"<not defined>", MACH_TYPE_SEABOARD} /* this is the default */
 };
 
