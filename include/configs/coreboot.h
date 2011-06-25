@@ -166,6 +166,8 @@
 #define CONFIG_SYS_HZ				1000
 
 #define CONFIG_NO_RESET_CODE
+#define CONFIG_NO_REALMODE_CODE
+#define CONFIG_ZBOOT_32
 
 /*-----------------------------------------------------------------------
  * SDRAM Configuration
