@@ -95,6 +95,11 @@ static void cb_parse_framebuffer(unsigned char *ptr, struct sysinfo_t *info)
 	info->framebuffer = (struct cb_framebuffer *)ptr;
 }
 
+static void cb_parse_string(unsigned char *ptr, char **info)
+{
+	*info = (char *)((struct cb_string *)ptr)->string;
+}
+
 static int cb_parse_header(void *addr, int len, struct sysinfo_t *info)
 {
 	struct cb_header *header;
@@ -144,6 +149,36 @@ static int cb_parse_header(void *addr, int len, struct sysinfo_t *info)
 			break;
 		case CB_TAG_OPTION_CHECKSUM:
 			cb_parse_checksum(ptr, info);
+			break;
+		case CB_TAG_VERSION:
+			cb_parse_string(ptr, &info->version);
+			break;
+		case CB_TAG_EXTRA_VERSION:
+			cb_parse_string(ptr, &info->extra_version);
+			break;
+		case CB_TAG_BUILD:
+			cb_parse_string(ptr, &info->build);
+			break;
+		case CB_TAG_COMPILE_TIME:
+			cb_parse_string(ptr, &info->compile_time);
+			break;
+		case CB_TAG_COMPILE_BY:
+			cb_parse_string(ptr, &info->compile_by);
+			break;
+		case CB_TAG_COMPILE_HOST:
+			cb_parse_string(ptr, &info->compile_host);
+			break;
+		case CB_TAG_COMPILE_DOMAIN:
+			cb_parse_string(ptr, &info->compile_domain);
+			break;
+		case CB_TAG_COMPILER:
+			cb_parse_string(ptr, &info->compiler);
+			break;
+		case CB_TAG_LINKER:
+			cb_parse_string(ptr, &info->linker);
+			break;
+		case CB_TAG_ASSEMBLER:
+			cb_parse_string(ptr, &info->assembler);
 			break;
 		// FIXME we should warn on serial if coreboot set up a
 		// framebuffer buf the payload does not know about it.
