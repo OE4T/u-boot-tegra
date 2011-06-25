@@ -51,8 +51,8 @@ unsigned install_e820_map(unsigned max_entries, struct e820entry *);
 
 void *load_zimage(char *image, unsigned long kernel_size,
 		  unsigned long initrd_addr, unsigned long initrd_size,
-		  int auto_boot);
+		  int auto_boot, void **load_address);
 
-void boot_zimage(void *setup_base);
+void boot_zimage(void *setup_base, void *load_address);
 
 #endif
