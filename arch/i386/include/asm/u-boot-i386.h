@@ -53,7 +53,9 @@ void isa_unmap_rom(u32 addr);
 u32 isa_map_rom(u32 bus_addr, int size);
 
 /* arch/i386/lib/... */
+#if !defined CONFIG_NO_REALMODE_CODE
 int video_bios_init(void);
+#endif
 int video_init(void);
 
 

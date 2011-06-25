@@ -21,6 +21,10 @@
  * MA 02111-1307 USA
  */
 
+#include <config.h>
+
+#if !defined CONFIG_NO_REALMODE_CODE
+
 #include <common.h>
 #include <pci.h>
 #include <malloc.h>
@@ -218,5 +222,6 @@ int video_bios_init(void)
 	return 1;
 
 }
+#endif
 #endif
 #endif

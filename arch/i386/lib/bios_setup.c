@@ -31,6 +31,10 @@
  *----------------------------------------------------------------------
  */
 
+#include <config.h>
+
+#if !defined CONFIG_NO_REALMODE_CODE
+
 #include <common.h>
 #include <pci.h>
 #include <asm/realmode.h>
@@ -241,3 +245,5 @@ int bios_setup(void)
 #endif
 	return 0;
 }
+
+#endif

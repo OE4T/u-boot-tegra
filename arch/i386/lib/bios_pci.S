@@ -27,7 +27,10 @@
  * access type 1. (The common case for low-end PC's)
  */
 
+#include <config.h>
 #include "bios.h"
+
+#if !defined CONFIG_NO_REALMODE_CODE
 
 #define PCI_BIOS_DEBUG
 
@@ -410,4 +413,6 @@ num_pci_bios_set_irq:
 .globl num_pci_bios_unknown_function
 num_pci_bios_unknown_function:
 	.long	0
+#endif
+
 #endif

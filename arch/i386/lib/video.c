@@ -229,9 +229,11 @@ int video_init(void)
 
 int drv_video_init(void)
 {
+#if !defined CONFIG_NO_REALMODE_CODE
 	if (video_bios_init()) {
 		return 1;
 	}
+#endif
 
 	return video_init();
 }

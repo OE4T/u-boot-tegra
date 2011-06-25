@@ -152,7 +152,7 @@ void *load_zimage(char *image, unsigned long kernel_size,
 		*load_address = (void *)ZIMAGE_LOAD_ADDR;
 	}
 
-#if defined CONFIG_ZBOOT_32
+#if defined CONFIG_NO_REALMODE_CODE || defined CONFIG_ZBOOT_32
 	printf("Building boot_params at 0x%8.8lx\n", (ulong)setup_base);
 	memset(setup_base, 0, sizeof(*setup_base));
 	setup_base->hdr = params->hdr;
@@ -266,7 +266,7 @@ void *load_zimage(char *image, unsigned long kernel_size,
 
 void boot_zimage(void *setup_base, void *load_address)
 {
-#if defined CONFIG_ZBOOT_32
+#if defined CONFIG_NO_REALMODE_CODE || defined CONFIG_ZBOOT_32
 	/*
 	 * Set %ebx, %ebp, and %edi to 0, %esi to point to the boot_params
 	 * structure, and then jump to the kernel. We assume that %cs is
