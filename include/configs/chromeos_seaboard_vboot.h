@@ -11,4 +11,7 @@
 
 #define CONFIG_VBOOT_WRAPPER
 
+#undef CONFIG_BOOTDELAY
+#define CONFIG_BOOTDELAY	-1	/* disable auto boot */
+
 #endif /* __configs_chromeos_seaboard_vboot_h__ */
