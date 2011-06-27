@@ -7,7 +7,7 @@
 #ifndef __configs_chromeos_seaboard_vboot_h__
 #define __configs_chromeos_seaboard_vboot_h__
 
-#include <configs/seaboard.h>
+#include <configs/chromeos_seaboard_common.h>
 
 #define CONFIG_VBOOT_WRAPPER
 
