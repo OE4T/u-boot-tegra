@@ -199,7 +199,7 @@ ifdef DEV_TREE_SEPARATE
 ALL += $(obj)u-boot.dtb
 endif
 ifeq ($(CONFIG_OF_EMBED),y)
-LIBS += dts/dt.o
+LIBS += dts/libdts.o
 endif
 LIBS += arch/$(ARCH)/lib/lib$(ARCH).o
 LIBS += fs/cramfs/libcramfs.o fs/fat/libfat.o fs/fdos/libfdos.o fs/jffs2/libjffs2.o \

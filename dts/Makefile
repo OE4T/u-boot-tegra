@@ -36,6 +36,8 @@ else
 DEVICE_TREE = $(DEV_TREE_SRC)
 endif
 
+all:	$(obj).depend $(LIB)
+
 # Use a constant name for this so we can access it from C code.
 # objcopy doesn't seem to allow us to set the symbol name independently of
 # the filename.
@@ -53,11 +55,9 @@ $(obj)dt.o: $(DT_BIN)
 
 OBJS-$(CONFIG_OF_EMBED)	:= dt.o
 
-OBJS	:= $(OBJS-y)
+COBJS	:= $(OBJS-y)
 
-OBJS	:= $(addprefix $(obj),$(OBJS))
-
-all:	$(obj).depend $(LIB)
+OBJS	:= $(addprefix $(obj),$(COBJS))
 
 binary:	$(DT_BIN)
 
