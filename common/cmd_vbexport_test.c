@@ -266,6 +266,46 @@ static int do_vbexport_test_diskrw(
 	return ret;
 }
 
+static int do_vbexport_test_nvrw(
+		cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+{
+	int ret = 0;
+	uint8_t original_buf[VBNV_BLOCK_SIZE];
+	uint8_t target_buf[VBNV_BLOCK_SIZE];
+	uint8_t verify_buf[VBNV_BLOCK_SIZE];
+	int i;
+
+	for (i = 0; i < VBNV_BLOCK_SIZE; i++) {
+		target_buf[i] = (0x27 + i) % 0x100;
+	}
+
+	if (VbExNvStorageRead(original_buf)) {
+		VbExDebug("Failed to read nvstorage.\n");
+		return 1;
+	}
+
+	if (VbExNvStorageWrite(target_buf)) {
+		VbExDebug("Failed to write nvstorage.\n");
+		ret = 1;
+	} else {
+		/* Read back and verify the data. */
+		VbExNvStorageRead(verify_buf);
+		if (memcmp(target_buf, verify_buf, VBNV_BLOCK_SIZE) != 0) {
+			VbExDebug("Verify failed. The target data wrote "
+				  "wrong.\n");
+			ret = 1;
+		}
+	}
+
+	/* Write the original data back. */
+	VbExNvStorageWrite(original_buf);
+
+	if (ret == 0)
+		VbExDebug("Read and write nvstorage test SUCCESS.\n");
+
+	return ret;
+}
+
 static int do_vbexport_test_all(
 		cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
@@ -276,6 +316,7 @@ static int do_vbexport_test_all(
 	ret |= do_vbexport_test_beep(cmdtp, flag, argc, argv);
 	ret |= do_vbexport_test_diskinfo(cmdtp, flag, argc, argv);
 	ret |= do_vbexport_test_diskrw(cmdtp, flag, argc, argv);
+	ret |= do_vbexport_test_nvrw(cmdtp, flag, argc, argv);
 	if (!ret)
 		VbExDebug("All tests passed!\n");
 	return ret;
@@ -290,6 +331,7 @@ static cmd_tbl_t cmd_vbexport_test_sub[] = {
 	U_BOOT_CMD_MKENT(beep, 0, 1, do_vbexport_test_beep, "", ""),
 	U_BOOT_CMD_MKENT(diskinfo, 0, 1, do_vbexport_test_diskinfo, "", ""),
 	U_BOOT_CMD_MKENT(diskrw, 0, 1, do_vbexport_test_diskrw, "", ""),
+	U_BOOT_CMD_MKENT(nvrw, 0, 1, do_vbexport_test_nvrw, "", ""),
 };
 
 static int do_vbexport_test(
@@ -319,6 +361,7 @@ U_BOOT_CMD(vbexport_test, CONFIG_SYS_MAXARGS, 1, do_vbexport_test,
 	"vbexport_test longsleep - test the sleep functions for long delays\n"
 	"vbexport_test beep - test the beep functions\n"
 	"vbexport_test diskinfo - test the diskgetinfo and free functions\n"
-	"vbexport_test diskrw - test the disk read and write functions"
+	"vbexport_test diskrw - test the disk read and write functions\n"
+	"vbexport_test nvrw - test the nvstorage read and write functions"
 );
 
