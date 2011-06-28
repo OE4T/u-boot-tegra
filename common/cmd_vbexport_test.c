@@ -161,6 +161,47 @@ static int do_vbexport_test_beep(
 	return ret;
 }
 
+static int do_vbexport_test_diskinfo_flags(uint32_t flags)
+{
+	int ret = 0;
+	VbDiskInfo *info;
+	uint32_t count, i;
+
+	ret = VbExDiskGetInfo(&info, &count, flags);
+	if (ret)
+		return ret;
+
+	if (count == 0) {
+		VbExDebug("No disk found!\n");
+	} else {
+		VbExDebug("handle    byte/lba  lba_count  f  name\n");
+		for (i = 0; i < count; i++) {
+			VbExDebug("%08lx  %-9llu %-10llu %-2lu %s\n",
+					info[i].handle,
+					info[i].bytes_per_lba,
+					info[i].lba_count,
+					info[i].flags,
+					info[i].name);
+		}
+	}
+
+	return VbExDiskFreeInfo(info, NULL);
+}
+
+static int do_vbexport_test_diskinfo(
+		cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+{
+	int ret = 0;
+
+	VbExDebug("Detecting all fixed disks...\n");
+	ret |= do_vbexport_test_diskinfo_flags(VB_DISK_FLAG_FIXED);
+
+	VbExDebug("\nDetecting all removable disks...\n");
+	ret |= do_vbexport_test_diskinfo_flags(VB_DISK_FLAG_REMOVABLE);
+
+	return ret;
+}
+
 static int do_vbexport_test_all(
 		cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
@@ -169,6 +210,7 @@ static int do_vbexport_test_all(
 	ret |= do_vbexport_test_malloc(cmdtp, flag, argc, argv);
 	ret |= do_vbexport_test_sleep(cmdtp, flag, argc, argv);
 	ret |= do_vbexport_test_beep(cmdtp, flag, argc, argv);
+	ret |= do_vbexport_test_diskinfo(cmdtp, flag, argc, argv);
 	if (!ret)
 		VbExDebug("All tests passed!\n");
 	return ret;
@@ -181,6 +223,7 @@ static cmd_tbl_t cmd_vbexport_test_sub[] = {
 	U_BOOT_CMD_MKENT(sleep, 0, 1, do_vbexport_test_sleep, "", ""),
 	U_BOOT_CMD_MKENT(longsleep, 0, 1, do_vbexport_test_longsleep, "", ""),
 	U_BOOT_CMD_MKENT(beep, 0, 1, do_vbexport_test_beep, "", ""),
+	U_BOOT_CMD_MKENT(diskinfo, 0, 1, do_vbexport_test_diskinfo, "", ""),
 };
 
 static int do_vbexport_test(
@@ -208,6 +251,7 @@ U_BOOT_CMD(vbexport_test, CONFIG_SYS_MAXARGS, 1, do_vbexport_test,
 	"vbexport_test malloc - test the malloc and free functions\n"
 	"vbexport_test sleep - test the sleep and timer functions\n"
 	"vbexport_test longsleep - test the sleep functions for long delays\n"
-	"vbexport_test beep - test the beep functions"
+	"vbexport_test beep - test the beep functions\n"
+	"vbexport_test diskinfo - test the diskgetinfo and free functions"
 );
 
