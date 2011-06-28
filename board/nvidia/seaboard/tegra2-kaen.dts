@@ -33,6 +33,7 @@
 
 	sdhci@c8000400 {
 		status = "ok";
+		removable = <1>;
 		gpios = <&gpio 69 0>, /* cd, gpio PI5 */
 			<&gpio 57 0>, /* wp, gpio PH1 */
 			<&gpio 70 0>; /* power, gpio PI6 */
@@ -40,6 +41,7 @@
 
 	sdhci@c8000600 {
 		status = "ok";
+		removable = <0>;
 	};
 
 	lcd {

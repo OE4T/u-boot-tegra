@@ -500,6 +500,7 @@ int fdt_decode_sdmmc(const void *blob, int node, struct fdt_sdmmc *config)
 	config->enabled = get_is_enabled(blob, node, 1);
 	config->periph_id = get_int(blob, node, "periph-id", -1);
 	config->width = get_int(blob, node, "width", -1);
+	config->removable = get_int(blob, node, "removable", 1);
 	if (config->periph_id == -1 || config->width == -1)
 		return -FDT_ERR_MISSING;
 

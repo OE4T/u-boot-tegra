@@ -600,14 +600,14 @@ static int mmc_core_init(struct mmc *mmc)
 }
 
 static int init_port(unsigned dev_index, enum periph_id mmc_id,
-		struct tegra2_mmc *reg, int bus_width, int cd_gpio,
-		int wp_gpio)
+		struct tegra2_mmc *reg, int bus_width, int removable,
+		int cd_gpio, int wp_gpio)
 {
 	struct mmc_host *host;
 	struct mmc *mmc;
 
-	debug(" tegra2_mmc_init: index %d, bus width %d\n",
-		dev_index, bus_width);
+	debug(" tegra2_mmc_init: index %d, bus width %d, removable %d\n",
+		dev_index, bus_width, removable);
 	if (dev_index >= MAX_HOSTS)
 		return -1;
 
@@ -648,6 +648,8 @@ static int init_port(unsigned dev_index, enum periph_id mmc_id,
 	mmc->f_max = CLK_52M;
 
 	mmc_register(mmc);
+
+	mmc->block_dev.removable = removable;
 
 	return 0;
 }
@@ -691,6 +693,7 @@ int tegra2_mmc_init(const void *blob)
 
 		if (init_port(upto - 1, config.periph_id, config.reg,
 				config.width,
+				config.removable,
 				fdt_get_gpio_num(&config.cd_gpio),
 				fdt_get_gpio_num(&config.wp_gpio)))
 			return -1;
@@ -698,19 +701,22 @@ int tegra2_mmc_init(const void *blob)
 #else
 	/* For now these are still hard-coded for Seaboard */
 
-	/* init dev 0, eMMC chip, with 4-bit bus */
+	/* init dev 0, eMMC chip, with 4-bit bus, non-removable */
 	if (init_port(0, PERIPH_ID_SDMMC4,
-			(struct tegra2_mmc *)NV_PA_SDMMC4_BASE, 4, -1, -1))
+			(struct tegra2_mmc *)NV_PA_SDMMC4_BASE, 4, 0, -1, -1))
 		return -1;
 
-	/* init dev 1, SD slot, with 4-bit bus; set EN_VDDIO_SD (GPIO I6) */
+	/*
+	 * init dev 1, SD slot, with 4-bit bus, removable;
+	 * set EN_VDDIO_SD (GPIO I6)
+	 */
 	gpio_direction_output(GPIO_PI6, 1);
 
 	/* Config pin as GPI for Card Detect (GPIO I5) */
 	gpio_direction_input(GPIO_PI5);
 
 	if (init_port(1, PERIPH_ID_SDMMC3,
-			(struct tegra2_mmc *)NV_PA_SDMMC3_BASE, 4, GPIO_PI5,
+			(struct tegra2_mmc *)NV_PA_SDMMC3_BASE, 4, 1, GPIO_PI5,
 			GPIO_PH1))
 		return -1;
 #endif

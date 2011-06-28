@@ -51,6 +51,7 @@
 	sdhci@c8000400 {
 		status = "ok";
 		width = <4>;	/* width of SDIO port */
+		removable = <1>;
 		/* Parameter 3 bit 0:1=output, 0=input; bit 1:1=high, 0=low */
 		cd-gpio = <&gpio 69 0>; /* card detect, gpio PI5 */
 		wp-gpio = <&gpio 57 0>; /* write protect, gpio PH1 */
@@ -60,6 +61,7 @@
 	sdhci@c8000600 {
 		status = "ok";
 		width = <4>;	/* width of SDIO port */
+		removable = <0>;
 	};
 
 	lcd {
