@@ -18,6 +18,9 @@
 #include <command.h>
 #include <vboot_api.h>
 
+#define TEST_LBA_START	0
+#define TEST_LBA_COUNT	2
+
 static int do_vbexport_test_debug(
 		cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
@@ -202,6 +205,67 @@ static int do_vbexport_test_diskinfo(
 	return ret;
 }
 
+static int do_vbexport_test_diskrw(
+		cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+{
+	int ret = 0;
+	VbDiskInfo *disk_info;
+	VbExDiskHandle_t handle;
+	uint32_t disk_count, buf_byte_count, i;
+	uint8_t *original_buf, *target_buf, *verify_buf;
+
+	/* We perform read/write operations on the first internal disk. */
+	if (VbExDiskGetInfo(&disk_info, &disk_count, VB_DISK_FLAG_FIXED) ||
+			disk_count == 0) {
+		VbExDebug("No internal disk found!\n");
+		return 1;
+	}
+	handle = disk_info[0].handle;
+	buf_byte_count = disk_info[0].bytes_per_lba * TEST_LBA_COUNT;
+	VbExDiskFreeInfo(disk_info, handle);
+
+	/* Allocate the buffer and fill the target test pattern. */
+	original_buf = VbExMalloc(buf_byte_count);
+	target_buf = VbExMalloc(buf_byte_count);
+	verify_buf = VbExMalloc(buf_byte_count);
+	for (i = 0; i < buf_byte_count; i++) {
+		target_buf[i] = i % 0x100;
+	}
+
+	if (VbExDiskRead(handle, TEST_LBA_START, TEST_LBA_COUNT,
+			original_buf)) {
+		VbExDebug("Failed to read disk.\n");
+		return 1;
+	}
+
+	if (VbExDiskWrite(handle, TEST_LBA_START, TEST_LBA_COUNT,
+			target_buf)) {
+		VbExDebug("Failed to write disk.\n");
+		ret = 1;
+	} else {
+		/* Read back and verify the data. */
+		VbExDiskRead(handle, TEST_LBA_START, TEST_LBA_COUNT,
+				verify_buf);
+		if (memcmp(target_buf, verify_buf, buf_byte_count) != 0) {
+			VbExDebug("Verify failed. The target data wrote "
+					"wrong.\n");
+			ret = 1;
+		}
+	}
+
+	/* Write the original data back. */
+	VbExDiskWrite(handle, TEST_LBA_START, TEST_LBA_COUNT, original_buf);
+
+	VbExFree(original_buf);
+	VbExFree(target_buf);
+	VbExFree(verify_buf);
+
+	if (ret == 0)
+		VbExDebug("Read and write disk test SUCCESS.\n");
+
+	return ret;
+}
+
 static int do_vbexport_test_all(
 		cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
@@ -211,6 +275,7 @@ static int do_vbexport_test_all(
 	ret |= do_vbexport_test_sleep(cmdtp, flag, argc, argv);
 	ret |= do_vbexport_test_beep(cmdtp, flag, argc, argv);
 	ret |= do_vbexport_test_diskinfo(cmdtp, flag, argc, argv);
+	ret |= do_vbexport_test_diskrw(cmdtp, flag, argc, argv);
 	if (!ret)
 		VbExDebug("All tests passed!\n");
 	return ret;
@@ -224,6 +289,7 @@ static cmd_tbl_t cmd_vbexport_test_sub[] = {
 	U_BOOT_CMD_MKENT(longsleep, 0, 1, do_vbexport_test_longsleep, "", ""),
 	U_BOOT_CMD_MKENT(beep, 0, 1, do_vbexport_test_beep, "", ""),
 	U_BOOT_CMD_MKENT(diskinfo, 0, 1, do_vbexport_test_diskinfo, "", ""),
+	U_BOOT_CMD_MKENT(diskrw, 0, 1, do_vbexport_test_diskrw, "", ""),
 };
 
 static int do_vbexport_test(
@@ -252,6 +318,7 @@ U_BOOT_CMD(vbexport_test, CONFIG_SYS_MAXARGS, 1, do_vbexport_test,
 	"vbexport_test sleep - test the sleep and timer functions\n"
 	"vbexport_test longsleep - test the sleep functions for long delays\n"
 	"vbexport_test beep - test the beep functions\n"
-	"vbexport_test diskinfo - test the diskgetinfo and free functions"
+	"vbexport_test diskinfo - test the diskgetinfo and free functions\n"
+	"vbexport_test diskrw - test the disk read and write functions"
 );
 
