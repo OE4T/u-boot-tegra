@@ -59,7 +59,7 @@ static void clk_init(void)
 	clock_start_periph_pll(PERIPH_ID_3D, CLOCK_ID_MEMORY, CLK_300M);
 	clock_start_periph_pll(PERIPH_ID_2D, CLOCK_ID_MEMORY, CLK_300M);
 	clock_start_periph_pll(PERIPH_ID_HOST1X, CLOCK_ID_PERIPH, CLK_144M);
-	clock_start_periph_pll(PERIPH_ID_DISP1, CLOCK_ID_PERIPH, CLK_216M);
+	clock_start_periph_pll(PERIPH_ID_DISP1, CLOCK_ID_CGENERAL, CLK_600M);
 	clock_start_periph_pll(PERIPH_ID_PWM, CLOCK_ID_SFROM32KHZ, CLK_32768);
 }
 
