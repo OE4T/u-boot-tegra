@@ -37,8 +37,9 @@ static const char *compat_names[COMPAT_COUNT] = {
 	COMPAT(UNKNOWN, "<none>"),
 	COMPAT(NVIDIA_SPI_UART_SWITCH, "nvidia,spi-uart-switch"),
 	COMPAT(SERIAL_NS16550, "ns16550"),
-	COMPAT(NVIDIA_TEGRA20_USB, "nvidia,tegra250-usb"),
-	COMPAT(NVIDIA_TEGRA20_SDHCI, "nvidia,tegra250-sdhci"),
+	COMPAT(NVIDIA_TEGRA250_USB, "nvidia,tegra250-usb"),
+	COMPAT(NVIDIA_TEGRA250_SDHCI, "nvidia,tegra250-sdhci"),
+	COMPAT(NVIDIA_TEGRA250_KBC, "nvidia,tegra250-kbc"),
 };
 
 /**
@@ -107,6 +108,33 @@ static s32 get_int(const void *blob, int node, const char *prop_name,
 }
 
 /**
+ * Look up a property in a node and check that it has a minimum length.
+ *
+ * @param blob		FDT blob
+ * @param node		node to examine
+ * @param prop_name	name of property to find
+ * @param min_len	minimum property length in bytes
+ * @param err		0 if ok, or -FDT_ERR_MISSING if the property is not
+			found, or -FDT_ERR_BADLAYOUT if not enough data
+ * @return pointer to cell, which is only valid if err == 0
+ */
+static const void *get_prop_len(const void *blob, int node,
+		const char *prop_name, int min_len, int *err)
+{
+	const void *cell;
+	int len;
+
+	cell = fdt_getprop(blob, node, prop_name, &len);
+	if (!cell)
+		*err = -FDT_ERR_MISSING;
+	else if (len < min_len)
+		*err = -FDT_ERR_BADLAYOUT;
+	else
+		*err = 0;
+	return cell;
+}
+
+/**
  * Look up a property in a node and return its contents in an integer
  * array of given length. The property must have at least enough data for
  * the array (4*count bytes). It may have more, but this will be ignored.
@@ -123,16 +151,38 @@ static int get_int_array(const void *blob, int node, const char *prop_name,
 		int *array, int count)
 {
 	const s32 *cell;
-	int len, i;
+	int i, err;
 
-	cell = fdt_getprop(blob, node, prop_name, &len);
-	if (!cell)
-		return -FDT_ERR_MISSING;
-	if (len < sizeof(s32) * count)
-		return -FDT_ERR_BADLAYOUT;
-	for (i = 0; i < count; i++)
-		array[i] = fdt32_to_cpu(cell[i]);
-	return 0;
+	cell = get_prop_len(blob, node, prop_name, sizeof(s32) * count, &err);
+	if (!err)
+		for (i = 0; i < count; i++)
+			array[i] = fdt32_to_cpu(cell[i]);
+	return err;
+}
+
+/**
+ * Look up a property in a node and return its contents in a byte
+ * array of given length. The property must have at least enough data for
+ * the array (count bytes). It may have more, but this will be ignored.
+ *
+ * @param blob		FDT blob
+ * @param node		node to examine
+ * @param prop_name	name of property to find
+ * @param array		array to fill with data
+ * @param count		number of array elements
+ * @return 0 if ok, or -FDT_ERR_MISSING if the property is not found,
+ *		or -FDT_ERR_BADLAYOUT if not enough data
+ */
+static int get_byte_array(const void *blob, int node, const char *prop_name,
+		u8 *array, int count)
+{
+	const u8 *cell;
+	int err;
+
+	cell = get_prop_len(blob, node, prop_name, count, &err);
+	if (!err)
+		memcpy(array, cell, count);
+	return err;
 }
 
 /**
@@ -526,4 +576,19 @@ char *fdt_decode_get_config_string(const void *blob, const char *prop_name)
 		return NULL;
 
 	return (char *)nodep;
+}
+
+int fdt_decode_kbc(const void *blob, int node, struct fdt_kbc *config)
+{
+	int err;
+
+	err = get_byte_array(blob, node, "keycode-plain",
+			config->plain_keycode, FDT_KBC_KEY_COUNT);
+	if (!err)
+		err = get_byte_array(blob, node, "keycode-shift",
+				config->shift_keycode, FDT_KBC_KEY_COUNT);
+	if (!err)
+		err = get_byte_array(blob, node, "keycode-fn",
+				config->fn_keycode, FDT_KBC_KEY_COUNT);
+	return err;
 }

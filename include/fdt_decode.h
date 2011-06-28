@@ -53,6 +53,7 @@ enum fdt_compat_id {
 	COMPAT_SERIAL_NS16550,		/* NS16550 UART */
 	COMPAT_NVIDIA_TEGRA250_USB,	/* Tegra 250 USB port */
 	COMPAT_NVIDIA_TEGRA250_SDMMC,	/* Tegra 250 SDMMC port */
+	COMPAT_NVIDIA_TEGRA250_KBC,	/* Tegra 250 Keyboard */
 
 	COMPAT_COUNT,
 };
@@ -165,6 +166,17 @@ struct fdt_sdmmc {
 	struct fdt_gpio_state wp_gpio;		/* write protect GPIO */
 	struct fdt_gpio_state power_gpio;	/* power GPIO */
 	enum periph_id periph_id; 		/* peripheral id */
+};
+
+enum {
+	FDT_KBC_KEY_COUNT	= 128,	/* number of keys in each map */
+};
+
+/* Information about keycode mappings */
+struct fdt_kbc {
+	u8 plain_keycode[FDT_KBC_KEY_COUNT];
+	u8 shift_keycode[FDT_KBC_KEY_COUNT];
+	u8 fn_keycode[FDT_KBC_KEY_COUNT];
 };
 
 /**
@@ -359,3 +371,22 @@ int fdt_decode_sdmmc(const void *blob, int node, struct fdt_sdmmc *config);
  * @returns property string, NULL on error.
  */
 char *fdt_decode_get_config_string(const void *blob, const char *prop_name);
+
+/**
+ * Returns information from the FDT about the keboard controler. This function
+ * reads out the following attributes:
+ *
+ *	reg
+ *	keycode-plain
+ *	keycode-shift
+ *	keycode-fn
+ *
+ * @param blob		FDT blob to use
+ * @param node		Node to read from
+ * @param config	structure to use to return information
+ * @returns 0 on success, -ve on error, in which case config may or may not be
+ *			unchanged. If the node is present but expected data is
+ *			missing then this will generally return
+ *			-FDT_ERR_MISSING.
+ */
+int fdt_decode_kbc(const void *blob, int node, struct fdt_kbc *config);
