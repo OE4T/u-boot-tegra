@@ -33,6 +33,9 @@
 #define MMC_INTERNAL_DEVICE		0
 #define MMC_EXTERNAL_DEVICE		1
 
+/* load bootcmd from fdt */
+#undef CONFIG_BOOTCOMMAND
+
 /*
  * Use a smaller firmware image layout for Seaboard because it has
  * only 16MBit (=2MB) of SPI Flash.

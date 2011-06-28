@@ -11,7 +11,5 @@
 
 /* entry point of onestop firmware */
 #define CONFIG_CMD_CROS_ONESTOP_FIRMWARE
-#undef CONFIG_BOOTCOMMAND
-#define CONFIG_BOOTCOMMAND "run regen_all; cros_onestop_firmware"
 
 #endif /* __configs_chromeos_seaboard_onestop_h__ */
