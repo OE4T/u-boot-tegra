@@ -30,4 +30,10 @@
 
 #include <asm/ic/coreboot/sysinfo.h>
 
-struct sysinfo_t lib_sysinfo;
+/*
+ * This needs to be in the .data section so that it's copied over during
+ * relocation. By default it's put in the .bss section which is simply filled
+ * with zeroes when transitioning from "ROM", which is really RAM, to other
+ * RAM.
+ */
+struct sysinfo_t lib_sysinfo __attribute__((section(".data")));
