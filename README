@@ -2962,6 +2962,26 @@ Low Level (hardware related) configuration options:
 		that is executed before the actual U-Boot. E.g. when
 		compiling a NAND SPL.
 
+i386 specific options:
+======================
+
+These options control functionality specific to i386.
+
+- CONFIG_ZBOOT_32
+		When booting a Linux kernel with the zboot command, use the
+		32 bit boot protocol.
+
+- CONFIG_NO_RESET_CODE
+		Don't include any of the code which is vectored to after reset
+		and which funnels control to the rest of u-boot. This is
+		useful if u-boot is started in some other way, for instance
+		as a coreboot payload.
+
+- CONFIG_NO REALMODE_CODE
+		Don't build in any of the realmode or BIOS shim support code.
+		Use this if you don't need any realmode or BIOS support, or
+		are providing it in some other way.
+
 Building the Software:
 ======================
 
