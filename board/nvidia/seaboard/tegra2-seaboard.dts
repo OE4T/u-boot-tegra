@@ -10,6 +10,7 @@
 	config {
 		silent_console = <0>;
 		odmdata = <0x300d8011>;
+		hwid = "ARM SEABOARD TEST 1176";
 	};
 
 	aliases {

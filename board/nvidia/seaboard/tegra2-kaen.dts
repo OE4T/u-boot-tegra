@@ -9,6 +9,8 @@
 
 	config {
 		silent_console = <0>;
+		odmdata = <0x300d8011>;
+		hwid = "ARM KAEN TEST 3084";
 	};
 
 	aliases {
