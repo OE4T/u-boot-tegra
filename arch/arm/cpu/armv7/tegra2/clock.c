@@ -450,6 +450,36 @@ unsigned long clock_start_pll(enum clock_id clkid, u32 divm, u32 divn,
 	return timer_get_future_us(CLOCK_PLL_STABLE_DELAY_US);
 }
 
+#ifdef DEBUG
+/* return 1 if a peripheral ID is in range and valid */
+static int clock_periph_id_isvalid(enum periph_id id)
+{
+	if (id < PERIPH_ID_FIRST || id >= PERIPH_ID_COUNT)
+		printf("Peripheral id %d out of range\n", id);
+	else switch (id) {
+	case PERIPH_ID_RESERVED1:
+	case PERIPH_ID_RESERVED2:
+	case PERIPH_ID_RESERVED30:
+	case PERIPH_ID_RESERVED35:
+	case PERIPH_ID_RESERVED56:
+	case PERIPH_ID_RESERVED74:
+	case PERIPH_ID_RESERVED76:
+	case PERIPH_ID_RESERVED77:
+	case PERIPH_ID_RESERVED78:
+	case PERIPH_ID_RESERVED79:
+	case PERIPH_ID_RESERVED80:
+	case PERIPH_ID_RESERVED81:
+	case PERIPH_ID_RESERVED82:
+	case PERIPH_ID_RESERVED83:
+		printf("Peripheral id %d is reserved\n", id);
+		break;
+	default:
+		return 1;
+	}
+	return 0;
+}
+#endif
+
 /* Returns a pointer to the clock source register for a peripheral */
 static u32 *get_periph_source_reg(enum periph_id periph_id)
 {
@@ -457,7 +487,7 @@ static u32 *get_periph_source_reg(enum periph_id periph_id)
 			(struct clk_rst_ctlr *)NV_PA_CLK_RST_BASE;
 	enum periphc_internal_id internal_id;
 
-	assert(periph_id >= PERIPH_ID_FIRST && periph_id < PERIPH_ID_COUNT);
+	assert(clock_periph_id_isvalid(periph_id));
 	internal_id = periph_id_to_internal_id[periph_id];
 	assert(internal_id != -1);
 	return &clkrst->crc_clk_src[internal_id];

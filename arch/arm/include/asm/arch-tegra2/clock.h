@@ -192,10 +192,6 @@ enum periph_id {
 /* return 1 if a PLL ID is in range */
 #define clock_id_isvalid(id) ((id) >= CLOCK_ID_FIRST && (id) < CLOCK_ID_COUNT)
 
-/* return 1 if a peripheral ID is in range */
-#define clock_periph_id_isvalid(id) ((id) >= PERIPH_ID_FIRST && \
-		(id) < PERIPH_ID_COUNT)
-
 /* PLL stabilization delay in usec */
 #define CLOCK_PLL_STABLE_DELAY_US 300
 
