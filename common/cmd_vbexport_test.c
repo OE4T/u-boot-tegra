@@ -422,8 +422,13 @@ static int do_vbexport_test_display(
 	} else {
 		ret = 1;
 	}
-
 	VbExFree(gbbh);
+
+	VbExDebug("Showing debug info...\n");
+	ret |= VbExDisplayDebugInfo("Hello!\n"
+			"This is a debug message.\n"
+			"Bye Bye!\n");
+
 	return ret;
 }
 

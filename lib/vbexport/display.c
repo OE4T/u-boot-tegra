@@ -156,6 +156,10 @@ VbError_t VbExDisplayImage(uint32_t x, uint32_t y, const ImageInfo *info,
 
 VbError_t VbExDisplayDebugInfo(const char *info_str)
 {
-	/* TODO(waihong@chromium.org) Implement it later. */
+	/* Show the debug message on the upper left corner */
+	console_col = 0;
+	console_row = 0;
+	lcd_puts(info_str);
+
 	return VBERROR_SUCCESS;
 }
