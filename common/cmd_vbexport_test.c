@@ -324,6 +324,39 @@ static int do_vbexport_test_key(
 	return ret;
 }
 
+static int show_screen_and_delay(uint32_t screen_type)
+{
+	if (VbExDisplayScreen(screen_type)) {
+		VbExDebug("Failed to show a screen.\n");
+		return 1;
+	}
+	VbExSleepMs(500);
+	return 0;
+}
+
+static int do_vbexport_test_display(
+		cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+{
+	int ret = 0;
+	uint32_t width, height;
+
+	if (VbExDisplayInit(&width, &height)) {
+		VbExDebug("Failed to init display.\n");
+		return 1;
+	}
+
+	VbExDebug("The screen dimensions is %ldx%ld.\n", width, height);
+
+	VbExDebug("Showing screens...\n");
+	ret |= show_screen_and_delay(VB_SCREEN_BLANK);
+	ret |= show_screen_and_delay(VB_SCREEN_DEVELOPER_WARNING);
+	ret |= show_screen_and_delay(VB_SCREEN_DEVELOPER_EGG);
+	ret |= show_screen_and_delay(VB_SCREEN_RECOVERY_REMOVE);
+	ret |= show_screen_and_delay(VB_SCREEN_RECOVERY_INSERT);
+	ret |= show_screen_and_delay(VB_SCREEN_RECOVERY_NO_GOOD);
+
+	return ret;
+}
 
 static int do_vbexport_test_all(
 		cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
@@ -337,6 +370,7 @@ static int do_vbexport_test_all(
 	ret |= do_vbexport_test_diskrw(cmdtp, flag, argc, argv);
 	ret |= do_vbexport_test_nvrw(cmdtp, flag, argc, argv);
 	ret |= do_vbexport_test_key(cmdtp, flag, argc, argv);
+	ret |= do_vbexport_test_display(cmdtp, flag, argc, argv);
 	if (!ret)
 		VbExDebug("All tests passed!\n");
 	return ret;
@@ -353,6 +387,7 @@ static cmd_tbl_t cmd_vbexport_test_sub[] = {
 	U_BOOT_CMD_MKENT(diskrw, 0, 1, do_vbexport_test_diskrw, "", ""),
 	U_BOOT_CMD_MKENT(nvrw, 0, 1, do_vbexport_test_nvrw, "", ""),
 	U_BOOT_CMD_MKENT(key, 0, 1, do_vbexport_test_key, "", ""),
+	U_BOOT_CMD_MKENT(display, 0, 1, do_vbexport_test_display, "", ""),
 };
 
 static int do_vbexport_test(
@@ -385,5 +420,6 @@ U_BOOT_CMD(vbexport_test, CONFIG_SYS_MAXARGS, 1, do_vbexport_test,
 	"vbexport_test diskrw - test the disk read and write functions\n"
 	"vbexport_test nvrw - test the nvstorage read and write functions\n"
 	"vbexport_test key - test the keyboard read function\n"
+	"vbexport_test display - test the display related functions\n"
 );
 

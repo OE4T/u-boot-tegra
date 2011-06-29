@@ -13,6 +13,7 @@ include $(TOPDIR)/config.mk
 LIB	= $(obj)libvbexport.a
 
 COBJS-$(CONFIG_VBOOT_WRAPPER) += boot_device.o
+COBJS-$(CONFIG_VBOOT_WRAPPER) += display.o
 COBJS-$(CONFIG_VBOOT_WRAPPER) += keyboard.o
 COBJS-$(CONFIG_VBOOT_WRAPPER) += load_firmware.o
 COBJS-$(CONFIG_VBOOT_WRAPPER) += nvstorage.o
