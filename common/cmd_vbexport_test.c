@@ -16,6 +16,8 @@
 
 #include <common.h>
 #include <command.h>
+#include <gbb_header.h>
+#include <vboot/firmware_storage.h>
 #include <vboot_api.h>
 
 #define TEST_LBA_START	0
@@ -330,7 +332,58 @@ static int show_screen_and_delay(uint32_t screen_type)
 		VbExDebug("Failed to show a screen.\n");
 		return 1;
 	}
+
 	VbExSleepMs(500);
+	return 0;
+}
+
+static uint8_t *read_gbb_from_firmware(void)
+{
+	firmware_storage_t file;
+	uint8_t *gbb_buf;
+
+	/* Open firmware storage device. */
+	if (firmware_storage_open_spi(&file)) {
+		VbExDebug("Failed to open firmware device!\n");
+		return NULL;
+	}
+
+	gbb_buf = VbExMalloc(CONFIG_LENGTH_GBB);
+	if (firmware_storage_read(&file, CONFIG_OFFSET_GBB, CONFIG_LENGTH_GBB,
+			gbb_buf)) {
+		VbExDebug("Failed to read firmware!\n");
+		VbExFree(gbb_buf);
+		gbb_buf = NULL;
+	}
+
+	return gbb_buf;
+}
+
+static int show_images_and_delay(BmpBlockHeader *bmph, int index)
+{
+	int i;
+	ScreenLayout *screen;
+	ImageInfo *info;
+
+	screen = (ScreenLayout *)(bmph + 1);
+	screen += index;
+
+	for (i = 0;
+	     i < MAX_IMAGE_IN_LAYOUT && screen->images[i].image_info_offset;
+	     i++) {
+		info = (ImageInfo *)((uint8_t *)bmph +
+				screen->images[i].image_info_offset);
+		if (VbExDisplayImage(screen->images[i].x,
+				     screen->images[i].y,
+				     info,
+				     info + 1)) {
+			VbExDebug("Failed to display image, screen=%lu, "
+				  "image=%d!\n", index, i);
+			return 1;
+		}
+	}
+
+	VbExSleepMs(1000);
 	return 0;
 }
 
@@ -339,6 +392,8 @@ static int do_vbexport_test_display(
 {
 	int ret = 0;
 	uint32_t width, height;
+	GoogleBinaryBlockHeader *gbbh;
+	BmpBlockHeader *bmph;
 
 	if (VbExDisplayInit(&width, &height)) {
 		VbExDebug("Failed to init display.\n");
@@ -355,6 +410,20 @@ static int do_vbexport_test_display(
 	ret |= show_screen_and_delay(VB_SCREEN_RECOVERY_INSERT);
 	ret |= show_screen_and_delay(VB_SCREEN_RECOVERY_NO_GOOD);
 
+	gbbh = (GoogleBinaryBlockHeader *)read_gbb_from_firmware();
+	if (gbbh) {
+		bmph = (BmpBlockHeader *)((uint8_t *)gbbh + gbbh->bmpfv_offset);
+
+		VbExDebug("Showing images...\n");
+		ret |= show_images_and_delay(bmph, SCREEN_DEVELOPER_MODE);
+		ret |= show_images_and_delay(bmph, SCREEN_RECOVERY_MODE);
+		ret |= show_images_and_delay(bmph, SCREEN_RECOVERY_NO_OS);
+		ret |= show_images_and_delay(bmph, SCREEN_RECOVERY_MISSING_OS);
+	} else {
+		ret = 1;
+	}
+
+	VbExFree(gbbh);
 	return ret;
 }
 

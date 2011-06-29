@@ -10,11 +10,18 @@
 
 #include <common.h>
 #include <fdt_decode.h>
+#include <lcd.h>
+#include <lzma/LzmaTypes.h>
+#include <lzma/LzmaDec.h>
+#include <lzma/LzmaTools.h>
 
 /* Import the header files from vboot_reference */
 #include <vboot_api.h>
 
 DECLARE_GLOBAL_DATA_PTR;
+
+/* Defined in common/lcd.c */
+extern int lcd_display_bitmap (ulong, int, int);
 
 VbError_t VbExDisplayInit(uint32_t *width, uint32_t *height)
 {
@@ -92,10 +99,58 @@ VbError_t VbExDisplayScreen(uint32_t screen_type)
 	return VBERROR_SUCCESS;
 }
 
+static uint8_t *uncompress_lzma(uint8_t *in_addr, SizeT in_size,
+                                SizeT out_size)
+{
+	uint8_t *out_addr = VbExMalloc(out_size);
+	SizeT lzma_len = out_size;
+	int ret;
+
+	ret = lzmaBuffToBuffDecompress(out_addr, &lzma_len, in_addr, in_size);
+	if (ret != SZ_OK) {
+		VbExFree(out_addr);
+		out_addr = NULL;
+	}
+	return out_addr;
+}
+
 VbError_t VbExDisplayImage(uint32_t x, uint32_t y, const ImageInfo *info,
                            const void *buffer)
 {
-	/* TODO(waihong@chromium.org) Implement it later. */
+	int ret;
+	uint8_t *raw_data;
+
+	switch (info->compression) {
+	case COMPRESS_NONE:
+		raw_data = (uint8_t *)buffer;
+		break;
+
+	case COMPRESS_LZMA1:
+		raw_data = uncompress_lzma((uint8_t *)buffer,
+				(SizeT)info->compressed_size,
+				(SizeT)info->original_size);
+		if (!raw_data) {
+			VbExDebug("LZMA decompress failed.\n");
+			return 1;
+		}
+		break;
+
+	default:
+		VbExDebug("Unsupported compression format: %lu\n",
+				info->compression);
+		return 1;
+	}
+
+	ret = lcd_display_bitmap((ulong)raw_data, x, y);
+
+	if (info->compression == COMPRESS_LZMA1)
+		VbExFree(raw_data);
+
+	if (ret) {
+		VbExDebug("LCD display error.\n");
+		return 1;
+	}
+
 	return VBERROR_SUCCESS;
 }
 
