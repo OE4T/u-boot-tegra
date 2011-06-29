@@ -18,6 +18,9 @@
 /* Import the header files from vboot_reference */
 #include <vboot_api.h>
 
+#define PRINT_MAX_ROW	20
+#define PRINT_MAX_COL	80
+
 DECLARE_GLOBAL_DATA_PTR;
 
 /* Defined in common/lcd.c */
@@ -45,25 +48,35 @@ VbError_t VbExDisplayBacklight(uint8_t enable)
 	return VBERROR_SUCCESS;
 }
 
-static void print_msg(const char *name, const char *message)
+/* Print the message on the center of LCD. */
+static void print_on_center(const char *message)
 {
-	int i, left_space, right_space;
-	printf("Showing a %s screen\n", name);
-	printf("+------------------------------+\n");
+	char result[PRINT_MAX_ROW * (PRINT_MAX_COL + 1) + 1] = "\0";
+	int i, j, left_space, right_space;
 
-	printf("|");
-	left_space = (30 - strlen(message)) / 2;
+	for (i = 0; i < PRINT_MAX_ROW / 2 - 1; i++) {
+		for (j = 0; j < PRINT_MAX_COL; j++)
+			strcat(result, ".");
+		strcat(result, "\n");
+	}
+	
+	left_space = (PRINT_MAX_COL - strlen(message)) / 2;
 	for (i = 0; i < left_space; i++)
-		printf("-");
+		strcat(result, ".");
+	strcat(result, message);
 
-	printf(message);
-
-	right_space = 30 - strlen(message) - left_space;
+	right_space = PRINT_MAX_COL - strlen(message) - left_space;
 	for (i = 0; i < right_space; i++)
-		printf("-");
-	printf("|\n");
+		strcat(result, ".");
+	strcat(result, "\n");
 
-	printf("+------------------------------+\n");
+	for (i = 0; i < PRINT_MAX_ROW - PRINT_MAX_ROW / 2; i++) {
+		for (j = 0; j < PRINT_MAX_COL; j++)
+			strcat(result, ".");
+		strcat(result, "\n");
+	}
+
+	VbExDisplayDebugInfo(result);
 }
 
 VbError_t VbExDisplayScreen(uint32_t screen_type)
@@ -74,22 +87,22 @@ VbError_t VbExDisplayScreen(uint32_t screen_type)
 	 */
 	switch (screen_type) {
 		case VB_SCREEN_BLANK:
-			print_msg("BLANK", "");
+			print_on_center("");
 			break;
 		case VB_SCREEN_DEVELOPER_WARNING:
-			print_msg("DEVELOPER_WARNING", "warning");
+			print_on_center("developer mode warning");
 			break;
 		case VB_SCREEN_DEVELOPER_EGG:
-			print_msg("DEVELOPER_EGG", "easter egg");
+			print_on_center("easter egg");
 			break;
 		case VB_SCREEN_RECOVERY_REMOVE:
-			print_msg("RECOVERY_REMOVE", "remove inserted devices");
+			print_on_center("remove inserted devices");
 			break;
 		case VB_SCREEN_RECOVERY_INSERT:
-			print_msg("RECOVERY_INSERT", "insert recovery image");
+			print_on_center("insert recovery image");
 			break;
 		case VB_SCREEN_RECOVERY_NO_GOOD:
-			print_msg("RECOVERY_NO_GOOD", "insert image invalid");
+			print_on_center("insert image invalid");
 			break;
 		default:
 			VbExDebug("Not a valid screen type: 0x%lx.\n",

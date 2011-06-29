@@ -333,7 +333,7 @@ static int show_screen_and_delay(uint32_t screen_type)
 		return 1;
 	}
 
-	VbExSleepMs(500);
+	VbExSleepMs(1000);
 	return 0;
 }
 
