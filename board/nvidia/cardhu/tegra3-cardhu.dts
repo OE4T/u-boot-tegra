@@ -1,0 +1,105 @@
+/dts-v1/;
+
+/memreserve/ 0x1c000000 0x04000000;
+/include/ "../../../arch/arm/cpu/armv7/tegra3/tegra30.dtsi"
+
+/ {
+	model = "NVIDIA Cardhu";
+	compatible = "nvidia,seaboard", "nvidia,tegra250";
+
+	config {
+		silent_console = <0>;
+		odmdata = <0x300d8011>;
+		hwid = "ARM CARDHU TEST 6666";
+	};
+
+	aliases {
+		console = "/serial@70006300";
+                usb0 = "/usb@0xc5008000";
+                usb1 = "/usb@0xc5000000";
+
+		sdmmc0 = "/sdhci@c8000600";
+		sdmmc1 = "/sdhci@c8000400";
+	};
+
+	chosen {
+		bootargs = "";
+	};
+
+	memory {
+		device_type = "memory";
+		reg = <0x00000000 0x40000000>;
+	};
+
+	serial@70006300 {
+		status = "ok";
+		clock-frequency = <216000000>;
+	};
+
+	/*
+	 * Seaboard has a switch on GPIO67 which affects this UART. Until
+	 * pinmux support is added to the FDT it is not clear how to do this,
+	 * so this is a stop-gap.
+	 */
+	switch {
+		compatible = "nvidia,spi-uart-switch";
+		uart = <&uart3>;
+
+		/* Parameter 3 bit 0:1=output, 0=input; bit 1:1=high, 0=low */
+		gpios = <&gpio 67 1>; /* Port I = 8 bit = 3: 8 * 8 + 3 */
+	};
+
+	sdhci@c8000400 {
+		status = "ok";
+		width = <4>;	/* width of SDIO port */
+		removable = <1>;
+		/* Parameter 3 bit 0:1=output, 0=input; bit 1:1=high, 0=low */
+		cd-gpio = <&gpio 69 0>; /* card detect, gpio PI5 */
+		wp-gpio = <&gpio 57 0>; /* write protect, gpio PH1 */
+		power-gpio = <&gpio 70 3>; /* power enable, gpio PI6 */
+	};
+
+	sdhci@c8000600 {
+		status = "ok";
+		width = <4>;	/* width of SDIO port */
+		removable = <0>;
+	};
+
+	lcd {
+		compatible = "nvidia,tegra2-lcd";
+		width = <1366>;
+		height = <768>;
+		bits_per_pixel = <16>;
+		pwfm = <&pwfm2>;
+		display = <&display1>;
+		frame-buffer = <0x1C022000>;
+
+		pixel_clock = <62200000>;
+
+		/* Timing: ref_to_sync, sync_width. back_porch, front_porch */
+		horiz_timing = <11 58 58 58>;
+		vert_timing = <1 4 4 4>;
+
+		/* Parameter 3 bit 0:1=output, 0=input; bit 1:1=high, 0=low */
+		gpios = <&gpio 28 3>,	/* backlight PD4 */
+			<&gpio 10 3>,	/* lvds shutdown PB2 */
+			<&gpio 176 3>,	/* backlight vdd PW0 */
+			<&gpio 22 3>;	/* enable vdd pnl PC6 */
+	};
+
+	usb@0xc5000000 {
+		status = "ok";
+		host-mode = <1>;
+	};
+
+	usbphy: usbphy@0 {
+		compatible = "smsc,usb3315";
+		status = "ok";
+	};
+
+	usb@0xc5008000 {
+		status = "ok";
+		utmi = <&usbphy>;
+		host-mode = <0>;
+	};
+};

@@ -55,7 +55,7 @@
 #define CONFIG_ALIGN_LCD_TO_SECTION	/* Align LCD to 1MB boundary */
 #define CONFIG_BOARD_EARLY_INIT_F
 
-#include <asm/arch/tegra2.h>		/* get chip and board defs */
+#include <asm/arch/tegra.h>		/* get chip and board defs */
 
 #define CACHE_LINE_SIZE			32
 

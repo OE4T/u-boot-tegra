@@ -33,7 +33,7 @@
 #include <asm/arch/clock.h>
 #include <asm/arch/gpio.h>
 #include <asm/arch/pinmux.h>
-#include <asm/arch/tegra2_spi.h>
+#include <asm/arch/tegra_spi.h>
 #include "uart-spi-fix.h"
 
 int spi_cs_is_valid(unsigned int bus, unsigned int cs)

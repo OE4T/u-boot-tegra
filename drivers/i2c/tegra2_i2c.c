@@ -29,7 +29,7 @@
 #include <asm/arch/clock.h>
 #include <asm/arch/gpio.h>
 #include <asm/arch/pinmux.h>
-#include <asm/arch/tegra2_i2c.h>
+#include <asm/arch/tegra_i2c.h>
 
 static unsigned int i2c_bus_num;
 

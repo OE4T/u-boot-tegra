@@ -23,5 +23,5 @@
 
 #include <common.h>
 #include <asm/io.h>
-#include <asm/arch/tegra2.h>
+#include <asm/arch/tegra.h>
 

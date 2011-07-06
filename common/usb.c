@@ -1183,7 +1183,7 @@ static int hub_port_reset(struct usb_device *dev, int port,
 			/* we have finished trying to reset, so return */
 			usb_clear_port_feature(dev,
 				port + 1, USB_PORT_FEAT_C_RESET);
-#ifdef CONFIG_TEGRA2
+#if defined(CONFIG_TEGRA2) || defined(CONFIG_TEGRA3)
 			/* Sometimes Port Enable bit is not set in PORTSC
 			 * register after a Port Reset, we need another Port
 			 * Reset to make it set.

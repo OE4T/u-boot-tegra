@@ -26,7 +26,7 @@
 #include <asm/clocks.h>
 #include <asm/io.h>
 #include <asm/arch/bitfield.h>
-#include <asm/arch/tegra2.h>
+#include <asm/arch/tegra.h>
 #include <asm/arch/sys_proto.h>
 
 #include <asm/arch/clk_rst.h>
@@ -354,6 +354,7 @@ static struct arch_name_map name_map[] = {
 	{"Google Kaen", MACH_TYPE_KAEN},
 	{"NVIDIA Seaboard", MACH_TYPE_SEABOARD},
 	{"Google Aebl", MACH_TYPE_AEBL},
+	{"NVIDIA Cardhu", MACH_TYPE_CARDHU},
 	{"<not defined>", MACH_TYPE_SEABOARD} /* this is the default */
 };
 

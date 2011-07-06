@@ -26,7 +26,7 @@
 #include <asm/arch/clk_rst.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/timer.h>
-#include <asm/arch/tegra2.h>
+#include <asm/arch/tegra.h>
 #include <common.h>
 #include <div64.h>
 
