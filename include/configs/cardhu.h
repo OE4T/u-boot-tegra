@@ -27,28 +27,25 @@
 
 #include <asm/sizes.h>
 
-#define CONFIG_TEGRA2_LP0
-
-#define CONFIG_SPI_UART_SWITCH
-
 /* High-level configuration options */
 #define TEGRA2_SYSMEM		"mem=384M@0M nvmem=128M@384M mem=512M@512M"
 #define V_PROMPT		"Tegra3 # "
 
+#define CONFIG_TEGRA2_LP0
+
 #include "tegra3-common.h"
+
+#define CONFIG_EXTRA_ENV_SETTINGS \
+	CONFIG_EXTRA_ENV_SETTINGS_COMMON \
+	"board=cardhu\0" \
+
+#define CONFIG_DEFAULT_DEVICE_TREE "tegra3-cardhu"
 
 #ifndef CONFIG_OF_CONTROL
 /* Things in here are defined by the device tree now. Let it grow! */
 
-#define CONFIG_TEGRA2_ENABLE_UARTD
-#define CONFIG_SYS_NS16550_COM1		NV_PA_APB_UARTD_BASE
-
-/* Seaboard SPI activity corrupts the first UART */
-#define CONFIG_SPI_CORRUPTS_UART	NV_PA_APB_UARTD_BASE
-#define CONFIG_SPI_CORRUPTS_UART_NR	3
-
-/* On Seaboard: GPIO_PI3 = Port I = 8, bit = 3 */
-#define UART_DISABLE_GPIO	GPIO_PI3
+#define CONFIG_TEGRA2_ENABLE_UARTA
+#define CONFIG_SYS_NS16550_COM1		NV_PA_APB_UARTA_BASE
 
 /* To select the order in which U-Boot sees USB ports */
 #define CONFIG_TEGRA2_USB0      NV_PA_USB3_BASE
@@ -62,9 +59,6 @@
 
 #endif /* CONFIG_OF_CONTROL not defined ^^^^^^^ */
 
-#define CONFIG_TEGRA2_KEYBOARD
-#define CONFIG_KEYBOARD
-
 #define CONFIG_CONSOLE_MUX
 #define CONFIG_SYS_CONSOLE_IS_IN_ENV
 #define CONFIG_STD_DEVICES_SETTINGS	"stdin=serial,tegra-kbc\0" \
@@ -73,9 +67,17 @@
 
 #define CONFIG_SYS_BOARD_ODMDATA	0x300d8011 /* lp1, 1GB */
 
+#define CONFIG_ENV_IS_NOWHERE
+#define CONFIG_ENV_SECT_SIZE    CONFIG_ENV_SIZE
+#define CONFIG_ENV_OFFSET       (SZ_4M - CONFIG_ENV_SECT_SIZE)
+
+#define TEGRA2_MMC_DEFAULT_DEVICE	"0"
+
 /* GPIO */
 #define CONFIG_TEGRA2_GPIO
 #define CONFIG_CMD_TEGRA2_GPIO_INFO
+
+#if 0			//tcw - disable most periphs for now
 
 /* SPI */
 #define CONFIG_TEGRA2_SPI
@@ -84,6 +86,8 @@
 #define CONFIG_SF_DEFAULT_MODE		SPI_MODE_0
 #define CONFIG_CMD_SPI
 #define CONFIG_CMD_SF
+/* Environment in SPI */
+#define CONFIG_ENV_IS_IN_SPI_FLASH
 
 /* I2C */
 #define CONFIG_TEGRA2_I2C
@@ -93,7 +97,7 @@
 #define CONFIG_SYS_I2C_SPEED		100000
 #define CONFIG_CMD_I2C
 
-/* pin-mux settings for seaboard */
+/* pin-mux settings for Seaboard - change for Cardhu */
 #define CONFIG_I2CP_PIN_MUX		1
 #define CONFIG_I2C1_PIN_MUX		1
 #define CONFIG_I2C2_PIN_MUX		2
@@ -110,13 +114,8 @@
 #define CONFIG_CMD_EXT2
 #define CONFIG_CMD_FAT
 
-#define TEGRA2_MMC_DEFAULT_DEVICE	"0"
-
-/* Environment in SPI */
-#define CONFIG_ENV_IS_IN_SPI_FLASH
-
-#define CONFIG_ENV_SECT_SIZE    CONFIG_ENV_SIZE
-#define CONFIG_ENV_OFFSET       (SZ_4M - CONFIG_ENV_SECT_SIZE)
+#define CONFIG_TEGRA2_KEYBOARD
+#define CONFIG_KEYBOARD
 
 /* Keyboard scan matrix configuration */
 #define CONFIG_TEGRA2_KBC_PLAIN_KEYCODES {			\
@@ -186,10 +185,6 @@
 #define LCD_BPP             LCD_COLOR16
 #define CONFIG_SYS_WHITE_ON_BLACK       /*Console colors*/
 
-#define CONFIG_EXTRA_ENV_SETTINGS \
-	CONFIG_EXTRA_ENV_SETTINGS_COMMON \
-	"board=cardhu\0" \
-
-#define CONFIG_DEFAULT_DEVICE_TREE "tegra3-cardhu"
+#endif		//tcw if 0 periphs
 
 #endif /* __CONFIG_H */

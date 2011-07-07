@@ -197,7 +197,7 @@
 
 #ifdef CONFIG_TEGRA2_LP0
 #define TEGRA_LP0_ADDR			0x1C406000
-#define TEGRA_LP0_SIZE			0x2000
+#define TEGRA_LP0_SIZE			SZ_8K
 #define TEGRA_LP0_VEC \
 	"lp0_vec=" QUOTE(TEGRA_LP0_SIZE) "@" QUOTE(TEGRA_LP0_ADDR) " "
 #else
@@ -261,7 +261,8 @@
   "run usb_boot ; " \
   "run mmc_boot ; "
 
-#define CONFIG_LOADADDR		0x408000	/* def. location for kernel */
+/* default location for kernel */
+#define CONFIG_LOADADDR		(NV_PA_SDRAM_BASE + 0x408000)
 #define CONFIG_BOOTDELAY	10		/* -1 to disable auto boot */
 
 /*
@@ -284,10 +285,10 @@
 /* Boot Argument Buffer Size */
 #define CONFIG_SYS_BARGSIZE		(CONFIG_SYS_CBSIZE)
 
-#define CONFIG_SYS_MEMTEST_START	(TEGRA2_SDRC_CS0 + 0x600000)
+#define CONFIG_SYS_MEMTEST_START	(TEGRA_SDRC_CS0 + 0x600000)
 #define CONFIG_SYS_MEMTEST_END		(CONFIG_SYS_MEMTEST_START + 0x100000)
 
-#define CONFIG_SYS_LOAD_ADDR		(0xA00800)	/* default */
+#define CONFIG_SYS_LOAD_ADDR		(NV_PA_SDRAM_BASE + 0xA00800)
 #define CONFIG_SYS_HZ			1000
 
 /*-----------------------------------------------------------------------
@@ -295,17 +296,18 @@
  *
  * The stack sizes are set up in start.S using the settings below
  */
-#define CONFIG_STACKBASE	0x2800000	/* 40MB */
-#define CONFIG_STACKSIZE	0x20000		/* 128K regular stack*/
+#define CONFIG_STACKBASE	(NV_PA_SDRAM_BASE + 0x2800000)	/* 40MB */
+#define CONFIG_STACKSIZE	SZ_128K		/* 128K regular stack*/
 
 /*-----------------------------------------------------------------------
  * Physical Memory Map
  */
 #define CONFIG_NR_DRAM_BANKS	1
-#define PHYS_SDRAM_1		TEGRA2_SDRC_CS0
-#define PHYS_SDRAM_1_SIZE	0x20000000	/* 512M */
+#define PHYS_SDRAM_1		NV_PA_SDRAM_BASE
+#define PHYS_SDRAM_1_SIZE	SZ_1GB
 
-#define CONFIG_SYS_TEXT_BASE	0x00E08000
+/* Below should be (NV_PA_SDRAM_BASE + 0x00E08000), but ld error out */
+#define CONFIG_SYS_TEXT_BASE	0x80E08000
 #define CONFIG_SYS_SDRAM_BASE	PHYS_SDRAM_1
 
 #define CONFIG_SYS_INIT_RAM_ADDR	CONFIG_STACKBASE
@@ -319,9 +321,9 @@
 #define CONFIG_CMD_IMI	1
 
 /*
- * 32M is what it takes the u-boot to allocate enough room for the kernel
+ * 32M is what it takes for u-boot to allocate enough room for the kernel
  * loader to inflate the kernel and keep a copy of the device tree handy.
  */
-#define CONFIG_SYS_BOOTMAPSZ	(1 << 25)
+#define CONFIG_SYS_BOOTMAPSZ	SZ_32M
 
 #endif /* __TEGRA2_COMMON_H */

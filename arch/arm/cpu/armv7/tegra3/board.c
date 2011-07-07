@@ -63,7 +63,7 @@ int dram_init(void)
 	gd->bd->bi_dram[0].size = gd->ram_size = query_sdram_size();
 
 	/* Now check it dynamically */
-	rs = get_ram_size(CONFIG_SYS_SDRAM_BASE, gd->ram_size);
+	rs = get_ram_size((void *)CONFIG_SYS_SDRAM_BASE, gd->ram_size);
 	if (rs)
 		gd->bd->bi_dram[0].size = gd->ram_size = rs;
 	return 0;
