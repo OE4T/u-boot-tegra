@@ -14,7 +14,7 @@
 	};
 
 	aliases {
-		console = "/serial@70006300";
+		console = "/serial@70006000";
                 usb0 = "/usb@0xc5008000";
                 usb1 = "/usb@0xc5000000";
 
@@ -28,25 +28,12 @@
 
 	memory {
 		device_type = "memory";
-		reg = <0x00000000 0x40000000>;
+		reg = <0x80000000 0xc0000000>;
 	};
 
-	serial@70006300 {
+	serial@70006000 {
 		status = "ok";
 		clock-frequency = <216000000>;
-	};
-
-	/*
-	 * Seaboard has a switch on GPIO67 which affects this UART. Until
-	 * pinmux support is added to the FDT it is not clear how to do this,
-	 * so this is a stop-gap.
-	 */
-	switch {
-		compatible = "nvidia,spi-uart-switch";
-		uart = <&uart3>;
-
-		/* Parameter 3 bit 0:1=output, 0=input; bit 1:1=high, 0=low */
-		gpios = <&gpio 67 1>; /* Port I = 8 bit = 3: 8 * 8 + 3 */
 	};
 
 	sdhci@c8000400 {
