@@ -26,7 +26,7 @@ PLATFORM_RELFLAGS += -fno-common -ffixed-r8 -msoft-float
 PLATFORM_CPPFLAGS += -march=armv5
 
 # Enforce stricter warning checking.
-PLATFORM_CPPFLAGS += -Werror
+#tcw PLATFORM_CPPFLAGS += -Werror
 
 # Prevent warning when generating autoconf.mk.dep
 HOSTCFLAGS_autoconf.mk.dep = -Wno-variadic-macros
