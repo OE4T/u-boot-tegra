@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
  * MA 02111-1307 USA
  */
-
+#define DEBUG			//tcw
 #include <common.h>
 #include <asm/io.h>
 #include <asm/arch/sys_proto.h>
@@ -39,8 +39,9 @@ unsigned int query_sdram_size(void)
 	struct pmc_ctlr *const pmc = (struct pmc_ctlr *)NV_PA_PMC_BASE;
 	u32 reg;
 
+	debug("query_sdram_size entry\n");
 	reg = readl(&pmc->pmc_scratch20);
-	debug("pmc->pmc_scratch20 (ODMData) = 0x%08lX\n", reg);
+	debug("\tpmc->pmc_scratch20 (ODMData) = 0x%08X\n", reg);
 
 	/* bits 31:28 in OdmData are used for RAM size  */
 	switch ((reg) >> 28) {
@@ -58,14 +59,24 @@ int dram_init(void)
 {
 	unsigned long rs;
 
+	//TCW HACK!
+	gd->bd = 0x40002000;	//IN IRAM FOR NOW
+
+	debug("dram_init entry\n");
+	debug("\tgd = %X\n", (ulong)gd);
+	debug("\tgd->bd = %X\n", (ulong)gd->bd);
+
 	/* We do not initialise DRAM here. We just query the size */
 	gd->bd->bi_dram[0].start = PHYS_SDRAM_1;
 	gd->bd->bi_dram[0].size = gd->ram_size = query_sdram_size();
+	debug("\tsdram size = %X\n", gd->bd->bi_dram[0].size);
 
 	/* Now check it dynamically */
 	rs = get_ram_size((void *)CONFIG_SYS_SDRAM_BASE, gd->ram_size);
+	debug("\tdynamic dramsize (rs) = %lx\n", rs);
 	if (rs)
 		gd->bd->bi_dram[0].size = gd->ram_size = rs;
+	debug("dram_init exit\n");
 	return 0;
 }
 
