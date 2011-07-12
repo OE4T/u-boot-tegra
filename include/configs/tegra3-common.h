@@ -105,11 +105,11 @@
 
 /* allow to overwrite serial and ethaddr */
 #define CONFIG_ENV_OVERWRITE
-#define CONFIG_BAUDRATE			115200
+#define CONFIG_BAUDRATE			57600
 #define CONFIG_SYS_BAUDRATE_TABLE	{4800, 9600, 19200, 38400, 57600,\
 					115200}
 
-
+#if 0			//tcw disable USB for bringup
 /*
  * USB Host.
  */
@@ -142,6 +142,7 @@
 /* support USB ethernet adapters */
 #define CONFIG_USB_HOST_ETHER
 #define CONFIG_USB_ETHER_ASIX
+#endif	//0			//tcw disable USB for bringup
 
 /* include default commands */
 #include <config_cmd_default.h>
