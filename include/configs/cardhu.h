@@ -31,12 +31,10 @@
 #define TEGRA2_SYSMEM		"mem=384M@0M nvmem=128M@384M mem=512M@512M"
 #define V_PROMPT		"Tegra3 # "
 
-//tcw#define CONFIG_TEGRA2_LP0
-
+#if 0			//tcw - disable LP0 support for bringup
+#define CONFIG_TEGRA2_LP0
+#endif
 #include "tegra3-common.h"
-
-#define CONFIG_SYS_SKIP_ARM_RELOCATION		//tcw for bringup/debug
-#define CONFIG_SYS_NO_DCACHE			//tcw
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	CONFIG_EXTRA_ENV_SETTINGS_COMMON \
