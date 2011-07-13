@@ -59,17 +59,17 @@ int dram_init(void)
 {
 	unsigned long rs;
 
-	//TCW HACK!
-	gd->bd = 0x40002000;	//IN IRAM FOR NOW
+	if (!gd->bd)
+		gd->bd = (bd_t *)0x40002000;	//TCW USE IRAM FOR EARLY INIT
 
 	debug("dram_init entry\n");
-	debug("\tgd = %X\n", (ulong)gd);
-	debug("\tgd->bd = %X\n", (ulong)gd->bd);
+	debug("\tgd = %lX\n", (ulong)gd);
+	debug("\tgd->bd = %lX\n", (ulong)gd->bd);
 
 	/* We do not initialise DRAM here. We just query the size */
 	gd->bd->bi_dram[0].start = PHYS_SDRAM_1;
 	gd->bd->bi_dram[0].size = gd->ram_size = query_sdram_size();
-	debug("\tsdram size = %X\n", gd->bd->bi_dram[0].size);
+	debug("\tsdram size = %lX\n", gd->bd->bi_dram[0].size);
 
 	/* Now check it dynamically */
 	rs = get_ram_size((void *)CONFIG_SYS_SDRAM_BASE, gd->ram_size);

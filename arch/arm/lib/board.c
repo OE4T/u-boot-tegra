@@ -37,7 +37,7 @@
  * IRQ Stack: 00ebff7c
  * FIQ Stack: 00ebef7c
  */
-
+#define DEBUG		//tcw
 #include <common.h>
 #include <command.h>
 #include <malloc.h>
@@ -510,7 +510,13 @@ void board_init_r (gd_t *id, ulong dest_addr)
 
 	/* The Malloc area is immediately below the monitor copy in DRAM */
 	malloc_start = dest_addr - TOTAL_MALLOC_LEN;
+#ifdef CONFIG_SYS_SKIP_ARM_RELOCATION
+	malloc_start = CONFIG_SYS_SDRAM_BASE + gd->ram_size;
+	malloc_start -= (TOTAL_MALLOC_LEN + SZ_64K);
+#endif
+
 	mem_malloc_init (malloc_start, TOTAL_MALLOC_LEN);
+	debug("malloc area: start = %lX, len = %d\n", malloc_start, TOTAL_MALLOC_LEN);
 
 #if !defined(CONFIG_SYS_NO_FLASH)
 	puts ("Flash: ");
