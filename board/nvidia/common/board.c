@@ -110,6 +110,8 @@ static void clock_init_uart(int uart_ids)
  */
 static void pin_mux_uart(int uart_ids)
 {
+/* t30 bringup */
+#if !defined(CONFIG_TEGRA3)
 	if (uart_ids & UARTA) {
 		pinmux_set_func(PINGRP_IRRX, PMUX_FUNC_UARTA);
 		pinmux_set_func(PINGRP_IRTX, PMUX_FUNC_UARTA);
@@ -124,6 +126,7 @@ static void pin_mux_uart(int uart_ids)
 		pinmux_set_func(PINGRP_GMC, PMUX_FUNC_UARTD);
 		pinmux_tristate_disable(PINGRP_GMC);
 	}
+#endif /* t30 bringup */
 }
 
 #ifdef CONFIG_TEGRA2_MMC
@@ -174,6 +177,8 @@ static void gpio_init(const void *blob)
 #endif
 }
 
+/* t30 bringup */
+#if !defined(CONFIG_TEGRA3)
 /*
  * Routine: power_det_init
  * Description: turn off power detects
@@ -186,6 +191,7 @@ static void power_det_init(void)
 	writel(0, &pmc->pmc_pwr_det_latch);
 	writel(0, &pmc->pmc_pwr_det);
 }
+#endif /* t30 bringup */
 
 /*
  * Routine: board_init
@@ -203,6 +209,9 @@ int board_init(void)
 	gd->bd->bi_arch_number = CONFIG_MACH_TYPE;
 #endif
 	clock_init();
+
+/* t30 bringup */
+#if !defined(CONFIG_TEGRA3)
 #ifdef CONFIG_SPI_UART_SWITCH
 	gpio_config_uart(gd->blob);
 #endif
@@ -225,6 +234,7 @@ int board_init(void)
 	/* prepare the WB code to LP0 location */
 	warmboot_prepare_code(TEGRA_LP0_ADDR, TEGRA_LP0_SIZE);
 #endif
+#endif /* t30 bringup */
 
 	return 0;
 }
@@ -283,10 +293,16 @@ int board_early_init_f(void)
  * in this case. It is also called once the A9 starts up, but does nothing in
  * that case.
  */
-int arch_cpu_init(void)
+int arch_cpu_early_init(void)
 {
 	/* Fire up the Cortex A9 */
 	tegra2_start();
+	return 0;
+}
+int arch_cpu_init(void)
+{
+	/* Fire up the Cortex A9 */
+//	tegra2_start();
 	return 0;
 }
 #endif

@@ -20,13 +20,18 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
  * MA 02111-1307 USA
  */
+#ifndef INCLUDED_AP20_H
+#define INCLUDED_AP20_H
 #include <asm/types.h>
 
 /* Stabilization delays, in usec */
 #define PLL_STABILIZATION_DELAY (300)
 #define IO_STABILIZATION_DELAY	(1000)
 
+/* t30 bringup */
+#if 0
 #define NVBL_PLLP_KHZ	(216000)
+#endif
 
 #define PLLX_ENABLED		(1 << 30)
 #define CCLK_BURST_POLICY	0x20008888
@@ -38,12 +43,16 @@
 /* Calculate clock frequency value from reference and clock divider value */
 #define CLK_FREQUENCY(REF, REG)  (((REF) * 2) / (REG + 2))
 
+/* t30 bringup */
+#if 0
+/* defined in t30/arpg.h */
 /* AVP/CPU ID */
 #define PG_UP_TAG_0_PID_CPU	0x55555555	/* CPU aka "a9" aka "mpcore" */
 #define PG_UP_TAG_0             0x0
 
 #define CORESIGHT_UNLOCK	0xC5ACCE55;
 
+/* defined in t30/nvbl_memmap_nvap.h */
 /* AP20-Specific Base Addresses */
 
 /* AP20 Base physical address of SDRAM. */
@@ -56,6 +65,7 @@
 #define AP20_BASE_PA_NOR_FLASH  0xD0000000
 /* AP20 Base physical address of boot information table. */
 #define AP20_BASE_PA_BOOT_INFO  AP20_BASE_PA_SRAM
+#endif
 
 /*
  * Super-temporary stacks for EXTREMELY early startup. The values chosen for
@@ -94,3 +104,5 @@
 #define HALT_COP_EVENT_JTAG		(1 << 28)
 #define HALT_COP_EVENT_IRQ_1		(1 << 11)
 #define HALT_COP_EVENT_FIQ_1		(1 << 9)
+
+#endif /* INCLUDED_AP20_H */

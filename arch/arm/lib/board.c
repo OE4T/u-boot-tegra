@@ -38,6 +38,7 @@
  * FIQ Stack: 00ebef7c
  */
 #define DEBUG		//tcw
+
 #include <common.h>
 #include <command.h>
 #include <malloc.h>
@@ -268,6 +269,25 @@ init_fnc_t *init_sequence[] = {
 	NULL,
 };
 
+#if defined(CONFIG_TEGRA2) || defined(CONFIG_TEGRA3)
+int arch_cpu_early_init(void);
+#endif
+
+static void debug_dump(void * buff, size_t size)
+{
+	unsigned int *pt = (unsigned int *)buff;
+	int	count = ((int)size + 3) >> 2;
+	int i;
+
+	for (i=0; i<count; ++i) {
+		if ((i % 8) == 0) {
+			debug ("\n%08x  ", (unsigned int)pt);
+		} else 	if ((i % 4) == 0)
+				debug (": ");
+		debug ("%08x  ", *pt++);
+	}
+}
+
 void board_init_f (ulong bootflag)
 {
 	bd_t *bd;
@@ -285,7 +305,7 @@ void board_init_f (ulong bootflag)
 	 * won't return on AVP, since the AVP halts and the A9 CPU wakes up
 	 * and starts at its reset vector, etc.
 	 */
-	arch_cpu_init();
+	arch_cpu_early_init();
 #endif
 	bootstage_mark(BOOTSTAGE_START_UBOOT, "start_armboot");
 
@@ -400,6 +420,7 @@ void board_init_f (ulong bootflag)
 	addr_sp = addr - TOTAL_MALLOC_LEN;
 	debug ("Reserving %dk for malloc() at: %08lx\n",
 			TOTAL_MALLOC_LEN >> 10, addr_sp);
+
 	/*
 	 * (permanently) allocate a Board Info struct
 	 * and a permanent copy of the "global" data
@@ -439,6 +460,10 @@ void board_init_f (ulong bootflag)
 #endif
 
 	gd->bd->bi_baudrate = gd->baudrate;
+
+	debug ("before dram_init, bd info:\n");
+	debug_dump((void*)gd->bd, sizeof(bd_t));
+
 	/* Ram ist board specific, so move it to board code ... */
 	dram_init_banksize();
 	display_dram_config();	/* and display it */
@@ -450,7 +475,13 @@ void board_init_f (ulong bootflag)
 	gd->start_addr_sp = addr_sp;
 	gd->reloc_off = addr - _TEXT_BASE;
 	debug ("relocation Offset is: %08lx\n", gd->reloc_off);
+	debug ("    id %08lx, gd %08lx, addr_sp %08lx, addr %08lx\n",
+		(long unsigned int)id, (long unsigned int)gd, addr_sp, addr);
+
 	memcpy (id, (void *)gd, sizeof (gd_t));
+
+	debug_dump((void*)gd, sizeof (gd_t));
+	debug_dump((void*)gd->bd, sizeof(bd_t));
 
 	relocate_code (addr_sp, id, addr);
 
@@ -470,7 +501,6 @@ static char *failed = "*** failed ***\n";
  *
  ************************************************************************
  */
-
 void board_init_r (gd_t *id, ulong dest_addr)
 {
 	char *s;
@@ -508,13 +538,18 @@ void board_init_r (gd_t *id, ulong dest_addr)
 	post_output_backlog ();
 #endif
 
+/* t30 bringup */
+#if defined(CONFIG_SYS_SKIP_ARM_RELOCATION) && defined(CONFIG_TEGRA3)
+	/* hack */
+	/* when SKIP_RELOC defined, the dest_addr is still at 0x80108000,
+	   the original code will cause malloc failure.
+	 */
+	malloc_start = CONFIG_SYS_SDRAM_BASE + gd->ram_size -
+			4*TOTAL_MALLOC_LEN;
+#else
 	/* The Malloc area is immediately below the monitor copy in DRAM */
 	malloc_start = dest_addr - TOTAL_MALLOC_LEN;
-#ifdef CONFIG_SYS_SKIP_ARM_RELOCATION
-	malloc_start = CONFIG_SYS_SDRAM_BASE + gd->ram_size;
-	malloc_start -= (TOTAL_MALLOC_LEN + SZ_64K);
 #endif
-
 	mem_malloc_init (malloc_start, TOTAL_MALLOC_LEN);
 	debug("malloc area: start = %lX, len = %d\n", malloc_start, TOTAL_MALLOC_LEN);
 

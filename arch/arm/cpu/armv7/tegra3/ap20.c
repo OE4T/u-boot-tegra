@@ -34,6 +34,10 @@
 #include <asm/arch/warmboot.h>
 #include "../../../../../board/nvidia/common/board.h"
 
+/* t30 bringup */
+#include "t30.h"
+#include "t30_uart.h"
+
 struct clk_pll_table {
 	u16		n;
 	u16		m;
@@ -271,7 +275,8 @@ static void clock_enable_coresight(int enable)
 	}
 }
 
-void start_cpu(u32 reset_vector)
+/* t30 bringup */
+void start_cpu_ap20(u32 reset_vector)
 {
 	/* Enable VDD_CPU */
 	enable_cpu_power_rail();
@@ -305,11 +310,42 @@ void start_cpu(u32 reset_vector)
 
 void halt_avp(void)
 {
+	uart_post('H'); uart_post('.'); uart_post(' ');
 	for (;;) {
 		writel((HALT_COP_EVENT_JTAG | HALT_COP_EVENT_IRQ_1 \
 			| HALT_COP_EVENT_FIQ_1 | (FLOW_MODE_STOP<<29)),
 			FLOW_CTLR_HALT_COP_EVENTS);
 	}
+}
+
+u32 s_ChipId;
+#define GP_HIDREV	0x804
+
+void start_cpu(u32 reset_vector)
+{
+	u32 reg;
+
+	reg = readl(NV_PA_APB_MISC_BASE + GP_HIDREV);
+
+	s_ChipId = reg >> 8;
+	s_ChipId &= 0xff;
+
+	switch( s_ChipId ) {
+	case 0x20:
+		uart_post('2'); uart_post('.'); uart_post(' ');
+		start_cpu_ap20(reset_vector);
+		break;
+	case 0x30:
+		uart_post('3'); uart_post('.'); uart_post(' ');
+		start_cpu_t30(reset_vector);
+		break;
+	default:
+		uart_post('u'); uart_post('.'); uart_post(' ');
+//		NV_ASSERT( !"unknown chipid" );
+		break;
+	}
+
+	return;
 }
 
 void enable_scu(void)
@@ -359,6 +395,14 @@ void tegra2_start(void)
 		/* enable JTAG */
 		writel(0xC0, &pmt->pmt_cfg_ctl);
 
+		NvBlUartInit_t30(); // special setting for uart port
+				    // since the avail clk src is clk_m (12MHz),
+				    // the best/most working baudrate is 57600 
+
+		/* post code 'Zz' */
+		PostCc('Z');
+//	debug_pause();
+
 		/*
 		* If we are ARM7 - give it a different stack. We are about to
 		* start up the A9 which will want to use this one.
@@ -368,8 +412,17 @@ void tegra2_start(void)
 
 		start_cpu((u32)_start);
 		halt_avp();
-		/* not reached */
+		/* not reachable */
+		PostCc('W');
+	} else {
+		/* post code 'Vv' */
+		PostCc('V');
 	}
+
+	/* post code 'Cc' */
+	PostCc('C');
+//	NvBlPrintf("Cpu started, enter a key to continue\n");
+//	uart_post(debug_pause());
 
 	/* Init PMC scratch memory */
 	init_pmc_scratch();

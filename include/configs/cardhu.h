@@ -34,6 +34,16 @@
 #if 0			//tcw - disable LP0 support for bringup
 #define CONFIG_TEGRA2_LP0
 #endif
+
+/* t30 bringup */
+#define CONFIG_TEGRA3_CARDHU
+#define CONFIG_SYS_SKIP_ARM_RELOCATION
+
+#define z_pause()       \
+{       \
+        while (1); \
+}
+	
 #include "tegra3-common.h"
 
 #define CONFIG_EXTRA_ENV_SETTINGS \

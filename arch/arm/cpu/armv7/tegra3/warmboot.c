@@ -37,9 +37,12 @@
 #include <asm/arch/sdram_param.h>
 #include "ap20.h"
 
+/* t30 bringup */
+#include <asm/arch/t30/nvbl_memmap_nvap.h>
+
 #define BCT_OFFSET		0x100		/* BCT starts at 0x100 */
 #define BCT_SDRAM_PARAMS_OFFSET	(BCT_OFFSET + 0x88)
-#define SDRAM_PARAMS_BASE	(AP20_BASE_PA_SRAM + BCT_SDRAM_PARAMS_OFFSET)
+#define SDRAM_PARAMS_BASE	(NVAP_BASE_PA_SRAM + BCT_SDRAM_PARAMS_OFFSET)
 
 union osc_ctrl_reg {
 	struct {
@@ -373,7 +376,7 @@ int warmboot_prepare_code(u32 seg_address, u32 seg_length)
 	 * nonzero in length.
 	 */
 	if ((seg_length == 0) || (seg_address == 0) ||
-	    (seg_address >= AP20_BASE_PA_SRAM)) {
+	    (seg_address >= NVAP_BASE_PA_SRAM)) {
 		err = -EFAULT;
 		goto fail;
 	}

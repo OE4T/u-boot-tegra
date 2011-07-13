@@ -36,6 +36,8 @@ DECLARE_GLOBAL_DATA_PTR;
 
 unsigned int query_sdram_size(void)
 {
+/* t30 bringup */
+#if 0
 	struct pmc_ctlr *const pmc = (struct pmc_ctlr *)NV_PA_PMC_BASE;
 	u32 reg;
 
@@ -53,11 +55,22 @@ unsigned int query_sdram_size(void)
 	default:
 		return 0x40000000;	/* 1GB */
 	}
+#else /* t30 bringup */
+	return 0x40000000;
+#endif
 }
+
+/* t30 bringup */
+void PostCc(char c);
+void NvBlPrintU32(unsigned int);
+void uart_post(char c);
 
 int dram_init(void)
 {
 	unsigned long rs;
+	/* !!!! TODO: // jz
+	     error: gd->bd has not been initialized yet. 
+	*/
 
 	if (!gd->bd)
 		gd->bd = (bd_t *)0x40002000;	//TCW USE IRAM FOR EARLY INIT

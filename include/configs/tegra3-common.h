@@ -21,8 +21,8 @@
  * MA 02111-1307 USA
  */
 
-#ifndef __TEGRA2_COMMON_H
-#define __TEGRA2_COMMON_H
+#ifndef __TEGRA3_COMMON_H
+#define __TEGRA3_COMMON_H
 #include <asm/sizes.h>
 
 /*
@@ -54,6 +54,10 @@
 #define CONFIG_ARCH_CPU_INIT		/* Fire up the A9 core */
 #define CONFIG_ALIGN_LCD_TO_SECTION	/* Align LCD to 1MB boundary */
 #define CONFIG_BOARD_EARLY_INIT_F
+
+/* t30 cpu up debug */
+//#define TEGRA3_BOOT_TRACE
+//#define TEGRA3_BOOT_TRACE_MORE
 
 #include <asm/arch/tegra.h>		/* get chip and board defs */
 
@@ -327,4 +331,4 @@
  */
 #define CONFIG_SYS_BOOTMAPSZ	SZ_32M
 
-#endif /* __TEGRA2_COMMON_H */
+#endif /* __TEGRA3_COMMON_H */

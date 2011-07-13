@@ -28,6 +28,8 @@
 
 CFLAGS_arch/arm/cpu/armv7/tegra2/ap20.o += -march=armv4t
 CFLAGS_arch/arm/cpu/armv7/tegra2/clock.o += -march=armv4t
+CFLAGS_arch/arm/cpu/armv7/tegra2/t30.o += -march=armv4t
+CFLAGS_arch/arm/cpu/armv7/tegra2/t30_uart.o += -march=armv4t
 CFLAGS_arch/arm/cpu/armv7/tegra2/warmboot_avp.o += -march=armv4t
 
 include $(TOPDIR)/config.mk
@@ -35,7 +37,7 @@ include $(TOPDIR)/config.mk
 LIB	=  $(obj)lib$(SOC).o
 
 SOBJS-y	:= lowlevel_init.o
-COBJS-y	:= ap20.o board.o clock.o display.o pinmux.o power.o pwfm.o \
+COBJS-y	:= ap20.o board.o clock.o t30.o t30_uart.o display.o pinmux.o power.o pwfm.o \
 		sys_info.o timer.o
 
 COBJS-$(CONFIG_TEGRA2_LP0) += warmboot.o

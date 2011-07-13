@@ -33,6 +33,9 @@
 #include "ap20.h"
 #include "warmboot_avp.h"
 
+/* t30 bringup */
+#include <asm/arch/t30/arpg.h>
+
 #define DEBUG_RESET_CORESIGHT
 
 union osc_ctrl_reg {
