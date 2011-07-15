@@ -36,7 +36,9 @@
 #endif
 
 /* t30 bringup */
-#define CONFIG_TEGRA3_CARDHU
+//#define CONFIG_TEGRA3_CARDHU
+#define CONFIG_TEGRA3_WALUIGI
+//#define CONFIG_TEGRA3_OREGON
 #define CONFIG_SYS_SKIP_ARM_RELOCATION
 
 #define z_pause()       \

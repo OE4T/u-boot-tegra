@@ -511,6 +511,7 @@ volatile void* aos_UartInitT30(NvU32 portNumber, NvU32 baud_rate)
 }
 #endif /* not in use, jz */
 
+
 static void aos_CpuStallUsT30(NvU32 MicroSec)
 {
     NvU32 Reg;
@@ -552,10 +553,6 @@ static void aos_UartWriteByteT30(volatile void* pUart, NvU8 ch)
     NV_UART_REGW(pUart, THR_DLAB_0, ch);
 }
 
-
-//////////////////////////////////////////////////////
-
-///////////////////////////////////////////////////////
 
 static NvU8 aos_UartReadByteT30(volatile void* pUart)
 {
@@ -676,7 +673,76 @@ static NvU8 aos_UartReadByteT30(volatile void* pUart)
        NV_WRITE32(NV_ADDRESS_MAP_MISC_BASE + PINMUX_AUX_##pin##_0, RegData); \
     } while (0);
 
-void t30_Uart_Init(void);
+static NV_INLINE NvU32 NvBlUartTxReady(NvU8 const * uart_base)
+{
+    return NV_READ8(uart_base + UART_LSR_0) & UART_LSR_0_THRE_FIELD;
+}
+
+NvU32 NvBlUartRxReady(NvU8 const * uart_base)
+{
+    return NV_READ8(uart_base + UART_LSR_0) & UART_LSR_0_RDR_FIELD;
+}
+
+static NV_INLINE void NvBlUartTx(NvU8 * uart_base, NvU8 c)
+{
+    NV_WRITE08(uart_base + UART_THR_DLAB_0_0, c);
+}
+
+NvU32 NvBlUartRx(NvU8 const * uart_base)
+{
+    return NV_READ8(uart_base + UART_THR_DLAB_0_0);
+}
+
+#define NVRM_PLLP_FIXED_FREQ_KHZ         (216000)
+//#define NV_DEFAULT_DEBUG_BAUD 		115200
+#define NV_DEFAULT_DEBUG_BAUD 		57600
+
+void NvBlUartInitBase(NvU8 * uart_base)
+{
+    NvU32 divisor = (NVRM_PLLP_FIXED_FREQ_KHZ * 1000 /
+		     NV_DEFAULT_DEBUG_BAUD / 16);
+
+    // Set up UART parameters.
+    NV_WRITE08(uart_base + UART_LCR_0,        0x80);
+    NV_WRITE08(uart_base + UART_THR_DLAB_0_0, divisor);
+    NV_WRITE08(uart_base + UART_IER_DLAB_0_0, 0x00);
+    NV_WRITE08(uart_base + UART_LCR_0,        0x00);
+    NV_WRITE08(uart_base + UART_IIR_FCR_0,    0x37);
+    NV_WRITE08(uart_base + UART_IER_DLAB_0_0, 0x00);
+    NV_WRITE08(uart_base + UART_LCR_0,        0x03); /* 8N1 */
+    NV_WRITE08(uart_base + UART_MCR_0,        0x02);
+    NV_WRITE08(uart_base + UART_MSR_0,        0x00);
+    NV_WRITE08(uart_base + UART_SPR_0,        0x00);
+    NV_WRITE08(uart_base + UART_IRDA_CSR_0,   0x00);
+    NV_WRITE08(uart_base + UART_ASR_0,        0x00);
+
+    NV_WRITE08(uart_base + UART_IIR_FCR_0,    0x31);
+
+    // Flush any old characters out of the RX FIFO.
+    while (NvBlUartRxReady(uart_base))
+        (void)NvBlUartRx(uart_base);
+}
+
+void t30_Uart_Init_h(void)
+{
+    volatile void* pUart;
+/* cardhu */
+#if defined(CONFIG_TEGRA3_CARDHU)
+    pUart = (void*)s_UartBaseAddress[0];
+#endif
+
+/* oregon */
+#if defined(CONFIG_TEGRA3_OREGON)
+    pUart = (void*)s_UartBaseAddress[2];
+#endif
+
+/* waluigi */
+#if defined(CONFIG_TEGRA3_WALUIGI)
+    pUart = (void*)s_UartBaseAddress[3];
+#endif
+
+	NvBlUartInitBase((NvU8 *)pUart);
+}
 
 void t30_UartA_Init(void)
 {
@@ -768,7 +834,6 @@ void t30_UartA_Init(void)
         CLK_RST_CONTROLLER_CLK_SOURCE_UARTA_0_UARTA_DIV_ENB_SHIFT) |
         0);
 
-    t30_Uart_Init();
 }
 
 void t30_UartC_Init(void)
@@ -849,7 +914,6 @@ void t30_UartC_Init(void)
         0);
 #endif
 
-    t30_Uart_Init();
 }
 
 void t30_UartD_Init(void)
@@ -933,7 +997,6 @@ void t30_UartD_Init(void)
         0);
 #endif
 
-    t30_Uart_Init();
 }
 
 
@@ -1012,6 +1075,9 @@ void NvBlUartInit_t30(void)
 #if defined(CONFIG_TEGRA3_WALUIGI)
 	t30_UartD_Init();
 #endif
+
+	t30_Uart_Init();
+
 	aos_CpuStallUsT30(20000);	// 20 ms
 }
 
