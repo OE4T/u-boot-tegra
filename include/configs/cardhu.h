@@ -31,18 +31,17 @@
 #define TEGRA2_SYSMEM		"mem=384M@0M nvmem=128M@384M mem=512M@512M"
 #define V_PROMPT		"Tegra3 # "
 
-#if 0			//tcw - disable LP0 support for bringup
 #define CONFIG_TEGRA2_LP0
-#endif
 
 #define CONFIG_TEGRA3_CARDHU
-#define CONFIG_SYS_SKIP_ARM_RELOCATION
+#define CONFIG_SYS_SKIP_ARM_RELOCATION	/* TBD - Remove after bringup */
 
-#define z_pause()       \
-{       \
-        while (1); \
+#define z_pause()	\
+{			\
+	while (1)	\
+		;	\
 }
-	
+
 #include "tegra3-common.h"
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
@@ -77,7 +76,6 @@
 
 #define CONFIG_SYS_BOARD_ODMDATA	0x80080105 /* 2GB, ??? */
 
-#define CONFIG_ENV_IS_NOWHERE
 #define CONFIG_ENV_SECT_SIZE    CONFIG_ENV_SIZE
 #define CONFIG_ENV_OFFSET       (SZ_4M - CONFIG_ENV_SECT_SIZE)
 
@@ -86,8 +84,6 @@
 /* GPIO */
 #define CONFIG_TEGRA2_GPIO
 #define CONFIG_CMD_TEGRA2_GPIO_INFO
-
-#if 0			//tcw - disable most periphs for now
 
 /* SPI */
 #define CONFIG_TEGRA2_SPI
@@ -98,6 +94,8 @@
 #define CONFIG_CMD_SF
 /* Environment in SPI */
 #define CONFIG_ENV_IS_IN_SPI_FLASH
+
+#if 0			//tcw - disable I2C build for now
 
 /* I2C */
 #define CONFIG_TEGRA2_I2C
@@ -112,6 +110,8 @@
 #define CONFIG_I2C1_PIN_MUX		1
 #define CONFIG_I2C2_PIN_MUX		2
 #define CONFIG_I2C3_PIN_MUX		1
+
+#endif //0			//tcw
 
 /* SD/MMC */
 #define CONFIG_MMC
@@ -192,9 +192,7 @@
 #define CONFIG_VIDEO_TEGRA2
 
 /* TODO: This needs to be configurable at run-time */
-#define LCD_BPP             LCD_COLOR16
+#define LCD_BPP	LCD_COLOR16
 #define CONFIG_SYS_WHITE_ON_BLACK       /*Console colors*/
-
-#endif		//tcw if 0 periphs
 
 #endif /* __CONFIG_H */
