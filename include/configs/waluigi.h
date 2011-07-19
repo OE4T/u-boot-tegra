@@ -35,21 +35,22 @@
 #define CONFIG_TEGRA2_LP0
 #endif
 
-#define CONFIG_TEGRA3_CARDHU
+#define CONFIG_TEGRA3_WALUIGI
 #define CONFIG_SYS_SKIP_ARM_RELOCATION
 
-#define z_pause()       \
-{       \
-        while (1); \
+#define z_pause()	\
+{			\
+	while (1)	\
+		;	\
 }
-	
+
 #include "tegra3-common.h"
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	CONFIG_EXTRA_ENV_SETTINGS_COMMON \
-	"board=cardhu\0" \
+	"board=waluigi\0" \
 
-#define CONFIG_DEFAULT_DEVICE_TREE "tegra3-cardhu"
+#define CONFIG_DEFAULT_DEVICE_TREE "tegra3-waluigi"
 
 #ifndef CONFIG_OF_CONTROL
 /* Things in here are defined by the device tree now. Let it grow! */
@@ -65,6 +66,7 @@
 
 /* Put USB1 in host mode */
 #define CONFIG_TEGRA2_USB1_HOST
+//TBD - change this once there is a MACH_TYPE_WALUIGI
 #define CONFIG_MACH_TYPE	MACH_TYPE_CARDHU
 
 #endif /* CONFIG_OF_CONTROL not defined ^^^^^^^ */
@@ -192,7 +194,7 @@
 #define CONFIG_VIDEO_TEGRA2
 
 /* TODO: This needs to be configurable at run-time */
-#define LCD_BPP             LCD_COLOR16
+#define LCD_BPP	LCD_COLOR16
 #define CONFIG_SYS_WHITE_ON_BLACK       /*Console colors*/
 
 #endif		//tcw if 0 periphs
