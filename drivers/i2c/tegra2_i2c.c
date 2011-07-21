@@ -381,10 +381,10 @@ void i2c_init_board(void)
 	};
 
 	u32 *i2c_bus_base[CONFIG_SYS_MAX_I2C_BUS] = {
-		(u32 *)TEGRA2_DVC_BASE,
-		(u32 *)TEGRA2_I2C1_BASE,
-		(u32 *)TEGRA2_I2C2_BASE,
-		(u32 *)TEGRA2_I2C3_BASE
+		(u32 *)NV_PA_DVC_BASE,
+		(u32 *)NV_PA_I2C1_BASE,
+		(u32 *)NV_PA_I2C2_BASE,
+		(u32 *)NV_PA_I2C3_BASE
 	};
 
 	/* pinmux_configs based on the pinmux configuration */
