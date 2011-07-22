@@ -27,469 +27,304 @@
 #include <asm/arch/pinmux.h>
 #include <common.h>
 
-/*
- * This defines the order of the pin mux control bits in the registers. For
- * some reason there is no correspendence between the tristate, pin mux and
- * pullup/pulldown registers.
- */
-enum pmux_ctlid {
-	/* 0: APB_MISC_PP_PIN_MUX_CTL_A_0 */
-	MUXCTL_UAA,
-	MUXCTL_UAB,
-	MUXCTL_UAC,
-	MUXCTL_UAD,
-	MUXCTL_UDA,
-	MUXCTL_RESERVED5,
-	MUXCTL_ATE,
-	MUXCTL_RM,
-
-	MUXCTL_ATB,
-	MUXCTL_RESERVED9,
-	MUXCTL_ATD,
-	MUXCTL_ATC,
-	MUXCTL_ATA,
-	MUXCTL_KBCF,
-	MUXCTL_KBCE,
-	MUXCTL_SDMMC1,
-
-	/* 16: APB_MISC_PP_PIN_MUX_CTL_B_0 */
-	MUXCTL_GMA,
-	MUXCTL_GMC,
-	MUXCTL_HDINT,
-	MUXCTL_SLXA,
-	MUXCTL_OWC,
-	MUXCTL_SLXC,
-	MUXCTL_SLXD,
-	MUXCTL_SLXK,
-
-	MUXCTL_UCA,
-	MUXCTL_UCB,
-	MUXCTL_DTA,
-	MUXCTL_DTB,
-	MUXCTL_RESERVED28,
-	MUXCTL_DTC,
-	MUXCTL_DTD,
-	MUXCTL_DTE,
-
-	/* 32: APB_MISC_PP_PIN_MUX_CTL_C_0 */
-	MUXCTL_DDC,
-	MUXCTL_CDEV1,
-	MUXCTL_CDEV2,
-	MUXCTL_CSUS,
-	MUXCTL_I2CP,
-	MUXCTL_KBCA,
-	MUXCTL_KBCB,
-	MUXCTL_KBCC,
-
-	MUXCTL_IRTX,
-	MUXCTL_IRRX,
-	MUXCTL_DAP1,
-	MUXCTL_DAP2,
-	MUXCTL_DAP3,
-	MUXCTL_DAP4,
-	MUXCTL_GMB,
-	MUXCTL_GMD,
-
-	/* 48: APB_MISC_PP_PIN_MUX_CTL_D_0 */
-	MUXCTL_GME,
-	MUXCTL_GPV,
-	MUXCTL_GPU,
-	MUXCTL_SPDO,
-	MUXCTL_SPDI,
-	MUXCTL_SDB,
-	MUXCTL_SDC,
-	MUXCTL_SDD,
-
-	MUXCTL_SPIH,
-	MUXCTL_SPIG,
-	MUXCTL_SPIF,
-	MUXCTL_SPIE,
-	MUXCTL_SPID,
-	MUXCTL_SPIC,
-	MUXCTL_SPIB,
-	MUXCTL_SPIA,
-
-	/* 64: APB_MISC_PP_PIN_MUX_CTL_E_0 */
-	MUXCTL_LPW0,
-	MUXCTL_LPW1,
-	MUXCTL_LPW2,
-	MUXCTL_LSDI,
-	MUXCTL_LSDA,
-	MUXCTL_LSPI,
-	MUXCTL_LCSN,
-	MUXCTL_LDC,
-
-	MUXCTL_LSCK,
-	MUXCTL_LSC0,
-	MUXCTL_LSC1,
-	MUXCTL_LHS,
-	MUXCTL_LVS,
-	MUXCTL_LM0,
-	MUXCTL_LM1,
-	MUXCTL_LVP0,
-
-	/* 80: APB_MISC_PP_PIN_MUX_CTL_F_0 */
-	MUXCTL_LD0,
-	MUXCTL_LD1,
-	MUXCTL_LD2,
-	MUXCTL_LD3,
-	MUXCTL_LD4,
-	MUXCTL_LD5,
-	MUXCTL_LD6,
-	MUXCTL_LD7,
-
-	MUXCTL_LD8,
-	MUXCTL_LD9,
-	MUXCTL_LD10,
-	MUXCTL_LD11,
-	MUXCTL_LD12,
-	MUXCTL_LD13,
-	MUXCTL_LD14,
-	MUXCTL_LD15,
-
-	/* 96: APB_MISC_PP_PIN_MUX_CTL_G_0 */
-	MUXCTL_LD16,
-	MUXCTL_LD17,
-	MUXCTL_LHP1,
-	MUXCTL_LHP2,
-	MUXCTL_LVP1,
-	MUXCTL_LHP0,
-	MUXCTL_RESERVED102,
-	MUXCTL_LPP,
-
-	MUXCTL_LDI,
-	MUXCTL_PMC,
-	MUXCTL_CRTP,
-	MUXCTL_PTA,
-	MUXCTL_RESERVED108,
-	MUXCTL_KBCD,
-	MUXCTL_GPU7,
-	MUXCTL_DTF,
-
-	MUXCTL_NONE = -1,
-};
-
-/*
- * And this defines the order of the pullup/pulldown controls which are again
- * in a different order
- */
-enum pmux_pullid {
-	/* 0: APB_MISC_PP_PULLUPDOWN_REG_A_0 */
-	PUCTL_ATA,
-	PUCTL_ATB,
-	PUCTL_ATC,
-	PUCTL_ATD,
-	PUCTL_ATE,
-	PUCTL_DAP1,
-	PUCTL_DAP2,
-	PUCTL_DAP3,
-
-	PUCTL_DAP4,
-	PUCTL_DTA,
-	PUCTL_DTB,
-	PUCTL_DTC,
-	PUCTL_DTD,
-	PUCTL_DTE,
-	PUCTL_DTF,
-	PUCTL_GPV,
-
-	/* 16: APB_MISC_PP_PULLUPDOWN_REG_B_0 */
-	PUCTL_RM,
-	PUCTL_I2CP,
-	PUCTL_PTA,
-	PUCTL_GPU7,
-	PUCTL_KBCA,
-	PUCTL_KBCB,
-	PUCTL_KBCC,
-	PUCTL_KBCD,
-
-	PUCTL_SPDI,
-	PUCTL_SPDO,
-	PUCTL_GPSLXAU,
-	PUCTL_CRTP,
-	PUCTL_SLXC,
-	PUCTL_SLXD,
-	PUCTL_SLXK,
-
-	/* 32: APB_MISC_PP_PULLUPDOWN_REG_C_0 */
-	PUCTL_CDEV1,
-	PUCTL_CDEV2,
-	PUCTL_SPIA,
-	PUCTL_SPIB,
-	PUCTL_SPIC,
-	PUCTL_SPID,
-	PUCTL_SPIE,
-	PUCTL_SPIF,
-
-	PUCTL_SPIG,
-	PUCTL_SPIH,
-	PUCTL_IRTX,
-	PUCTL_IRRX,
-	PUCTL_GME,
-	PUCTL_RESERVED45,
-	PUCTL_XM2D,
-	PUCTL_XM2C,
-
-	/* 48: APB_MISC_PP_PULLUPDOWN_REG_D_0 */
-	PUCTL_UAA,
-	PUCTL_UAB,
-	PUCTL_UAC,
-	PUCTL_UAD,
-	PUCTL_UCA,
-	PUCTL_UCB,
-	PUCTL_LD17,
-	PUCTL_LD19_18,
-
-	PUCTL_LD21_20,
-	PUCTL_LD23_22,
-	PUCTL_LS,
-	PUCTL_LC,
-	PUCTL_CSUS,
-	PUCTL_DDRC,
-	PUCTL_SDC,
-	PUCTL_SDD,
-
-	/* 64: APB_MISC_PP_PULLUPDOWN_REG_E_0 */
-	PUCTL_KBCF,
-	PUCTL_KBCE,
-	PUCTL_PMCA,
-	PUCTL_PMCB,
-	PUCTL_PMCC,
-	PUCTL_PMCD,
-	PUCTL_PMCE,
-	PUCTL_CK32,
-
-	PUCTL_UDA,
-	PUCTL_SDMMC1,
-	PUCTL_GMA,
-	PUCTL_GMB,
-	PUCTL_GMC,
-	PUCTL_GMD,
-	PUCTL_DDC,
-	PUCTL_OWC,
-
-	PUCTL_NONE = -1
-};
-
 struct tegra_pingroup_desc {
 	const char *name;
 	enum pmux_func funcs[4];
 	enum pmux_func func_safe;
 	enum pmux_vddio vddio;
-	enum pmux_ctlid ctl_id;
-	enum pmux_pullid pull_id;
+	enum pmux_pin_io io;
 };
 
-
-/* Converts a pmux_pingrp number to a tristate register: 0=A, 1=B, 2=C, 3=D */
-#define TRISTATE_REG(pmux_pingrp) ((pmux_pingrp) >> 5)
-
-/* Mask value for a tristate (within TRISTATE_REG(id)) */
-#define TRISTATE_MASK(pmux_pingrp) (1 << ((pmux_pingrp) & 0x1f))
-
-/* Converts a PUCTL id to a pull register: 0=A, 1=B...4=E */
-#define PULL_REG(pmux_pullid) ((pmux_pullid) >> 4)
-
-/* Converts a PUCTL id to a shift position */
-#define PULL_SHIFT(pmux_pullid) ((pmux_pullid << 1) & 0x1f)
-
-/* Converts a MUXCTL id to a ctl register: 0=A, 1=B...6=G */
-#define MUXCTL_REG(pmux_ctlid) ((pmux_ctlid) >> 4)
-
-/* Converts a MUXCTL id to a shift position */
-#define MUXCTL_SHIFT(pmux_ctlid) ((pmux_ctlid << 1) & 0x1f)
+#define MUXCTL_SHIFT	0
+#define PUPD_SHIFT	2
+#define TRISTATE_SHITF	4
+#define TRISTATE_MASK	(1 << TRISTATE_SHITF)
 
 /* Convenient macro for defining pin group properties */
-#define PINALL(pg_name, vdd, f0, f1, f2, f3, f_safe, mux, pupd)		\
+#define PIN(pg_name, vdd, f0, f1, f2, f3, f_safe, iod)	\
 	{						\
 		.vddio = PMUX_VDDIO_ ## vdd,		\
 		.funcs = {				\
-			PMUX_FUNC_ ## f0,			\
-			PMUX_FUNC_ ## f1,			\
-			PMUX_FUNC_ ## f2,			\
-			PMUX_FUNC_ ## f3,			\
+			PMUX_FUNC_ ## f0,		\
+			PMUX_FUNC_ ## f1,		\
+			PMUX_FUNC_ ## f2,		\
+			PMUX_FUNC_ ## f3,		\
 		},					\
-		.func_safe = PMUX_FUNC_ ## f_safe,		\
-		.ctl_id = mux,				\
-		.pull_id = pupd				\
+		.func_safe = PMUX_FUNC_ ## f_safe,	\
+		.io = PMUX_PIN_ ## iod,			\
 	}
-
-/* A normal pin group where the mux name and pull-up name match */
-#define PIN(pg_name, vdd, f0, f1, f2, f3, f_safe)		\
-		PINALL(pg_name, vdd, f0, f1, f2, f3, f_safe,	\
-			MUXCTL_ ## pg_name, PUCTL_ ## pg_name)
-
-/* A pin group where the pull-up name doesn't have a 1-1 mapping */
-#define PINP(pg_name, vdd, f0, f1, f2, f3, f_safe, pupd)		\
-		PINALL(pg_name, vdd, f0, f1, f2, f3, f_safe,	\
-			MUXCTL_ ## pg_name, PUCTL_ ## pupd)
 
 /* A pin group number which is not used */
 #define PIN_RESERVED \
 	PIN(NONE, NONE, NONE, NONE, NONE, NONE, NONE)
 
 const struct tegra_pingroup_desc tegra_soc_pingroups[PINGRP_COUNT] = {
-	PIN(ATA,  NAND,  IDE,    NAND,   GMI,       RSVD,          IDE      ),
-	PIN(ATB,  NAND,  IDE,    NAND,   GMI,       SDIO4,         IDE      ),
-	PIN(ATC,  NAND,  IDE,    NAND,   GMI,       SDIO4,         IDE      ),
-	PIN(ATD,  NAND,  IDE,    NAND,   GMI,       SDIO4,         IDE      ),
-	PIN(CDEV1,AUDIO, OSC,    PLLA_OUT, PLLM_OUT1, AUDIO_SYNC,  OSC      ),
-	PIN(CDEV2,AUDIO, OSC,    AHB_CLK, APB_CLK, PLLP_OUT4,      OSC      ),
-	PIN(CSUS, VI, PLLC_OUT1, PLLP_OUT2, PLLP_OUT3, VI_SENSOR_CLK, PLLC_OUT1),
-	PIN(DAP1, AUDIO, DAP1,   RSVD,   GMI,       SDIO2,         DAP1     ),
-
-	PIN(DAP2, AUDIO, DAP2,   TWC,    RSVD,      GMI,           DAP2     ),
-	PIN(DAP3, BB,    DAP3,   RSVD,   RSVD,      RSVD,          DAP3     ),
-	PIN(DAP4, UART,  DAP4,   RSVD,   GMI,       RSVD,          DAP4     ),
-	PIN(DTA,  VI,    RSVD,   SDIO2,  VI,        RSVD,          RSVD4    ),
-	PIN(DTB,  VI,    RSVD,   RSVD,   VI,        SPI1,          RSVD1    ),
-	PIN(DTC,  VI,    RSVD,   RSVD,   VI,        RSVD,          RSVD1    ),
-	PIN(DTD,  VI,    RSVD,   SDIO2,  VI,        RSVD,          RSVD1    ),
-	PIN(DTE,  VI,    RSVD,   RSVD,   VI,        SPI1,          RSVD1    ),
-
-	PINP(GPU, UART,  PWM,    UARTA,  GMI,       RSVD,          RSVD4, GPSLXAU    ),
-	PIN(GPV,  SD,    PCIE,   RSVD,   RSVD,      RSVD,          PCIE     ),
-	PIN(I2CP, SYS,   I2C,    RSVD,   RSVD,      RSVD,          RSVD4    ),
-	PIN(IRTX, UART,  UARTA,  UARTB,  GMI,       SPI4,          UARTB    ),
-	PIN(IRRX, UART,  UARTA,  UARTB,  GMI,       SPI4,          UARTB    ),
-	PIN(KBCB, SYS,   KBC,    NAND,   SDIO2,     MIO,           KBC      ),
-	PIN(KBCA, SYS,   KBC,    NAND,   SDIO2,     EMC_TEST0_DLL, KBC      ),
-	PINP(PMC, SYS,   PWR_ON, PWR_INTR, RSVD,    RSVD,          PWR_ON, NONE   ),
-
-	PIN(PTA,  NAND,  I2C2,   HDMI,   GMI,       RSVD,          RSVD4    ),
-	PIN(RM,   UART,  I2C,    RSVD,   RSVD,      RSVD,          RSVD4    ),
-	PIN(KBCE, SYS,   KBC,    NAND,   OWR,       RSVD,          KBC      ),
-	PIN(KBCF, SYS,   KBC,    NAND,   TRACE,     MIO,           KBC      ),
-	PIN(GMA,  NAND,  UARTE,  SPI3,   GMI,       SDIO4,         SPI3     ),
-	PIN(GMC,  NAND,  UARTD,  SPI4,   GMI,       SFLASH,        SPI4     ),
-	PIN(SDMMC1, BB,  SDIO1,  RSVD,   UARTE,     UARTA,         RSVD2    ),
-	PIN(OWC,  SYS,   OWR,    RSVD,   RSVD,      RSVD,          OWR      ),
-
-	PIN(GME,  NAND,  RSVD,   DAP5,   GMI,       SDIO4,         GMI      ),
-	PIN(SDC,  SD,    PWM,    TWC,    SDIO3,     SPI3,          TWC      ),
-	PIN(SDD,  SD,    UARTA,  PWM,    SDIO3,     SPI3,          PWM      ),
-	PIN_RESERVED,
-	PINP(SLXA,SD,    PCIE,   SPI4,   SDIO3,     SPI2,          PCIE, CRTP     ),
-	PIN(SLXC, SD,    SPDIF,  SPI4,   SDIO3,     SPI2,          SPI4     ),
-	PIN(SLXD, SD,    SPDIF,  SPI4,   SDIO3,     SPI2,          SPI4     ),
-	PIN(SLXK, SD,    PCIE,   SPI4,   SDIO3,     SPI2,          PCIE     ),
-
-	PIN(SPDI, AUDIO, SPDIF,  RSVD,   I2C,       SDIO2,         RSVD2    ),
-	PIN(SPDO, AUDIO, SPDIF,  RSVD,   I2C,       SDIO2,         RSVD2    ),
-	PIN(SPIA, AUDIO, SPI1,   SPI2,   SPI3,      GMI,           GMI      ),
-	PIN(SPIB, AUDIO, SPI1,   SPI2,   SPI3,      GMI,           GMI      ),
-	PIN(SPIC, AUDIO, SPI1,   SPI2,   SPI3,      GMI,           GMI      ),
-	PIN(SPID, AUDIO, SPI2,   SPI1,   SPI2_ALT,  GMI,           GMI      ),
-	PIN(SPIE, AUDIO, SPI2,   SPI1,   SPI2_ALT,  GMI,           GMI      ),
-	PIN(SPIF, AUDIO, SPI3,   SPI1,   SPI2,      RSVD,          RSVD4    ),
-
-	PIN(SPIG, AUDIO, SPI3,   SPI2,   SPI2_ALT,  I2C,           SPI2_ALT ),
-	PIN(SPIH, AUDIO, SPI3,   SPI2,   SPI2_ALT,  I2C,           SPI2_ALT ),
-	PIN(UAA,  BB,    SPI3,   MIPI_HS,UARTA,     ULPI,          MIPI_HS  ),
-	PIN(UAB,  BB,    SPI2,   MIPI_HS,UARTA,     ULPI,          MIPI_HS  ),
-	PIN(UAC,  BB,    OWR,    RSVD,   RSVD,      RSVD,          RSVD4    ),
-	PIN(UAD,  UART,  IRDA,   SPDIF,  UARTA,     SPI4,          SPDIF    ),
-	PIN(UCA,  UART,  UARTC,  RSVD,   GMI,       RSVD,          RSVD4    ),
-	PIN(UCB,  UART,  UARTC,  PWM,    GMI,       RSVD,          RSVD4    ),
-
-	PIN_RESERVED,
-	PIN(ATE,  NAND,  IDE,    NAND,   GMI,       RSVD,          IDE      ),
-	PIN(KBCC, SYS,   KBC,    NAND,   TRACE,     EMC_TEST1_DLL, KBC      ),
-	PIN_RESERVED,
-	PIN_RESERVED,
-	PIN(GMB,  NAND,  IDE,    NAND,   GMI,       GMI_INT,       GMI      ),
-	PIN(GMD,  NAND,  RSVD,   NAND,   GMI,       SFLASH,        GMI      ),
-	PIN(DDC,  LCD,   I2C2,   RSVD,   RSVD,      RSVD,          RSVD4    ),
-
-	/* 64 */
-	PINP(LD0,  LCD,  DISPA,  DISPB,  XIO,       RSVD,     RSVD4, LD17   ),
-	PINP(LD1,  LCD,  DISPA,  DISPB,  XIO,       RSVD,     RSVD4, LD17   ),
-	PINP(LD2,  LCD,  DISPA,  DISPB,  XIO,       RSVD,     RSVD4, LD17   ),
-	PINP(LD3,  LCD,  DISPA,  DISPB,  XIO,       RSVD,     RSVD4, LD17   ),
-	PINP(LD4,  LCD,  DISPA,  DISPB,  XIO,       RSVD,     RSVD4, LD17   ),
-	PINP(LD5,  LCD,  DISPA,  DISPB,  XIO,       RSVD,     RSVD4, LD17   ),
-	PINP(LD6,  LCD,  DISPA,  DISPB,  XIO,       RSVD,     RSVD4, LD17   ),
-	PINP(LD7,  LCD,  DISPA,  DISPB,  XIO,       RSVD,     RSVD4, LD17   ),
-
-	PINP(LD8,  LCD,  DISPA,  DISPB,  XIO,       RSVD,     RSVD4, LD17   ),
-	PINP(LD9,  LCD,  DISPA,  DISPB,  XIO,       RSVD,     RSVD4, LD17   ),
-	PINP(LD10, LCD,  DISPA,  DISPB,  XIO,       RSVD,     RSVD4, LD17   ),
-	PINP(LD11, LCD,  DISPA,  DISPB,  XIO,       RSVD,     RSVD4, LD17   ),
-	PINP(LD12, LCD,  DISPA,  DISPB,  XIO,       RSVD,     RSVD4, LD17   ),
-	PINP(LD13, LCD,  DISPA,  DISPB,  XIO,       RSVD,     RSVD4, LD17   ),
-	PINP(LD14, LCD,  DISPA,  DISPB,  XIO,       RSVD,     RSVD4, LD17   ),
-	PINP(LD15, LCD,  DISPA,  DISPB,  XIO,       RSVD,     RSVD4, LD17   ),
-
-	PINP(LD16, LCD,  DISPA,  DISPB,  XIO,       RSVD,     RSVD4, LD17   ),
-	PINP(LD17, LCD,  DISPA,  DISPB,  RSVD,      RSVD,     RSVD4, LD17   ),
-	PINP(LHP0, LCD,  DISPA,  DISPB,  RSVD,      RSVD,     RSVD4, LD21_20),
-	PINP(LHP1, LCD,  DISPA,  DISPB,  RSVD,      RSVD,     RSVD4, LD19_18),
-	PINP(LHP2, LCD,  DISPA,  DISPB,  RSVD,      RSVD,     RSVD4, LD19_18),
-	PINP(LVP0, LCD,  DISPA,  DISPB,  RSVD,      RSVD,     RSVD4, LC     ),
-	PINP(LVP1, LCD,  DISPA,  DISPB,  RSVD,      RSVD,     RSVD4, LD21_20),
-	PINP(HDINT,LCD,  HDMI,   RSVD,   RSVD,      RSVD,     HDMI , LC     ),
-
-	PINP(LM0,  LCD,  DISPA,  DISPB,  SPI3,      RSVD,     RSVD4, LC     ),
-	PINP(LM1,  LCD,  DISPA,  DISPB,  RSVD,      CRT,      RSVD3, LC     ),
-	PINP(LVS,  LCD,  DISPA,  DISPB,  XIO,       RSVD,     RSVD4, LC     ),
-	PINP(LSC0, LCD,  DISPA,  DISPB,  XIO,       RSVD,     RSVD4, LC     ),
-	PINP(LSC1, LCD,  DISPA,  DISPB,  SPI3,      HDMI,     DISPA, LS     ),
-	PINP(LSCK, LCD,  DISPA,  DISPB,  SPI3,      HDMI,     DISPA, LS     ),
-	PINP(LDC,  LCD,  DISPA,  DISPB,  RSVD,      RSVD,     RSVD4, LS     ),
-	PINP(LCSN, LCD,  DISPA,  DISPB,  SPI3,      RSVD,     RSVD4, LS     ),
-
-	/* 96 */
-	PINP(LSPI, LCD,  DISPA,  DISPB,  XIO,       HDMI,     DISPA, LC     ),
-	PINP(LSDA, LCD,  DISPA,  DISPB,  SPI3,      HDMI,     DISPA, LS     ),
-	PINP(LSDI, LCD,  DISPA,  DISPB,  SPI3,      RSVD,     DISPA, LS     ),
-	PINP(LPW0, LCD,  DISPA,  DISPB,  SPI3,      HDMI,     DISPA, LS     ),
-	PINP(LPW1, LCD,  DISPA,  DISPB,  RSVD,      RSVD,     RSVD4, LS     ),
-	PINP(LPW2, LCD,  DISPA,  DISPB,  SPI3,      HDMI,     DISPA, LS     ),
-	PINP(LDI,  LCD,  DISPA,  DISPB,  RSVD,      RSVD,     RSVD4, LD23_22),
-	PINP(LHS,  LCD,  DISPA,  DISPB,  XIO,       RSVD,     RSVD4, LC     ),
-
-	PINP(LPP,  LCD,  DISPA,  DISPB,  RSVD,      RSVD,     RSVD4, LD23_22),
-	PIN_RESERVED,
-	PIN(KBCD,  SYS,  KBC,    NAND,   SDIO2,     MIO,      KBC    ),
-	PIN(GPU7,  SYS,  RTCK,   RSVD,   RSVD,      RSVD,     RTCK   ),
-	PIN(DTF,   VI,   I2C3,   RSVD,   VI,        RSVD,     RSVD4  ),
-	PIN(UDA,   BB,   SPI1,   RSVD,   UARTD,     ULPI,     RSVD2  ),
-	PIN(CRTP,  LCD,  CRT,    RSVD,   RSVD,      RSVD,     RSVD   ),
-	PINP(SDB,  SD,   UARTA,  PWM,    SDIO3,     SPI2,     PWM,   NONE   ),
-
-	/* these pin groups only have pullup and pull down control */
-	PINALL(CK32,  SYS,   RSVD, RSVD, RSVD, RSVD,  RSVD, MUXCTL_NONE,
-		PUCTL_NONE),
-	PINALL(DDRC,  DDR,   RSVD, RSVD, RSVD, RSVD,  RSVD, MUXCTL_NONE,
-		PUCTL_NONE),
-	PINALL(PMCA,  SYS,   RSVD, RSVD, RSVD, RSVD,  RSVD, MUXCTL_NONE,
-		PUCTL_NONE),
-	PINALL(PMCB,  SYS,   RSVD, RSVD, RSVD, RSVD,  RSVD, MUXCTL_NONE,
-		PUCTL_NONE),
-	PINALL(PMCC,  SYS,   RSVD, RSVD, RSVD, RSVD,  RSVD, MUXCTL_NONE,
-		PUCTL_NONE),
-	PINALL(PMCD,  SYS,   RSVD, RSVD, RSVD, RSVD,  RSVD, MUXCTL_NONE,
-		PUCTL_NONE),
-	PINALL(PMCE,  SYS,   RSVD, RSVD, RSVD, RSVD,  RSVD, MUXCTL_NONE,
-		PUCTL_NONE),
-	PINALL(XM2C,  DDR,   RSVD, RSVD, RSVD, RSVD,  RSVD, MUXCTL_NONE,
-		PUCTL_NONE),
-	PINALL(XM2D,  DDR,   RSVD, RSVD, RSVD, RSVD,  RSVD, MUXCTL_NONE,
-		PUCTL_NONE),
+	/*  NAME	VDD	f0	f1	f2	f3	fSafe	io */
+	PIN(ULPI_DATA0,	  BB,	    SPI3,	HSI,	    UARTA,	ULPI,	    RSVD,	INPUT),
+	PIN(ULPI_DATA1,	  BB,	    SPI3,	HSI,	    UARTA,	ULPI,	    RSVD,	INPUT),
+	PIN(ULPI_DATA2,	  BB,	    SPI3,	HSI,	    UARTA,	ULPI,	    RSVD,	INPUT),
+	PIN(ULPI_DATA3,	  BB,	    SPI3,	HSI,	    UARTA,	ULPI,	    RSVD,	INPUT),
+	PIN(ULPI_DATA4,	  BB,	    SPI2,	HSI,	    UARTA,	ULPI,	    RSVD,	INPUT),
+	PIN(ULPI_DATA5,	  BB,	    SPI2,	HSI,	    UARTA,	ULPI,	    RSVD,	INPUT),
+	PIN(ULPI_DATA6,	  BB,	    SPI2,	HSI,	    UARTA,	ULPI,	    RSVD,	INPUT),
+	PIN(ULPI_DATA7,	  BB,	    SPI2,	HSI,	    UARTA,	ULPI,	    RSVD,	INPUT),
+	PIN(ULPI_CLK,	  BB,	    SPI1,	RSVD,	    UARTD,	ULPI,	    RSVD,	INPUT),
+	PIN(ULPI_DIR,	  BB,	    SPI1,	RSVD,	    UARTD,	ULPI,	    RSVD,	INPUT),
+	PIN(ULPI_NXT,	  BB,	    SPI1,	RSVD,	    UARTD,	ULPI,	    RSVD,	INPUT),
+	PIN(ULPI_STP,	  BB,	    SPI1,	RSVD,	    UARTD,	ULPI,	    RSVD,	INPUT),
+	PIN(DAP3_FS,	  BB,	    I2S2,	RSVD1,	    DISPLAYA,	DISPLAYB,   RSVD,	INPUT),
+	PIN(DAP3_DIN,	  BB,	    I2S2,	RSVD1,	    DISPLAYA,	DISPLAYB,   RSVD,	INPUT),
+	PIN(DAP3_DOUT,	  BB,	    I2S2,	RSVD1,	    DISPLAYA,	DISPLAYB,   RSVD,	INPUT),
+	PIN(DAP3_SCLK,	  BB,	    I2S2,	RSVD1,	    DISPLAYA,	DISPLAYB,   RSVD,	INPUT),
+	PIN(GPIO_PV0,	  BB,	    RSVD,	RSVD,	    RSVD,	RSVD,	    RSVD,	INPUT),
+	PIN(GPIO_PV1,	  BB,	    RSVD,	RSVD,	    RSVD,	RSVD,	    RSVD,	INPUT),
+	PIN(SDMMC1_CLK,	  SDMMC1,   SDMMC1,	RSVD1,	    RSVD2,	INVALID,    RSVD,	INPUT),
+	PIN(SDMMC1_CMD,	  SDMMC1,   SDMMC1,	RSVD1,	    RSVD2,	INVALID,    RSVD,	INPUT),
+	PIN(SDMMC1_DAT3,	  SDMMC1,   SDMMC1,	RSVD1,	    UARTE,	INVALID,    RSVD,	INPUT),
+	PIN(SDMMC1_DAT2,	  SDMMC1,   SDMMC1,	RSVD1,	    UARTE,	INVALID,    RSVD,	INPUT),
+	PIN(SDMMC1_DAT1,	  SDMMC1,   SDMMC1,	RSVD1,	    UARTE,	INVALID,    RSVD,	INPUT),
+	PIN(SDMMC1_DAT0,	  SDMMC1,   SDMMC1,	RSVD1,	    UARTE,	INVALID,    RSVD,	INPUT),
+	PIN(GPIO_PV2,	  SDMMC1,   OWR,	RSVD1,	    RSVD2,	RSVD3,	    RSVD,	INPUT),
+	PIN(GPIO_PV3,	  SDMMC1,   INVALID,	RSVD1,	    RSVD2,	RSVD3,	    RSVD,	INPUT),
+	PIN(CLK2_OUT,	  SDMMC1,   EXTPERIPH2,	RSVD1,	    RSVD2,	RSVD3,	    RSVD,	INPUT),
+	PIN(CLK2_REQ,	  SDMMC1,   DAP,	RSVD1,	    RSVD2,	RSVD3,	    RSVD,	INPUT),
+	PIN(LCD_PWR1,	  LCD,	    DISPLAYA,	DISPLAYB,   RSVD1,	RSVD2,	    RSVD,	OUTPUT),
+	PIN(LCD_PWR2,	  LCD,	    DISPLAYA,	DISPLAYB,   SPI5,	INVALID,    RSVD,	OUTPUT),
+	PIN(LCD_SDIN,	  LCD,	    DISPLAYA,	DISPLAYB,   SPI5,	RSVD,	    RSVD,	OUTPUT),
+	PIN(LCD_SDOUT,	  LCD,	    DISPLAYA,	DISPLAYB,   SPI5,	INVALID,    RSVD,	OUTPUT),
+	PIN(LCD_WR_N,	  LCD,	    DISPLAYA,	DISPLAYB,   SPI5,	INVALID,    RSVD,	OUTPUT),
+	PIN(LCD_CS0_N,	  LCD,	    DISPLAYA,	DISPLAYB,   SPI5,	RSVD,	    RSVD,	OUTPUT),
+	PIN(LCD_DC0,	  LCD,	    DISPLAYA,	DISPLAYB,   RSVD1,	RSVD2,	    RSVD,	OUTPUT),
+	PIN(LCD_SCK,	  LCD,	    DISPLAYA,	DISPLAYB,   SPI5,	INVALID,    RSVD,	OUTPUT),
+	PIN(LCD_PWR0,	  LCD,	    DISPLAYA,	DISPLAYB,   SPI5,	INVALID,    RSVD,	OUTPUT),
+	PIN(LCD_PCLK,	  LCD,	    DISPLAYA,	DISPLAYB,   RSVD1,	RSVD2,	    RSVD,	OUTPUT),
+	PIN(LCD_DE,	  LCD,	    DISPLAYA,	DISPLAYB,   RSVD1,	RSVD2,	    RSVD,	OUTPUT),
+	PIN(LCD_HSYNC,	  LCD,	    DISPLAYA,	DISPLAYB,   RSVD1,	RSVD2,	    RSVD,	OUTPUT),
+	PIN(LCD_VSYNC,	  LCD,	    DISPLAYA,	DISPLAYB,   RSVD1,	RSVD2,	    RSVD,	OUTPUT),
+	PIN(LCD_D0,	  LCD,	    DISPLAYA,	DISPLAYB,   RSVD1,	RSVD2,	    RSVD,	OUTPUT),
+	PIN(LCD_D1,	  LCD,	    DISPLAYA,	DISPLAYB,   RSVD1,	RSVD2,	    RSVD,	OUTPUT),
+	PIN(LCD_D2,	  LCD,	    DISPLAYA,	DISPLAYB,   RSVD1,	RSVD2,	    RSVD,	OUTPUT),
+	PIN(LCD_D3,	  LCD,	    DISPLAYA,	DISPLAYB,   RSVD1,	RSVD2,	    RSVD,	OUTPUT),
+	PIN(LCD_D4,	  LCD,	    DISPLAYA,	DISPLAYB,   RSVD1,	RSVD2,	    RSVD,	OUTPUT),
+	PIN(LCD_D5,	  LCD,	    DISPLAYA,	DISPLAYB,   RSVD1,	RSVD2,	    RSVD,	OUTPUT),
+	PIN(LCD_D6,	  LCD,	    DISPLAYA,	DISPLAYB,   RSVD1,	RSVD2,	    RSVD,	OUTPUT),
+	PIN(LCD_D7,	  LCD,	    DISPLAYA,	DISPLAYB,   RSVD1,	RSVD2,	    RSVD,	OUTPUT),
+	PIN(LCD_D8,	  LCD,	    DISPLAYA,	DISPLAYB,   RSVD1,	RSVD2,	    RSVD,	OUTPUT),
+	PIN(LCD_D9,	  LCD,	    DISPLAYA,	DISPLAYB,   RSVD1,	RSVD2,	    RSVD,	OUTPUT),
+	PIN(LCD_D10,	  LCD,	    DISPLAYA,	DISPLAYB,   RSVD1,	RSVD2,	    RSVD,	OUTPUT),
+	PIN(LCD_D11,	  LCD,	    DISPLAYA,	DISPLAYB,   RSVD1,	RSVD2,	    RSVD,	OUTPUT),
+	PIN(LCD_D12,	  LCD,	    DISPLAYA,	DISPLAYB,   RSVD1,	RSVD2,	    RSVD,	OUTPUT),
+	PIN(LCD_D13,	  LCD,	    DISPLAYA,	DISPLAYB,   RSVD1,	RSVD2,	    RSVD,	OUTPUT),
+	PIN(LCD_D14,	  LCD,	    DISPLAYA,	DISPLAYB,   RSVD1,	RSVD2,	    RSVD,	OUTPUT),
+	PIN(LCD_D15,	  LCD,	    DISPLAYA,	DISPLAYB,   RSVD1,	RSVD2,	    RSVD,	OUTPUT),
+	PIN(LCD_D16,	  LCD,	    DISPLAYA,	DISPLAYB,   RSVD1,	RSVD2,	    RSVD,	OUTPUT),
+	PIN(LCD_D17,	  LCD,	    DISPLAYA,	DISPLAYB,   RSVD1,	RSVD2,	    RSVD,	OUTPUT),
+	PIN(LCD_D18,	  LCD,	    DISPLAYA,	DISPLAYB,   RSVD1,	RSVD2,	    RSVD,	OUTPUT),
+	PIN(LCD_D19,	  LCD,	    DISPLAYA,	DISPLAYB,   RSVD1,	RSVD2,	    RSVD,	OUTPUT),
+	PIN(LCD_D20,	  LCD,	    DISPLAYA,	DISPLAYB,   RSVD1,	RSVD2,	    RSVD,	OUTPUT),
+	PIN(LCD_D21,	  LCD,	    DISPLAYA,	DISPLAYB,   RSVD1,	RSVD2,	    RSVD,	OUTPUT),
+	PIN(LCD_D22,	  LCD,	    DISPLAYA,	DISPLAYB,   RSVD1,	RSVD2,	    RSVD,	OUTPUT),
+	PIN(LCD_D23,	  LCD,	    DISPLAYA,	DISPLAYB,   RSVD1,	RSVD2,	    RSVD,	OUTPUT),
+	PIN(LCD_CS1_N,	  LCD,	    DISPLAYA,	DISPLAYB,   SPI5,	RSVD2,	    RSVD,	OUTPUT),
+	PIN(LCD_M1,	  LCD,	    DISPLAYA,	DISPLAYB,   RSVD1,	RSVD2,	    RSVD,	OUTPUT),
+	PIN(LCD_DC1,	  LCD,	    DISPLAYA,	DISPLAYB,   RSVD1,	RSVD2,	    RSVD,	OUTPUT),
+	PIN(HDMI_INT,	  LCD,	    RSVD,	RSVD,	    RSVD,	RSVD,	    RSVD,	INPUT),
+	PIN(DDC_SCL,	  LCD,	    I2C4,	RSVD1,	    RSVD2,	RSVD3,	    RSVD,	INPUT),
+	PIN(DDC_SDA,	  LCD,	    I2C4,	RSVD1,	    RSVD2,	RSVD3,	    RSVD,	INPUT),
+	PIN(CRT_HSYNC,	  LCD,	    CRT,	RSVD1,	    RSVD2,	RSVD3,	    RSVD,	INPUT),
+	PIN(CRT_VSYNC,	  LCD,	    CRT,	RSVD1,	    RSVD2,	RSVD3,	    RSVD,	INPUT),
+	PIN(VI_D0,		  VI,	    INVALID,	RSVD1,	    VI,		RSVD2,	    RSVD,	INPUT),
+	PIN(VI_D1,		  VI,	    INVALID,	SDMMC2,	    VI,		RSVD1,	    RSVD,	INPUT),
+	PIN(VI_D2,		  VI,	    INVALID,	SDMMC2,	    VI,		RSVD1,	    RSVD,	INPUT),
+	PIN(VI_D3,		  VI,	    INVALID,	SDMMC2,	    VI,		RSVD1,	    RSVD,	INPUT),
+	PIN(VI_D4,		  VI,	    INVALID,	SDMMC2,	    VI,		RSVD1,	    RSVD,	INPUT),
+	PIN(VI_D5,		  VI,	    INVALID,	SDMMC2,	    VI,		RSVD1,	    RSVD,	INPUT),
+	PIN(VI_D6,		  VI,	    INVALID,	SDMMC2,	    VI,		RSVD1,	    RSVD,	INPUT),
+	PIN(VI_D7,		  VI,	    INVALID,	SDMMC2,	    VI,		RSVD1,	    RSVD,	INPUT),
+	PIN(VI_D8,		  VI,	    INVALID,	SDMMC2,	    VI,		RSVD1,	    RSVD,	INPUT),
+	PIN(VI_D9,		  VI,	    INVALID,	SDMMC2,	    VI,		RSVD1,	    RSVD,	INPUT),
+	PIN(VI_D10,	  VI,	    INVALID,	RSVD1,	    VI,		RSVD2,	    RSVD,	INPUT),
+	PIN(VI_D11,	  VI,	    INVALID,	RSVD1,	    VI,		RSVD2,	    RSVD,	INPUT),
+	PIN(VI_PCLK,	  VI,	    RSVD1,	SDMMC2,	    VI,		RSVD2,	    RSVD,	INPUT),
+	PIN(VI_MCLK,	  VI,	    VI,		INVALID,    INVALID,	INVALID,    RSVD,	INPUT),
+	PIN(VI_VSYNC,	  VI,	    INVALID,	RSVD1,	    VI,		RSVD2,	    RSVD,	INPUT),
+	PIN(VI_HSYNC,	  VI,	    INVALID,	RSVD1,	    VI,		RSVD2,	    RSVD,	INPUT),
+	PIN(UART2_RXD,	  UART,	    IRDA,	SPDIF,	    UARTA,	SPI4,	    RSVD,	INPUT),
+	PIN(UART2_TXD,	  UART,	    IRDA,	SPDIF,	    UARTA,	SPI4,	    RSVD,	INPUT),
+	PIN(UART2_RTS_N,	  UART,	    UARTA,	UARTB,	    GMI,	SPI4,	    RSVD,	INPUT),
+	PIN(UART2_CTS_N,	  UART,	    UARTA,	UARTB,	    GMI,	SPI4,	    RSVD,	INPUT),
+	PIN(UART3_TXD,	  UART,	    UARTC,	RSVD1,	    GMI,	RSVD2,	    RSVD,	INPUT),
+	PIN(UART3_RXD,	  UART,	    UARTC,	RSVD1,	    GMI,	RSVD2,	    RSVD,	INPUT),
+	PIN(UART3_CTS_N,	  UART,	    UARTC,	RSVD1,	    GMI,	RSVD2,	    RSVD,	INPUT),
+	PIN(UART3_RTS_N,	  UART,	    UARTC,	PWM0,	    GMI,	RSVD2,	    RSVD,	INPUT),
+	PIN(GPIO_PU0,	  UART,	    OWR,	UARTA,	    GMI,	RSVD1,	    RSVD,	INPUT),
+	PIN(GPIO_PU1,	  UART,	    RSVD1,	UARTA,	    GMI,	RSVD2,	    RSVD,	INPUT),
+	PIN(GPIO_PU2,	  UART,	    RSVD1,	UARTA,	    GMI,	RSVD2,	    RSVD,	INPUT),
+	PIN(GPIO_PU3,	  UART,	    PWM0,	UARTA,	    GMI,	RSVD1,	    RSVD,	INPUT),
+	PIN(GPIO_PU4,	  UART,	    PWM1,	UARTA,	    GMI,	RSVD1,	    RSVD,	INPUT),
+	PIN(GPIO_PU5,	  UART,	    PWM2,	UARTA,	    GMI,	RSVD1,	    RSVD,	INPUT),
+	PIN(GPIO_PU6,	  UART,	    PWM3,	UARTA,	    GMI,	RSVD1,	    RSVD,	INPUT),
+	PIN(GEN1_I2C_SDA,	  UART,	    I2C1,	RSVD1,	    RSVD2,	RSVD3,	    RSVD,	INPUT),
+	PIN(GEN1_I2C_SCL,	  UART,	    I2C1,	RSVD1,	    RSVD2,	RSVD3,	    RSVD,	INPUT),
+	PIN(DAP4_FS,	  UART,	    I2S3,	RSVD1,	    GMI,	RSVD2,	    RSVD,	INPUT),
+	PIN(DAP4_DIN,	  UART,	    I2S3,	RSVD1,	    GMI,	RSVD2,	    RSVD,	INPUT),
+	PIN(DAP4_DOUT,	  UART,	    I2S3,	RSVD1,	    GMI,	RSVD2,	    RSVD,	INPUT),
+	PIN(DAP4_SCLK,	  UART,	    I2S3,	RSVD1,	    GMI,	RSVD2,	    RSVD,	INPUT),
+	PIN(CLK3_OUT,	  UART,	    EXTPERIPH3,	RSVD1,	    RSVD2,	RSVD3,	    RSVD,	INPUT),
+	PIN(CLK3_REQ,	  UART,	    DEV3,	RSVD1,	    RSVD2,	RSVD3,	    RSVD,	INPUT),
+	PIN(GMI_WP_N,	  GMI,	    RSVD1,	NAND,	    GMI,	GMI_ALT,    RSVD,	INPUT),
+	PIN(GMI_IORDY,	  GMI,	    RSVD1,	NAND,	    GMI,	RSVD2,	    RSVD,	INPUT),
+	PIN(GMI_WAIT,	  GMI,	    RSVD1,	NAND,	    GMI,	RSVD2,	    RSVD,	INPUT),
+	PIN(GMI_ADV_N,	  GMI,	    RSVD1,	NAND,	    GMI,	RSVD2,	    RSVD,	INPUT),
+	PIN(GMI_CLK,	  GMI,	    RSVD1,	NAND,	    GMI,	RSVD2,	    RSVD,	INPUT),
+	PIN(GMI_CS0_N,	  GMI,	    RSVD1,	NAND,	    GMI,	INVALID,    RSVD,	INPUT),
+	PIN(GMI_CS1_N,	  GMI,	    RSVD1,	NAND,	    GMI,	DTV,	    RSVD,	INPUT),
+	PIN(GMI_CS2_N,	  GMI,	    RSVD1,	NAND,	    GMI,	RSVD2,	    RSVD,	INPUT),
+	PIN(GMI_CS3_N,	  GMI,	    RSVD1,	NAND,	    GMI,	GMI_ALT,    RSVD,	INPUT),
+	PIN(GMI_CS4_N,	  GMI,	    RSVD1,	NAND,	    GMI,	RSVD2,	    RSVD,	INPUT),
+	PIN(GMI_CS6_N,	  GMI,	    NAND,	NAND_ALT,   GMI,	SATA,	    RSVD,	INPUT),
+	PIN(GMI_CS7_N,	  GMI,	    NAND,	NAND_ALT,   GMI,	GMI_ALT,    RSVD,	INPUT),
+	PIN(GMI_AD0,	  GMI,	    RSVD1,	NAND,	    GMI,	RSVD2,	    RSVD,	INPUT),
+	PIN(GMI_AD1,	  GMI,	    RSVD1,	NAND,	    GMI,	RSVD2,	    RSVD,	INPUT),
+	PIN(GMI_AD2,	  GMI,	    RSVD1,	NAND,	    GMI,	RSVD2,	    RSVD,	INPUT),
+	PIN(GMI_AD3,	  GMI,	    RSVD1,	NAND,	    GMI,	RSVD2,	    RSVD,	INPUT),
+	PIN(GMI_AD4,	  GMI,	    RSVD1,	NAND,	    GMI,	RSVD2,	    RSVD,	INPUT),
+	PIN(GMI_AD5,	  GMI,	    RSVD1,	NAND,	    GMI,	RSVD2,	    RSVD,	INPUT),
+	PIN(GMI_AD6,	  GMI,	    RSVD1,	NAND,	    GMI,	RSVD2,	    RSVD,	INPUT),
+	PIN(GMI_AD7,	  GMI,	    RSVD1,	NAND,	    GMI,	RSVD2,	    RSVD,	INPUT),
+	PIN(GMI_AD8,	  GMI,	    PWM0,	NAND,	    GMI,	RSVD2,	    RSVD,	INPUT),
+	PIN(GMI_AD9,	  GMI,	    PWM1,	NAND,	    GMI,	RSVD2,	    RSVD,	INPUT),
+	PIN(GMI_AD10,	  GMI,	    PWM2,	NAND,	    GMI,	RSVD2,	    RSVD,	INPUT),
+	PIN(GMI_AD11,	  GMI,	    PWM3,	NAND,	    GMI,	RSVD2,	    RSVD,	INPUT),
+	PIN(GMI_AD12,	  GMI,	    RSVD1,	NAND,	    GMI,	RSVD2,	    RSVD,	INPUT),
+	PIN(GMI_AD13,	  GMI,	    RSVD1,	NAND,	    GMI,	RSVD2,	    RSVD,	INPUT),
+	PIN(GMI_AD14,	  GMI,	    RSVD1,	NAND,	    GMI,	RSVD2,	    RSVD,	INPUT),
+	PIN(GMI_AD15,	  GMI,	    RSVD1,	NAND,	    GMI,	RSVD2,	    RSVD,	INPUT),
+	PIN(GMI_A16,	  GMI,	    UARTD,	SPI4,	    GMI,	GMI_ALT,    RSVD,	INPUT),
+	PIN(GMI_A17,	  GMI,	    UARTD,	SPI4,	    GMI,	INVALID,    RSVD,	INPUT),
+	PIN(GMI_A18,	  GMI,	    UARTD,	SPI4,	    GMI,	INVALID,    RSVD,	INPUT),
+	PIN(GMI_A19,	  GMI,	    UARTD,	SPI4,	    GMI,	RSVD3,	    RSVD,	INPUT),
+	PIN(GMI_WR_N,	  GMI,	    RSVD1,	NAND,	    GMI,	RSVD3,	    RSVD,	INPUT),
+	PIN(GMI_OE_N,	  GMI,	    RSVD1,	NAND,	    GMI,	RSVD3,	    RSVD,	INPUT),
+	PIN(GMI_DQS,	  GMI,	    RSVD1,	NAND,	    GMI,	RSVD3,	    RSVD,	INPUT),
+	PIN(GMI_RST_N,	  GMI,	    NAND,	NAND_ALT,   GMI,	RSVD3,	    RSVD,	INPUT),
+	PIN(GEN2_I2C_SCL,	  GMI,	    I2C2,	INVALID,    GMI,	RSVD3,	    RSVD,	INPUT),
+	PIN(GEN2_I2C_SDA,	  GMI,	    I2C2,	INVALID,    GMI,	RSVD3,	    RSVD,	INPUT),
+	PIN(SDMMC4_CLK,	  SDMMC4,   INVALID,	NAND,	    GMI,	SDMMC4,	    RSVD,	INPUT),
+	PIN(SDMMC4_CMD,	  SDMMC4,   I2C3,	NAND,	    GMI,	SDMMC4,	    RSVD,	INPUT),
+	PIN(SDMMC4_DAT0,	  SDMMC4,   UARTE,	SPI3,	    GMI,	SDMMC4,	    RSVD,	INPUT),
+	PIN(SDMMC4_DAT1,	  SDMMC4,   UARTE,	SPI3,	    GMI,	SDMMC4,	    RSVD,	INPUT),
+	PIN(SDMMC4_DAT2,	  SDMMC4,   UARTE,	SPI3,	    GMI,	SDMMC4,	    RSVD,	INPUT),
+	PIN(SDMMC4_DAT3,	  SDMMC4,   UARTE,	SPI3,	    GMI,	SDMMC4,	    RSVD,	INPUT),
+	PIN(SDMMC4_DAT4,	  SDMMC4,   I2C3,	I2S4,	    GMI,	SDMMC4,	    RSVD,	INPUT),
+	PIN(SDMMC4_DAT5,	  SDMMC4,   VGP3,	I2S4,	    GMI,	SDMMC4,	    RSVD,	INPUT),
+	PIN(SDMMC4_DAT6,	  SDMMC4,   VGP4,	I2S4,	    GMI,	SDMMC4,	    RSVD,	INPUT),
+	PIN(SDMMC4_DAT7,	  SDMMC4,   VGP5,	I2S4,	    GMI,	SDMMC4,	    RSVD,	INPUT),
+	PIN(SDMMC4_RST_N,	  SDMMC4,   VGP6,	RSVD1,	    RSVD2,	POPSDMMC4,  RSVD,	INPUT),
+	PIN(CAM_MCLK,	  CAM,	    VI,		INVALID,    VI_ALT2,	POPSDMMC4,  RSVD,	INPUT),
+	PIN(GPIO_PCC1,	  CAM,	    I2S4,	RSVD1,	    RSVD2,	POPSDMMC4,  RSVD,	INPUT),
+	PIN(GPIO_PBB0,	  CAM,	    I2S4,	RSVD1,	    RSVD2,	POPSDMMC4,  RSVD,	INPUT),
+	PIN(CAM_I2C_SCL,	  CAM,	    INVALID,	I2C3,	    RSVD2,	POPSDMMC4,  RSVD,	INPUT),
+	PIN(CAM_I2C_SDA,	  CAM,	    INVALID,	I2C3,	    RSVD2,	POPSDMMC4,  RSVD,	INPUT),
+	PIN(GPIO_PBB3,	  CAM,	    VGP3,	DISPLAYA,   DISPLAYB,	POPSDMMC4,  RSVD,	INPUT),
+	PIN(GPIO_PBB4,	  CAM,	    VGP4,	DISPLAYA,   DISPLAYB,	POPSDMMC4,  RSVD,	INPUT),
+	PIN(GPIO_PBB5,	  CAM,	    VGP5,	DISPLAYA,   DISPLAYB,	POPSDMMC4,  RSVD,	INPUT),
+	PIN(GPIO_PBB6,	  CAM,	    VGP6,	DISPLAYA,   DISPLAYB,	POPSDMMC4,  RSVD,	INPUT),
+	PIN(GPIO_PBB7,	  CAM,	    I2S4,	RSVD1,	    RSVD2,	POPSDMMC4,  RSVD,	INPUT),
+	PIN(GPIO_PCC2,	  CAM,	    I2S4,	RSVD1,	    RSVD2,	RSVD3,	    RSVD,	INPUT),
+	PIN(JTAG_RTCK,	  SYS,	    RTCK,	RSVD1,	    RSVD2,	RSVD3,	    RSVD,	INPUT),
+	PIN(PWR_I2C_SCL,	  SYS,	    I2CPWR,	RSVD1,	    RSVD2,	RSVD3,	    RSVD,	INPUT),
+	PIN(PWR_I2C_SDA,	  SYS,	    I2CPWR,	RSVD1,	    RSVD2,	RSVD3,	    RSVD,	INPUT),
+	PIN(KB_ROW0,	  SYS,	    KBC,	INVALID,    RSVD2,	RSVD3,	    RSVD,	INPUT),
+	PIN(KB_ROW1,	  SYS,	    KBC,	INVALID,    RSVD2,	RSVD3,	    RSVD,	INPUT),
+	PIN(KB_ROW2,	  SYS,	    KBC,	INVALID,    RSVD2,	RSVD3,	    RSVD,	INPUT),
+	PIN(KB_ROW3,	  SYS,	    KBC,	INVALID,    RSVD2,	INVALID,    RSVD,	INPUT),
+	PIN(KB_ROW4,	  SYS,	    KBC,	INVALID,    TRACE,	RSVD3,	    RSVD,	INPUT),
+	PIN(KB_ROW5,	  SYS,	    KBC,	INVALID,    TRACE,	OWR,	    RSVD,	INPUT),
+	PIN(KB_ROW6,	  SYS,	    KBC,	INVALID,    SDMMC2,	INVALID,    RSVD,	INPUT),
+	PIN(KB_ROW7,	  SYS,	    KBC,	INVALID,    SDMMC2,	INVALID,    RSVD,	INPUT),
+	PIN(KB_ROW8,	  SYS,	    KBC,	INVALID,    SDMMC2,	INVALID,    RSVD,	INPUT),
+	PIN(KB_ROW9,	  SYS,	    KBC,	INVALID,    SDMMC2,	INVALID,    RSVD,	INPUT),
+	PIN(KB_ROW10,	  SYS,	    KBC,	INVALID,    SDMMC2,	INVALID,    RSVD,	INPUT),
+	PIN(KB_ROW11,	  SYS,	    KBC,	INVALID,    SDMMC2,	INVALID,    RSVD,	INPUT),
+	PIN(KB_ROW12,	  SYS,	    KBC,	INVALID,    SDMMC2,	INVALID,    RSVD,	INPUT),
+	PIN(KB_ROW13,	  SYS,	    KBC,	INVALID,    SDMMC2,	INVALID,    RSVD,	INPUT),
+	PIN(KB_ROW14,	  SYS,	    KBC,	INVALID,    SDMMC2,	INVALID,    RSVD,	INPUT),
+	PIN(KB_ROW15,	  SYS,	    KBC,	INVALID,    SDMMC2,	INVALID,    RSVD,	INPUT),
+	PIN(KB_COL0,	  SYS,	    KBC,	INVALID,    TRACE,	INVALID,    RSVD,	INPUT),
+	PIN(KB_COL1,	  SYS,	    KBC,	INVALID,    TRACE,	INVALID,    RSVD,	INPUT),
+	PIN(KB_COL2,	  SYS,	    KBC,	INVALID,    TRACE,	RSVD,	    RSVD,	INPUT),
+	PIN(KB_COL3,	  SYS,	    KBC,	INVALID,    TRACE,	RSVD,	    RSVD,	INPUT),
+	PIN(KB_COL4,	  SYS,	    KBC,	INVALID,    TRACE,	RSVD,	    RSVD,	INPUT),
+	PIN(KB_COL5,	  SYS,	    KBC,	INVALID,    TRACE,	RSVD,	    RSVD,	INPUT),
+	PIN(KB_COL6,	  SYS,	    KBC,	INVALID,    TRACE,	INVALID,    RSVD,	INPUT),
+	PIN(KB_COL7,	  SYS,	    KBC,	INVALID,    TRACE,	INVALID,    RSVD,	INPUT),
+	PIN(CLK_32K_OUT,	  SYS,	    BLINK,	RSVD1,	    RSVD2,	RSVD3,	    RSVD,	INPUT),
+	PIN(SYS_CLK_REQ,	  SYS,	    SYSCLK,	RSVD1,	    RSVD2,	RSVD3,	    RSVD,	INPUT),
+	PIN(CORE_PWR_REQ,	  SYS,	    RSVD,	RSVD,	    RSVD,	RSVD,	    RSVD,	INPUT),
+	PIN(CPU_PWR_REQ,	  SYS,	    RSVD,	RSVD,	    RSVD,	RSVD,	    RSVD,	INPUT),
+	PIN(PWR_INT_N,	  SYS,	    RSVD,	RSVD,	    RSVD,	RSVD,	    RSVD,	INPUT),
+	PIN(CLK_32K_IN,	  SYS,	    RSVD,	RSVD,	    RSVD,	RSVD,	    RSVD,	INPUT),
+	PIN(OWR,		  SYS,	    OWR,	RSVD,	    RSVD,	RSVD,	    RSVD,	INPUT),
+	PIN(DAP1_FS,	  AUDIO,    I2S0,	HDA,	    GMI,	SDMMC2,	    RSVD,	INPUT),
+	PIN(DAP1_DIN,	  AUDIO,    I2S0,	HDA,	    GMI,	SDMMC2,	    RSVD,	INPUT),
+	PIN(DAP1_DOUT,	  AUDIO,    I2S0,	HDA,	    GMI,	SDMMC2,	    RSVD,	INPUT),
+	PIN(DAP1_SCLK,	  AUDIO,    I2S0,	HDA,	    GMI,	SDMMC2,	    RSVD,	INPUT),
+	PIN(CLK1_REQ,	  AUDIO,    DAP,	HDA,	    RSVD2,	RSVD3,	    RSVD,	INPUT),
+	PIN(CLK1_OUT,	  AUDIO,    EXTPERIPH1,	RSVD1,	    RSVD2,	RSVD3,	    RSVD,	INPUT),
+	PIN(SPDIF_IN,	  AUDIO,    SPDIF,	HDA,	    INVALID,	DAPSDMMC2,  RSVD,	INPUT),
+	PIN(SPDIF_OUT,	  AUDIO,    SPDIF,	RSVD1,	    INVALID,	DAPSDMMC2,  RSVD,	INPUT),
+	PIN(DAP2_FS,	  AUDIO,    I2S1,	HDA,	    RSVD2,	GMI,	    RSVD,	INPUT),
+	PIN(DAP2_DIN,	  AUDIO,    I2S1,	HDA,	    RSVD2,	GMI,	    RSVD,	INPUT),
+	PIN(DAP2_DOUT,	  AUDIO,    I2S1,	HDA,	    RSVD2,	GMI,	    RSVD,	INPUT),
+	PIN(DAP2_SCLK,	  AUDIO,    I2S1,	HDA,	    RSVD2,	GMI,	    RSVD,	INPUT),
+	PIN(SPI2_MOSI,	  AUDIO,    SPI6,	SPI2,	    INVALID,	GMI,	    RSVD,	INPUT),
+	PIN(SPI2_MISO,	  AUDIO,    SPI6,	SPI2,	    INVALID,	GMI,	    RSVD,	INPUT),
+	PIN(SPI2_CS0_N,	  AUDIO,    SPI6,	SPI2,	    INVALID,	GMI,	    RSVD,	INPUT),
+	PIN(SPI2_SCK,	  AUDIO,    SPI6,	SPI2,	    INVALID,	GMI,	    RSVD,	INPUT),
+	PIN(SPI1_MOSI,	  AUDIO,    SPI2,	SPI1,	    INVALID,	GMI,	    RSVD,	INPUT),
+	PIN(SPI1_SCK,	  AUDIO,    SPI2,	SPI1,	    INVALID,	GMI,	    RSVD,	INPUT),
+	PIN(SPI1_CS0_N,	  AUDIO,    SPI2,	SPI1,	    INVALID,	GMI,	    RSVD,	INPUT),
+	PIN(SPI1_MISO,	  AUDIO,    INVALID,	SPI1,	    INVALID,	RSVD3,	    RSVD,	INPUT),
+	PIN(SPI2_CS1_N,	  AUDIO,    INVALID,	SPI2,	    INVALID,	INVALID,    RSVD,	INPUT),
+	PIN(SPI2_CS2_N,	  AUDIO,    INVALID,	SPI2,	    INVALID,	INVALID,    RSVD,	INPUT),
+	PIN(SDMMC3_CLK,	  SDMMC3,   UARTA,	PWM2,	    SDMMC3,	INVALID,    RSVD,	INPUT),
+	PIN(SDMMC3_CMD,	  SDMMC3,   UARTA,	PWM3,	    SDMMC3,	INVALID,    RSVD,	INPUT),
+	PIN(SDMMC3_DAT0,	  SDMMC3,   RSVD0,	RSVD1,	    SDMMC3,	INVALID,    RSVD,	INPUT),
+	PIN(SDMMC3_DAT1,	  SDMMC3,   RSVD0,	RSVD1,	    SDMMC3,	INVALID,    RSVD,	INPUT),
+	PIN(SDMMC3_DAT2,	  SDMMC3,   RSVD0,	PWM1,	    SDMMC3,	INVALID,    RSVD,	INPUT),
+	PIN(SDMMC3_DAT3,	  SDMMC3,   RSVD0,	PWM0,	    SDMMC3,	INVALID,    RSVD,	INPUT),
+	PIN(SDMMC3_DAT4,	  SDMMC3,   PWM1,	INVALID,    SDMMC3,	INVALID,    RSVD,	INPUT),
+	PIN(SDMMC3_DAT5,	  SDMMC3,   PWM0,	INVALID,    SDMMC3,	INVALID,    RSVD,	INPUT),
+	PIN(SDMMC3_DAT6,	  SDMMC3,   SPDIF,	INVALID,    SDMMC3,	INVALID,    RSVD,	INPUT),
+	PIN(SDMMC3_DAT7,	  SDMMC3,   SPDIF,	INVALID,    SDMMC3,	INVALID,    RSVD,	INPUT),
+	PIN(PEX_L0_PRSNT_N,  PEXCTL,   PCIE,	HDA,	    RSVD2,	RSVD3,	    RSVD,	INPUT),
+	PIN(PEX_L0_RST_N,	  PEXCTL,   PCIE,	HDA,	    RSVD2,	RSVD3,	    RSVD,	INPUT),
+	PIN(PEX_L0_CLKREQ_N, PEXCTL,   PCIE,	HDA,	    RSVD2,	RSVD3,	    RSVD,	INPUT),
+	PIN(PEX_WAKE_N,	  PEXCTL,   PCIE,	HDA,	    RSVD2,	RSVD3,	    RSVD,	INPUT),
+	PIN(PEX_L1_PRSNT_N,  PEXCTL,   PCIE,	HDA,	    RSVD2,	RSVD3,	    RSVD,	INPUT),
+	PIN(PEX_L1_RST_N,	  PEXCTL,   PCIE,	HDA,	    RSVD2,	RSVD3,	    RSVD,	INPUT),
+	PIN(PEX_L1_CLKREQ_N, PEXCTL,   PCIE,	HDA,	    RSVD2,	RSVD3,	    RSVD,	INPUT),
+	PIN(PEX_L2_PRSNT_N,  PEXCTL,   PCIE,	HDA,	    RSVD2,	RSVD3,	    RSVD,	INPUT),
+	PIN(PEX_L2_RST_N,	  PEXCTL,   PCIE,	HDA,	    RSVD2,	RSVD3,	    RSVD,	INPUT),
+	PIN(PEX_L2_CLKREQ_N, PEXCTL,   PCIE,	HDA,	    RSVD2,	RSVD3,	    RSVD,	INPUT),
+	PIN(HDMI_CEC, 	  SYS,      CEC,	RSVD1,	    RSVD2,	RSVD3,	    RSVD,	INPUT),
 };
 
 void pinmux_set_tristate(enum pmux_pingrp pin, int enable)
 {
 	struct pmux_tri_ctlr *pmt =
 			(struct pmux_tri_ctlr *)NV_PA_APB_MISC_BASE;
-	u32 *tri = &pmt->pmt_tri[TRISTATE_REG(pin)];
+	u32 *tri = &pmt->pmt_ctl[pin];
 	u32 reg;
+
+	/* TODO: error check on pin */
 
 	reg = readl(tri);
 	if (enable)
-		reg |= TRISTATE_MASK(pin);
+		reg |= TRISTATE_MASK;
 	else
-		reg &= ~TRISTATE_MASK(pin);
+		reg &= ~TRISTATE_MASK;
 	writel(reg, tri);
 }
 
@@ -507,15 +342,14 @@ void pinmux_set_pullupdown(enum pmux_pingrp pin, enum pmux_pull pupd)
 {
 	struct pmux_tri_ctlr *pmt =
 			(struct pmux_tri_ctlr *)NV_PA_APB_MISC_BASE;
-	enum pmux_pullid pull_id = tegra_soc_pingroups[pin].pull_id;
-	u32 *pull = &pmt->pmt_pull[PULL_REG(pull_id)];
-	u32 mask_bit;
+	u32 *pull = &pmt->pmt_ctl[pin];
 	u32 reg;
-	mask_bit = PULL_SHIFT(pull_id);
+
+	/* TODO: error check on pin and pupd, jz */
 
 	reg = readl(pull);
-	reg &= ~(0x3 << mask_bit);
-	reg |= pupd << mask_bit;
+	reg &= ~(0x3 << PUPD_SHIFT);
+	reg |= pupd << PUPD_SHIFT;
 	writel(reg, pull);
 }
 
@@ -523,18 +357,28 @@ void pinmux_set_func(enum pmux_pingrp pin, enum pmux_func func)
 {
 	struct pmux_tri_ctlr *pmt =
 			(struct pmux_tri_ctlr *)NV_PA_APB_MISC_BASE;
-	enum pmux_ctlid mux_id = tegra_soc_pingroups[pin].ctl_id;
-	u32 *muxctl = &pmt->pmt_ctl[MUXCTL_REG(mux_id)];
-	u32 mask_bit;
+	u32 *muxctl = &pmt->pmt_ctl[pin];
 	int i, mux = -1;
 	u32 reg;
 
+	/* TODO: error check on pin and func, jz */
+#if 0
 	assert(pmux_func_isvalid(func));
+#endif
 
 	/* Handle special values */
+	if (func == PMUX_FUNC_SAFE)
+		func = tegra_soc_pingroups[pin].func_safe;
+
+#if 0 /* t20 u-boot pinmux code */
 	if (func >= PMUX_FUNC_RSVD1) {
 		mux = (func - PMUX_FUNC_RSVD1) & 0x3;
 	} else {
+#else /* t30 kernel pinmux code */
+	if (func & PMUX_FUNC_RSVD) {
+		mux = func & 0x3;
+	} else {
+#endif
 		/* Search for the appropriate function */
 		for (i = 0; i < 4; i++) {
 			if (tegra_soc_pingroups[pin].funcs[i] == func) {
@@ -545,10 +389,9 @@ void pinmux_set_func(enum pmux_pingrp pin, enum pmux_func func)
 	}
 	assert(mux != -1);
 
-	mask_bit = MUXCTL_SHIFT(mux_id);
 	reg = readl(muxctl);
-	reg &= ~(0x3 << mask_bit);
-	reg |= mux << mask_bit;
+	reg &= ~(0x3 << MUXCTL_SHIFT);
+	reg |= mux << MUXCTL_SHIFT;
 	writel(reg, muxctl);
 }
 
