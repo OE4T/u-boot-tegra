@@ -19,12 +19,13 @@
  * MA 02111-1307 USA
  */
 
-#ifndef _TEGRA2_GPIO_H_
-#define _TEGRA2_GPIO_H_
+#ifndef _TEGRA_GPIO_H_
+#define _TEGRA_GPIO_H_
 
 /*
- * The Tegra 2x GPIO controller has 222 GPIOs arranged in 8 banks of 4 ports,
+ * The Tegra 2x GPIO controller has 224 GPIOs arranged in 7 banks of 4 ports,
  * each with 8 GPIOs.
+ * The Tegra 3x GPIO controller has 246 GPIOS in 8 banks of 4 ports.
  */
 #define TEGRA_GPIO_PORTS 4   /* The number of ports per bank */
 #define TEGRA_GPIO_BANKS 8   /* The number of banks */
@@ -39,6 +40,16 @@ struct gpio_ctlr_bank {
 	uint gpio_int_enable[TEGRA_GPIO_PORTS];
 	uint gpio_int_level[TEGRA_GPIO_PORTS];
 	uint gpio_int_clear[TEGRA_GPIO_PORTS];
+#if defined(CONFIG_TEGRA3)
+	uint gpio_masked_config[TEGRA_GPIO_PORTS];
+	uint gpio_masked_dir_out[TEGRA_GPIO_PORTS];
+	uint gpio_masked_out[TEGRA_GPIO_PORTS];
+	uint gpio_masked_in[TEGRA_GPIO_PORTS];
+	uint gpio_masked_int_status[TEGRA_GPIO_PORTS];
+	uint gpio_masked_int_enable[TEGRA_GPIO_PORTS];
+	uint gpio_masked_int_level[TEGRA_GPIO_PORTS];
+	uint gpio_masked_int_clear[TEGRA_GPIO_PORTS];
+#endif
 };
 
 struct gpio_ctlr {
@@ -274,9 +285,34 @@ struct gpio_ctlr {
 #define GPIO_PBB5   221
 #define GPIO_PBB6   222
 #define GPIO_PBB7   223
-
+#if defined(CONFIG_TEGRA3)
+#define GPIO_PCC0   224
+#define GPIO_PCC1   225
+#define GPIO_PCC2   226
+#define GPIO_PCC3   227
+#define GPIO_PCC4   228
+#define GPIO_PCC5   229
+#define GPIO_PCC6   230
+#define GPIO_PCC7   231
+#define GPIO_PDD0   232
+#define GPIO_PDD1   233
+#define GPIO_PDD2   234
+#define GPIO_PDD3   235
+#define GPIO_PDD4   236
+#define GPIO_PDD5   237
+#define GPIO_PDD6   238
+#define GPIO_PDD7   239
+#define GPIO_PEE0   240
+#define GPIO_PEE1   241
+#define GPIO_PEE2   242
+#define GPIO_PEE3   243
+#define GPIO_PEE4   244
+#define GPIO_PEE5   245
+#define GPIO_PEE6   246
+#define GPIO_PEE7   247
+#endif
 /*
- * Tegra2-specific GPIO API
+ * Tegra-specific GPIO API
  */
 
 int gpio_direction_input(int gp);
@@ -284,4 +320,4 @@ int gpio_direction_output(int gp, int value);
 int gpio_get_value(int gp);
 void gpio_set_value(int gp, int value);
 
-#endif	/* TEGRA2_GPIO_H_ */
+#endif	/* TEGRA_GPIO_H_ */
