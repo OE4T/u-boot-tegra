@@ -37,8 +37,8 @@ struct tegra_pingroup_desc {
 
 #define MUXCTL_SHIFT	0
 #define PUPD_SHIFT	2
-#define TRISTATE_SHITF	4
-#define TRISTATE_MASK	(1 << TRISTATE_SHITF)
+#define TRISTATE_SHIFT	4
+#define TRISTATE_MASK	(1 << TRISTATE_SHIFT)
 
 /* Convenient macro for defining pin group properties */
 #define PIN(pg_name, vdd, f0, f1, f2, f3, f_safe, iod)	\

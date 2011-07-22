@@ -558,9 +558,9 @@ struct pmux_tri_ctlr {
 	uint pmt_reserved4[4];		/* _TRI_STATE_REG_A/B/C/D in t20 */
 	uint pmt_cfg_ctl;		/* _CONFIG_CTL_0, offset 24        */
 
-	uint pmt_reserved[529];		/* ABP_MISC_PP_ reserved offs 28-868 */
+	uint pmt_reserved[528];		/* ABP_MISC_PP_ reserved offs 28-864 */
 
-	uint pmt_drive[PDRIVE_PINGROUP_COUNT];	/* pin drive groups regs  */
+	uint pmt_drive[PDRIVE_PINGROUP_COUNT];	/* pin drive grps offs 868 */
 	uint pmt_reserved5[PMUX_OFFSET];	/* offset 0x3000 */
 	uint pmt_ctl[PINGRP_COUNT];		/* pin mux/pupd/tristate regs  */
 };

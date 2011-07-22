@@ -110,8 +110,31 @@ static void clock_init_uart(int uart_ids)
  */
 static void pin_mux_uart(int uart_ids)
 {
-/* t30 bringup */
-#if !defined(CONFIG_TEGRA3)
+#if defined(CONFIG_TEGRA3)
+	/* cardhu */
+	if (uart_ids & UARTA) {
+		pinmux_set_func(PINGRP_ULPI_DATA0, PMUX_FUNC_UARTA);
+		pinmux_set_func(PINGRP_ULPI_DATA1, PMUX_FUNC_UARTA);
+
+		/* disable other pins assigned to UARTA */
+		pinmux_set_func(PINGRP_UART2_RTS_N, PMUX_FUNC_SPI4) ;
+		pinmux_set_func(PINGRP_UART2_CTS_N, PMUX_FUNC_SPI4) ;
+
+		/* disable tristate */
+		pinmux_tristate_disable(PINGRP_ULPI_DATA0);
+		pinmux_tristate_disable(PINGRP_ULPI_DATA1);
+	}
+
+	/* waluigi */
+	if (uart_ids & UARTD) {
+		pinmux_set_func(PINGRP_ULPI_CLK, PMUX_FUNC_UARTD);
+		pinmux_set_func(PINGRP_ULPI_DIR, PMUX_FUNC_UARTD);
+		pinmux_tristate_disable(PINGRP_ULPI_CLK);
+		pinmux_tristate_disable(PINGRP_ULPI_DIR);
+	}
+#endif
+
+#if defined(CONFIG_TEGRA2)
 	if (uart_ids & UARTA) {
 		pinmux_set_func(PINGRP_IRRX, PMUX_FUNC_UARTA);
 		pinmux_set_func(PINGRP_IRTX, PMUX_FUNC_UARTA);
@@ -126,7 +149,7 @@ static void pin_mux_uart(int uart_ids)
 		pinmux_set_func(PINGRP_GMC, PMUX_FUNC_UARTD);
 		pinmux_tristate_disable(PINGRP_GMC);
 	}
-#endif /* t30 bringup */
+#endif
 }
 
 #ifdef CONFIG_TEGRA2_MMC

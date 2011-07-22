@@ -1061,6 +1061,8 @@ NvU8 t30_UartReadByte(void)
 
 void NvBlUartInit_t30(void)
 {
+#if defined(TEGRA3_BOOT_TRACE)
+
 /* cardhu */
 #if defined(CONFIG_TEGRA3_CARDHU)
 	t30_UartA_Init();
@@ -1079,6 +1081,8 @@ void NvBlUartInit_t30(void)
 	t30_Uart_Init();
 
 	aos_CpuStallUsT30(20000);	// 20 ms
+
+#endif
 }
 
 #if defined(TEGRA3_BOOT_TRACE_MORE)
