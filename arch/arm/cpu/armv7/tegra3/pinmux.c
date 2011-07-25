@@ -35,14 +35,14 @@ struct tegra_pingroup_desc {
 	enum pmux_pin_io io;
 };
 
-#define MUXCTL_SHIFT	0
-#define PUPD_SHIFT	2
-#define TRISTATE_SHIFT	4
-#define TRISTATE_MASK	(1 << TRISTATE_SHIFT)
-#define IO_SHIFT	5
-#define OD_SHIFT	6
-#define LOCK_SHIFT	7
-#define IO_RESET_SHIFT	8
+#define PMUX_MUXCTL_SHIFT	0
+#define PMUX_PULL_SHIFT		2
+#define PMUX_TRISTATE_SHIFT	4
+#define PMUX_TRISTATE_MASK	(1 << PMUX_TRISTATE_SHIFT)
+#define PMUX_IO_SHIFT		5
+#define PMUX_OD_SHIFT		6
+#define PMUX_LOCK_SHIFT		7
+#define PMUX_IO_RESET_SHIFT	8
 
 /* Convenient macro for defining pin group properties */
 #define PIN(pg_name, vdd, f0, f1, f2, f3, f_safe, iod)	\
@@ -326,9 +326,9 @@ void pinmux_set_tristate(enum pmux_pingrp pin, int enable)
 
 	reg = readl(tri);
 	if (enable)
-		reg |= TRISTATE_MASK;
+		reg |= PMUX_TRISTATE_MASK;
 	else
-		reg &= ~TRISTATE_MASK;
+		reg &= ~PMUX_TRISTATE_MASK;
 	writel(reg, tri);
 }
 
@@ -349,11 +349,11 @@ void pinmux_set_pullupdown(enum pmux_pingrp pin, enum pmux_pull pupd)
 	u32 *pull = &pmt->pmt_ctl[pin];
 	u32 reg;
 
-	/* TODO: error check on pin and pupd, jz */
+	/* TODO: error check on pin and pupd */
 
 	reg = readl(pull);
-	reg &= ~(0x3 << PUPD_SHIFT);
-	reg |= pupd << PUPD_SHIFT;
+	reg &= ~(0x3 << PMUX_PULL_SHIFT);
+	reg |= (pupd << PMUX_PULL_SHIFT);
 	writel(reg, pull);
 }
 
@@ -365,7 +365,7 @@ void pinmux_set_func(enum pmux_pingrp pin, enum pmux_func func)
 	int i, mux = -1;
 	u32 reg;
 
-	/* TODO: error check on pin and func, jz */
+	/* TODO: error check on pin and func */
 #if 0
 	assert(pmux_func_isvalid(func));
 #endif
@@ -394,8 +394,8 @@ void pinmux_set_func(enum pmux_pingrp pin, enum pmux_func func)
 	assert(mux != -1);
 
 	reg = readl(muxctl);
-	reg &= ~(0x3 << MUXCTL_SHIFT);
-	reg |= mux << MUXCTL_SHIFT;
+	reg &= ~(0x3 << PMUX_MUXCTL_SHIFT);
+	reg |= (mux << PMUX_MUXCTL_SHIFT);
 	writel(reg, muxctl);
 }
 
@@ -406,12 +406,76 @@ void pinmux_set_io(enum pmux_pingrp pin, enum pmux_pin_io io)
 	u32 *pin_io = &pmt->pmt_ctl[pin];
 	u32 reg;
 
-	/* TODO: error check on pin and io, jz */
+	/* TODO: error check on pin and io */
 
 	reg = readl(pin_io);
-	reg &= ~(0x3 << IO_SHIFT);
-	reg |= (io & 0x1) << IO_SHIFT;
+	reg &= ~(0x1 << PMUX_IO_SHIFT);
+	reg |= (io & 0x1) << PMUX_IO_SHIFT;
 	writel(reg, pin_io);
+}
+
+static int pinmux_set_lock(enum pmux_pingrp pin, enum pmux_pin_lock lock)
+{
+	struct pmux_tri_ctlr *pmt =
+			(struct pmux_tri_ctlr *)NV_PA_APB_MISC_BASE;
+	u32 *pin_lock = &pmt->pmt_ctl[pin];
+	u32 reg;
+
+	/* TODO: error check on pin and lock */
+
+	if (lock == PMUX_PIN_LOCK_DEFAULT)
+		return 0;
+
+	reg = readl(pin_lock);
+	reg &= ~(0x1 << PMUX_LOCK_SHIFT);
+	if (lock == PMUX_PIN_LOCK_ENABLE)
+		reg |= (0x1 << PMUX_LOCK_SHIFT);
+	writel(reg, pin_lock);
+
+	return 0;
+}
+
+static int pinmux_set_od(enum pmux_pingrp pin, enum pmux_pin_od od)
+{
+	struct pmux_tri_ctlr *pmt =
+			(struct pmux_tri_ctlr *)NV_PA_APB_MISC_BASE;
+	u32 *pin_od = &pmt->pmt_ctl[pin];
+	u32 reg;
+
+	/* TODO: error check on pin and od */
+
+	if (od == PMUX_PIN_OD_DEFAULT)
+		return 0;
+
+	reg = readl(pin_od);
+	reg &= ~(0x1 << PMUX_OD_SHIFT);
+	if (od == PMUX_PIN_OD_ENABLE)
+		reg |= (0x1 << PMUX_OD_SHIFT);
+	writel(reg, pin_od);
+
+	return 0;
+}
+
+static int pinmux_set_ioreset(enum pmux_pingrp pin,
+				enum pmux_pin_ioreset ioreset)
+{
+	struct pmux_tri_ctlr *pmt =
+			(struct pmux_tri_ctlr *)NV_PA_APB_MISC_BASE;
+	u32 *pin_ioreset = &pmt->pmt_ctl[pin];
+	u32 reg;
+
+	/* TODO: error check on pin and ioreset */
+
+	if (ioreset == PMUX_PIN_IO_RESET_DEFAULT)
+		return 0;
+
+	reg = readl(pin_ioreset);
+	reg &= ~(0x1 << PMUX_IO_RESET_SHIFT);
+	if (ioreset == PMUX_PIN_IO_RESET_ENABLE)
+		reg |= (0x1 << PMUX_IO_RESET_SHIFT);
+	writel(reg, pin_ioreset);
+
+	return 0;
 }
 
 void pinmux_config_pingroup(struct pingroup_config *config)
@@ -422,6 +486,9 @@ void pinmux_config_pingroup(struct pingroup_config *config)
 	pinmux_set_pullupdown(pin, config->pull);
 	pinmux_set_tristate(pin, config->tristate);
 	pinmux_set_io(pin, config->io);
+	pinmux_set_lock(pin, config->lock);
+	pinmux_set_od(pin, config->od);
+	pinmux_set_ioreset(pin, config->ioreset);
 }
 
 void pinmux_config_table(struct pingroup_config *config, int len)
