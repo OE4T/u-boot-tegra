@@ -576,6 +576,10 @@ struct pingroup_config {
 	enum pmux_func func;		/* function to assign FUNC_...      */
 	enum pmux_pull pull;		/* pull up/down/normal PMUX_PULL_...*/
 	enum pmux_tristate tristate;	/* tristate or normal PMUX_TRI_...  */
+	enum pmux_pin_io io;		/* input or output PMUX_PIN_...  */
+	enum pmux_pin_lock lock;	/* lock enable/disable PMUX_PIN...  */
+	enum pmux_pin_od od;		/* open-drain or push-pull driver  */
+	enum pmux_pin_ioreset ioreset;	/* input/output reset PMUX_PIN...  */
 };
 
 /* Set a pin group to tristate */

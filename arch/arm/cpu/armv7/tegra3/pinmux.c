@@ -39,6 +39,10 @@ struct tegra_pingroup_desc {
 #define PUPD_SHIFT	2
 #define TRISTATE_SHIFT	4
 #define TRISTATE_MASK	(1 << TRISTATE_SHIFT)
+#define IO_SHIFT	5
+#define OD_SHIFT	6
+#define LOCK_SHIFT	7
+#define IO_RESET_SHIFT	8
 
 /* Convenient macro for defining pin group properties */
 #define PIN(pg_name, vdd, f0, f1, f2, f3, f_safe, iod)	\
@@ -395,6 +399,21 @@ void pinmux_set_func(enum pmux_pingrp pin, enum pmux_func func)
 	writel(reg, muxctl);
 }
 
+void pinmux_set_io(enum pmux_pingrp pin, enum pmux_pin_io io)
+{
+	struct pmux_tri_ctlr *pmt =
+			(struct pmux_tri_ctlr *)NV_PA_APB_MISC_BASE;
+	u32 *pin_io = &pmt->pmt_ctl[pin];
+	u32 reg;
+
+	/* TODO: error check on pin and io, jz */
+
+	reg = readl(pin_io);
+	reg &= ~(0x3 << IO_SHIFT);
+	reg |= (io & 0x1) << IO_SHIFT;
+	writel(reg, pin_io);
+}
+
 void pinmux_config_pingroup(struct pingroup_config *config)
 {
 	enum pmux_pingrp pin = config->pingroup;
@@ -402,6 +421,7 @@ void pinmux_config_pingroup(struct pingroup_config *config)
 	pinmux_set_func(pin, config->func);
 	pinmux_set_pullupdown(pin, config->pull);
 	pinmux_set_tristate(pin, config->tristate);
+	pinmux_set_io(pin, config->io);
 }
 
 void pinmux_config_table(struct pingroup_config *config, int len)

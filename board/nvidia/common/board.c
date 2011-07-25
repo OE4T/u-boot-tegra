@@ -110,7 +110,8 @@ static void clock_init_uart(int uart_ids)
  */
 static void pin_mux_uart(int uart_ids)
 {
-#if defined(CONFIG_TEGRA3)
+//#if defined(CONFIG_TEGRA3)
+#if 0
 	/* cardhu */
 	if (uart_ids & UARTA) {
 		pinmux_set_func(PINGRP_ULPI_DATA0, PMUX_FUNC_UARTA);
@@ -179,13 +180,27 @@ static void pin_mux_mmc(void)
 }
 #endif
 
+#if defined(CONFIG_TEGRA3)
+#include "../cardhu/pinmux-config-common.h"
+#endif
+
 /*
  * Routine: pinmux_init
  * Description: Do individual peripheral pinmux configs
  */
 static void pinmux_init(int uart_ids)
 {
+#if defined(CONFIG_TEGRA2)
 	pin_mux_uart(uart_ids);
+#endif
+
+#if defined(CONFIG_TEGRA3)
+	pinmux_config_table(tegra3_pinmux_common,
+				ARRAY_SIZE(tegra3_pinmux_common));
+
+	pinmux_config_table(unused_pins_lowpower,
+				ARRAY_SIZE(unused_pins_lowpower));
+#endif
 }
 
 /**
