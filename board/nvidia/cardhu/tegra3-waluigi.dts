@@ -15,11 +15,11 @@
 
 	aliases {
 		console = "/serial@70006300";
-                usb0 = "/usb@0xc5008000";
-                usb1 = "/usb@0xc5000000";
+                usb0 = "/usb@0x7d008000";
+                usb1 = "/usb@0x7d000000";
 
-		sdmmc0 = "/sdhci@c8000600";
-		sdmmc1 = "/sdhci@c8000400";
+		sdmmc0 = "/sdhci@78000600";
+		sdmmc1 = "/sdhci@78000000";
 	};
 
 	chosen {
@@ -36,17 +36,17 @@
 		clock-frequency = <216000000>;
 	};
 
-	sdhci@c8000400 {
+	sdhci@78000000 {
 		status = "ok";
 		width = <4>;	/* width of SDIO port */
 		removable = <1>;
 		/* Parameter 3 bit 0:1=output, 0=input; bit 1:1=high, 0=low */
 		cd-gpio = <&gpio 69 0>; /* card detect, gpio PI5 */
-		wp-gpio = <&gpio 57 0>; /* write protect, gpio PH1 */
-		power-gpio = <&gpio 70 3>; /* power enable, gpio PI6 */
+		wp-gpio = <&gpio 155 0>; /* write protect, gpio PT3 */
+		power-gpio = <&gpio 31 3>; /* power enable, gpio PD7 */
 	};
 
-	sdhci@c8000600 {
+	sdhci@78000600 {
 		status = "ok";
 		width = <4>;	/* width of SDIO port */
 		removable = <0>;
@@ -74,7 +74,7 @@
 			<&gpio 22 3>;	/* enable vdd pnl PC6 */
 	};
 
-	usb@0xc5000000 {
+	usb@0x7d000000 {
 		status = "ok";
 		host-mode = <1>;
 	};
@@ -84,7 +84,7 @@
 		status = "ok";
 	};
 
-	usb@0xc5008000 {
+	usb@0x7d008000 {
 		status = "ok";
 		utmi = <&usbphy>;
 		host-mode = <0>;

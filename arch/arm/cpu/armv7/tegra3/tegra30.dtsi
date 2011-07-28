@@ -73,33 +73,33 @@
 		status = "disabled";
 	};
 
-	sdhci@c8000000 {
+	sdhci@78000000 {
 		compatible = "nvidia,tegra250-sdhci";
-		reg = <0xc8000000 0x200>;
+		reg = <0x78000000 0x200>;
 		interrupts = <46>;
                 periph-id = <14>;	// PERIPH_ID_SDMMC1
 		status = "disabled";
 	};
 
-	sdhci@c8000200 {
+	sdhci@78000200 {
 		compatible = "nvidia,tegra250-sdhci";
-		reg = <0xc8000200 0x200>;
+		reg = <0x78000200 0x200>;
 		interrupts = <47>;
                 periph-id = <9>;	// PERIPH_ID_SDMMC2
 		status = "disabled";
 	};
 
-	sdhci@c8000400 {
+	sdhci@78000400 {
 		compatible = "nvidia,tegra250-sdhci";
-		reg = <0xc8000400 0x200>;
+		reg = <0x78000400 0x200>;
 		interrupts = <51>;
                 periph-id = <69>;	// PERIPH_ID_SDMMC3
 		status = "disabled";
 	};
 
-	sdhci@c8000600 {
+	sdhci@78000600 {
 		compatible = "nvidia,tegra250-sdhci";
-		reg = <0xc8000600 0x200>;
+		reg = <0x78000600 0x200>;
 		interrupts = <63>;
                 periph-id = <15>;	// PERIPH_ID_SDMMC4
 		status = "disabled";
@@ -201,16 +201,16 @@
 		params = <0x3c0 0x1a 0x00 0xc 0  0x04 0x66 0x09 0xfe  0xfde8 9>;
 	};
 
-	usb@0xc5008000 {
+	usb@0x7d008000 {
 		compatible = "nvidia,tegra250-usb";
-		reg = <0xc5008000 0x8000>;
+		reg = <0x7d008000 0x8000>;
                 periph-id = <59>;	// PERIPH_ID_USB3
 		status = "disabled";
 	};
 
-	usb@0xc5000000 {
+	usb@0x7d000000 {
 		compatible = "nvidia,tegra250-usb";
-		reg = <0xc5000000 0x8000>;
+		reg = <0x7d000000 0x8000>;
                 periph-id = <22>;	// PERIPH_ID_USBD
 		status = "disabled";
 	};
