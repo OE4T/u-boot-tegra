@@ -77,7 +77,6 @@
 
 #define CONFIG_SYS_BOARD_ODMDATA	0x80080105 /* 2GB, ??? */
 
-#define CONFIG_ENV_IS_NOWHERE
 #define CONFIG_ENV_SECT_SIZE    CONFIG_ENV_SIZE
 #define CONFIG_ENV_OFFSET       (SZ_4M - CONFIG_ENV_SECT_SIZE)
 
@@ -87,10 +86,8 @@
 #define CONFIG_TEGRA2_GPIO
 #define CONFIG_CMD_TEGRA2_GPIO_INFO
 
-#if 0			//tcw - disable most periphs for now
-
 /* SPI */
-#define CONFIG_TEGRA2_SPI
+#define CONFIG_TEGRA3_SPI
 #define CONFIG_SPI_FLASH
 #define CONFIG_SPI_FLASH_WINBOND
 #define CONFIG_SF_DEFAULT_MODE		SPI_MODE_0
@@ -98,6 +95,8 @@
 #define CONFIG_CMD_SF
 /* Environment in SPI */
 #define CONFIG_ENV_IS_IN_SPI_FLASH
+
+#if 0			//tcw - disable I2C, MMC, kbd, LCD for now
 
 /* I2C */
 #define CONFIG_TEGRA2_I2C

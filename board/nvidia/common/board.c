@@ -104,38 +104,13 @@ static void clock_init_uart(int uart_ids)
 		enable_uart(PERIPH_ID_UART4);
 }
 
+#if !defined(CONFIG_TEGRA3)
 /*
  * Routine: pin_mux_uart
  * Description: setup the pin muxes/tristate values for the UART(s)
  */
 static void pin_mux_uart(int uart_ids)
 {
-//#if defined(CONFIG_TEGRA3)
-#if 0
-	/* cardhu */
-	if (uart_ids & UARTA) {
-		pinmux_set_func(PINGRP_ULPI_DATA0, PMUX_FUNC_UARTA);
-		pinmux_set_func(PINGRP_ULPI_DATA1, PMUX_FUNC_UARTA);
-
-		/* disable other pins assigned to UARTA */
-		pinmux_set_func(PINGRP_UART2_RTS_N, PMUX_FUNC_SPI4) ;
-		pinmux_set_func(PINGRP_UART2_CTS_N, PMUX_FUNC_SPI4) ;
-
-		/* disable tristate */
-		pinmux_tristate_disable(PINGRP_ULPI_DATA0);
-		pinmux_tristate_disable(PINGRP_ULPI_DATA1);
-	}
-
-	/* waluigi */
-	if (uart_ids & UARTD) {
-		pinmux_set_func(PINGRP_ULPI_CLK, PMUX_FUNC_UARTD);
-		pinmux_set_func(PINGRP_ULPI_DIR, PMUX_FUNC_UARTD);
-		pinmux_tristate_disable(PINGRP_ULPI_CLK);
-		pinmux_tristate_disable(PINGRP_ULPI_DIR);
-	}
-#endif
-
-#if defined(CONFIG_TEGRA2)
 	if (uart_ids & UARTA) {
 		pinmux_set_func(PINGRP_IRRX, PMUX_FUNC_UARTA);
 		pinmux_set_func(PINGRP_IRTX, PMUX_FUNC_UARTA);
@@ -150,8 +125,8 @@ static void pin_mux_uart(int uart_ids)
 		pinmux_set_func(PINGRP_GMC, PMUX_FUNC_UARTD);
 		pinmux_tristate_disable(PINGRP_GMC);
 	}
-#endif
 }
+#endif
 
 #ifdef CONFIG_TEGRA2_MMC
 /*
@@ -160,6 +135,7 @@ static void pin_mux_uart(int uart_ids)
  */
 static void pin_mux_mmc(void)
 {
+#if !defined(CONFIG_TEGRA3)
 	/* SDMMC4: config 3, x8 on 2nd set of pins */
 	pinmux_set_func(PINGRP_ATB, PMUX_FUNC_SDIO4);
 	pinmux_set_func(PINGRP_GMA, PMUX_FUNC_SDIO4);
@@ -177,6 +153,7 @@ static void pin_mux_mmc(void)
 	pinmux_tristate_disable(PINGRP_SDC);
 	pinmux_tristate_disable(PINGRP_SDD);
 	pinmux_tristate_disable(PINGRP_SDB);
+#endif
 }
 #endif
 
@@ -215,21 +192,22 @@ static void gpio_init(const void *blob)
 #endif
 }
 
-/* t30 bringup */
-#if !defined(CONFIG_TEGRA3)
+
 /*
  * Routine: power_det_init
  * Description: turn off power detects
  */
 static void power_det_init(void)
 {
+/* t30 bringup */
+#if !defined(CONFIG_TEGRA3)
 	struct pmc_ctlr *const pmc = (struct pmc_ctlr *)NV_PA_PMC_BASE;
 
 	/* turn off power detects */
 	writel(0, &pmc->pmc_pwr_det_latch);
 	writel(0, &pmc->pmc_pwr_det);
+#endif	/* T30 bringup */
 }
-#endif /* t30 bringup */
 
 /*
  * Routine: board_init
@@ -248,15 +226,13 @@ int board_init(void)
 #endif
 	clock_init();
 
-/* t30 bringup */
-#if !defined(CONFIG_TEGRA3)
 #ifdef CONFIG_SPI_UART_SWITCH
 	gpio_config_uart(gd->blob);
 #endif
 #ifdef CONFIG_USB_EHCI_TEGRA
 	board_usb_init(gd->blob);
 #endif
-#ifdef CONFIG_TEGRA2_SPI
+#ifdef CONFIG_SPI_FLASH
 	spi_init();
 #endif
 	power_det_init();
@@ -272,7 +248,7 @@ int board_init(void)
 	/* prepare the WB code to LP0 location */
 	warmboot_prepare_code(TEGRA_LP0_ADDR, TEGRA_LP0_SIZE);
 #endif
-#endif /* t30 bringup */
+
 
 	return 0;
 }
