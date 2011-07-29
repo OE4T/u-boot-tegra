@@ -37,7 +37,6 @@
  * IRQ Stack: 00ebff7c
  * FIQ Stack: 00ebef7c
  */
-//#define DEBUG		//tcw
 
 #include <common.h>
 #include <command.h>
@@ -275,6 +274,7 @@ int arch_cpu_early_init(void);
 
 static void debug_dump(void * buff, size_t size)
 {
+#ifdef DEBUG
 	unsigned int *pt = (unsigned int *)buff;
 	int	count = ((int)size + 3) >> 2;
 	int i;
@@ -287,6 +287,7 @@ static void debug_dump(void * buff, size_t size)
 		debug ("%08x  ", *pt++);
 	}
 	debug ("\n");
+#endif
 }
 
 void board_init_f (ulong bootflag)
