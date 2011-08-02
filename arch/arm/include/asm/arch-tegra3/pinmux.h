@@ -517,7 +517,8 @@ enum pmux_pin_ioreset {
 	PMUX_PIN_IO_RESET_ENABLE,
 };
 /* return 1 if a pin_ioreset_is in range */
-#define pmux_pin_od_isvalid(od) (((ioreset) >= PMUX_PIN_IO_RESET_DEFAULT) && \
+#define pmux_pin_ioreset_isvalid(ioreset) \
+				(((ioreset) >= PMUX_PIN_IO_RESET_DEFAULT) && \
 				((ioreset) <= PMUX_PIN_IO_RESET_ENABLE))
 
 /* Available power domains used by pin groups */
