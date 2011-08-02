@@ -19,7 +19,7 @@
  * MA 02111-1307 USA
  */
 
-/* Tegra2 pin multiplexing functions */
+/* Tegra3 pin multiplexing functions */
 
 #include <asm/io.h>
 #include <asm/arch/bitfield.h>
@@ -322,7 +322,8 @@ void pinmux_set_tristate(enum pmux_pingrp pin, int enable)
 	u32 *tri = &pmt->pmt_ctl[pin];
 	u32 reg;
 
-	/* TODO: error check on pin */
+	/* Error check on pin */
+	assert(pmux_pingrp_isvalid(pin));
 
 	reg = readl(tri);
 	if (enable)
@@ -349,7 +350,9 @@ void pinmux_set_pullupdown(enum pmux_pingrp pin, enum pmux_pull pupd)
 	u32 *pull = &pmt->pmt_ctl[pin];
 	u32 reg;
 
-	/* TODO: error check on pin and pupd */
+	/* Error check on pin and pupd */
+	assert(pmux_pingrp_isvalid(pin));
+	assert(pmux_pin_pupd_isvalid(pupd));
 
 	reg = readl(pull);
 	reg &= ~(0x3 << PMUX_PULL_SHIFT);
@@ -365,24 +368,17 @@ void pinmux_set_func(enum pmux_pingrp pin, enum pmux_func func)
 	int i, mux = -1;
 	u32 reg;
 
-	/* TODO: error check on pin and func */
-#if 0
+	/* Error check on pin and func */
+	assert(pmux_pingrp_isvalid(pin));
 	assert(pmux_func_isvalid(func));
-#endif
 
 	/* Handle special values */
 	if (func == PMUX_FUNC_SAFE)
 		func = tegra_soc_pingroups[pin].func_safe;
 
-#if 0 /* t20 u-boot pinmux code */
-	if (func >= PMUX_FUNC_RSVD1) {
-		mux = (func - PMUX_FUNC_RSVD1) & 0x3;
-	} else {
-#else /* t30 kernel pinmux code */
 	if (func & PMUX_FUNC_RSVD) {
 		mux = func & 0x3;
 	} else {
-#endif
 		/* Search for the appropriate function */
 		for (i = 0; i < 4; i++) {
 			if (tegra_soc_pingroups[pin].funcs[i] == func) {
@@ -397,6 +393,7 @@ void pinmux_set_func(enum pmux_pingrp pin, enum pmux_func func)
 	reg &= ~(0x3 << PMUX_MUXCTL_SHIFT);
 	reg |= (mux << PMUX_MUXCTL_SHIFT);
 	writel(reg, muxctl);
+
 }
 
 void pinmux_set_io(enum pmux_pingrp pin, enum pmux_pin_io io)
@@ -406,7 +403,9 @@ void pinmux_set_io(enum pmux_pingrp pin, enum pmux_pin_io io)
 	u32 *pin_io = &pmt->pmt_ctl[pin];
 	u32 reg;
 
-	/* TODO: error check on pin and io */
+	/* Error check on pin and io */
+	assert(pmux_pingrp_isvalid(pin));
+	assert(pmux_pin_io_isvalid(io));
 
 	reg = readl(pin_io);
 	reg &= ~(0x1 << PMUX_IO_SHIFT);
@@ -421,7 +420,9 @@ static int pinmux_set_lock(enum pmux_pingrp pin, enum pmux_pin_lock lock)
 	u32 *pin_lock = &pmt->pmt_ctl[pin];
 	u32 reg;
 
-	/* TODO: error check on pin and lock */
+	/* Error check on pin and lock */
+	assert(pmux_pingrp_isvalid(pin));
+	assert(pmux_pin_lock_isvalid(lock));
 
 	if (lock == PMUX_PIN_LOCK_DEFAULT)
 		return 0;
@@ -442,7 +443,9 @@ static int pinmux_set_od(enum pmux_pingrp pin, enum pmux_pin_od od)
 	u32 *pin_od = &pmt->pmt_ctl[pin];
 	u32 reg;
 
-	/* TODO: error check on pin and od */
+	/* Error check on pin and od */
+	assert(pmux_pingrp_isvalid(pin));
+	assert(pmux_pin_od_isvalid(od));
 
 	if (od == PMUX_PIN_OD_DEFAULT)
 		return 0;
@@ -464,7 +467,9 @@ static int pinmux_set_ioreset(enum pmux_pingrp pin,
 	u32 *pin_ioreset = &pmt->pmt_ctl[pin];
 	u32 reg;
 
-	/* TODO: error check on pin and ioreset */
+	/* Error check on pin and ioreset */
+	assert(pmux_pingrp_isvalid(pin));
+	assert(pmux_pin_ioreset_isvalid(ioreset));
 
 	if (ioreset == PMUX_PIN_IO_RESET_DEFAULT)
 		return 0;

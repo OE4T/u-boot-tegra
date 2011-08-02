@@ -336,8 +336,6 @@ enum pdrive_pingrp {
  * purely a convenience. The translation is done through a table search.
  */
 enum pmux_func {
-/* defined in t30 kernel pinmux.h */
-/*************************************/
 	PMUX_FUNC_RSVD = 0x8000,
 	PMUX_FUNC_RSVD0 = PMUX_FUNC_RSVD,
 	PMUX_FUNC_RSVD1 = 0x8000,
@@ -346,7 +344,6 @@ enum pmux_func {
 	PMUX_FUNC_RSVD4 = 0x8003,
 	PMUX_FUNC_INVALID = 0x4000,
 	PMUX_FUNC_NONE = 0,
-/***********************************/
 
 	PMUX_FUNC_AHB_CLK,
 	PMUX_FUNC_APB_CLK,
@@ -460,23 +457,14 @@ enum pmux_func {
 
         PMUX_FUNC_MAX,
 
-#if 0 // defined in t20 pinmux.h, jz
-	/* These don't have a name, but can be used in the table */
-	PMUX_FUNC_RSVD1,
-	PMUX_FUNC_RSVD2,
-	PMUX_FUNC_RSVD3,
-	PMUX_FUNC_RSVD4,
-	PMUX_FUNC_RSVD,	/* Not valid and should not be used */
-
-	PMUX_FUNC_COUNT,
-
-	PMUX_FUNC_NONE = -1,
-#endif
 };
 
 /* return 1 if a pmux_func is in range */
-#define pmux_func_isvalid(func) ((func) >= 0 && (func) < PMUX_FUNC_COUNT && \
-		(func) != PMUX_FUNC_RSVD)
+#define pmux_func_isvalid(func) ((((func) > 0) && ((func) < PMUX_FUNC_MAX)) || \
+		(((func) >= PMUX_FUNC_RSVD0) && ((func) <= PMUX_FUNC_RSVD4)))
+
+/* return 1 if a pingrp is in range */
+#define pmux_pingrp_isvalid(pin) (((pin) >= 0) && ((pin) < PINGRP_COUNT))
 
 /* The pullup/pulldown state of a pin group */
 enum pmux_pull {
@@ -484,35 +472,53 @@ enum pmux_pull {
 	PMUX_PULL_DOWN,
 	PMUX_PULL_UP,
 };
+/* return 1 if a pin_pupd_is in range */
+#define pmux_pin_pupd_isvalid(pupd) (((pupd) >= PMUX_PULL_NORMAL) && \
+				((pupd) <= PMUX_PULL_UP))
 
 /* Defines whether a pin group is tristated or in normal operation */
 enum pmux_tristate {
 	PMUX_TRI_NORMAL = 0,
 	PMUX_TRI_TRISTATE = 1,
 };
+/* return 1 if a pin_tristate_is in range */
+#define pmux_pin_tristate_isvalid(tristate) (((tristate) >= PMUX_TRI_NORMAL) \
+				&& ((tristate) <= PMUX_TRI_TRISTATE))
 
 enum pmux_pin_io {
 	PMUX_PIN_OUTPUT = 0,
 	PMUX_PIN_INPUT = 1,
 };
+/* return 1 if a pin_io_is in range */
+#define pmux_pin_io_isvalid(io) (((io) >= PMUX_PIN_OUTPUT) && \
+				((io) <= PMUX_PIN_INPUT))
 
 enum pmux_pin_lock {
 	PMUX_PIN_LOCK_DEFAULT = 0,
 	PMUX_PIN_LOCK_DISABLE,
 	PMUX_PIN_LOCK_ENABLE,
 };
+/* return 1 if a pin_lock is in range */
+#define pmux_pin_lock_isvalid(lock) (((lock) >= PMUX_PIN_LOCK_DEFAULT) && \
+				((lock) <= PMUX_PIN_LOCK_ENABLE))
 
 enum pmux_pin_od {
 	PMUX_PIN_OD_DEFAULT = 0,
 	PMUX_PIN_OD_DISABLE,
 	PMUX_PIN_OD_ENABLE,
 };
+/* return 1 if a pin_od is in range */
+#define pmux_pin_od_isvalid(od) (((od) >= PMUX_PIN_OD_DEFAULT) && \
+				((lock) <= PMUX_PIN_OD_ENABLE))
 
 enum pmux_pin_ioreset {
 	PMUX_PIN_IO_RESET_DEFAULT = 0,
 	PMUX_PIN_IO_RESET_DISABLE,
 	PMUX_PIN_IO_RESET_ENABLE,
 };
+/* return 1 if a pin_ioreset_is in range */
+#define pmux_pin_od_isvalid(od) (((ioreset) >= PMUX_PIN_IO_RESET_DEFAULT) && \
+				((ioreset) <= PMUX_PIN_IO_RESET_ENABLE))
 
 /* Available power domains used by pin groups */
 enum pmux_vddio {
@@ -534,16 +540,6 @@ enum pmux_vddio {
 
 	PMUX_VDDIO_NONE
 };
-
-/* t30 bringup */
-#if 0
-enum {
-	PMUX_TRISTATE_REGS	= 4,
-	PMUX_MUX_REGS		= 7,
-	PMUX_PULL_REGS		= 5,
-};
-#endif
-
 
 /* t30 pin drive group and pin mux registers */
 #define PDRIVE_PINGROUP_OFFSET	(0x868 >> 2)
