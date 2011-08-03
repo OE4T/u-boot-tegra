@@ -96,7 +96,7 @@
 /* Environment in SPI */
 #define CONFIG_ENV_IS_IN_SPI_FLASH
 
-#if 0			//tcw - disable I2C, MMC, kbd, LCD for now
+#if 0			//tcw - disable I2C for now
 
 /* I2C */
 #define CONFIG_TEGRA2_I2C
@@ -112,6 +112,8 @@
 #define CONFIG_I2C2_PIN_MUX		2
 #define CONFIG_I2C3_PIN_MUX		1
 
+#endif				//tcw
+
 /* SD/MMC */
 #define CONFIG_MMC
 #define CONFIG_GENERIC_MMC
@@ -122,6 +124,8 @@
 #define CONFIG_EFI_PARTITION
 #define CONFIG_CMD_EXT2
 #define CONFIG_CMD_FAT
+//tcw#define CONFIG_MMC_TRACE
+#if 0			//tcw - disable kbd, LCD for now
 
 #define CONFIG_TEGRA2_KEYBOARD
 #define CONFIG_KEYBOARD

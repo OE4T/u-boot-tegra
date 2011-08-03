@@ -345,8 +345,9 @@ static int mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd,
 		}
 	}
 
+	debug("Last IntStatus was %08X\n", mask, &host->reg->norintsts);
 	if (i == retry) {
-		printf("%s: waiting for status update\n", __func__);
+		printf("%s: Timed out waiting for status update\n", __func__);
 		return TIMEOUT;
 	}
 
@@ -541,6 +542,7 @@ static void mmc_reset(struct mmc_host *host)
 	 * 0 = work
 	 */
 	writeb((1 << 0), &host->reg->swrst);
+	debug("Asserted SWRST\n");
 
 	host->clock = 0;
 
@@ -549,6 +551,7 @@ static void mmc_reset(struct mmc_host *host)
 
 	/* hw clears the bit when it's done */
 	while (readb(&host->reg->swrst) & (1 << 0)) {
+		debug("SWRST = 1\n");
 		if (timeout == 0) {
 			printf("%s: timeout error\n", __func__);
 			return;
@@ -556,6 +559,15 @@ static void mmc_reset(struct mmc_host *host)
 		timeout--;
 		udelay(1000);
 	}
+	debug("SWRST = 0\n");
+
+#if defined(CONFIG_TEGRA3)
+	//TCW Set SD_BUS_VOLTAGE and SD_BUS_POWER here for T30!
+	//TCW Find a way to do it based on fuses, device caps, etc.
+	writeb(0x0F, &host->reg->pwrcon);
+	debug("mmc_reset: power control = %02X, host control = %02X\n",
+		readb(&host->reg->pwrcon), readb(&host->reg->hostctl));
+#endif
 }
 
 static int mmc_core_init(struct mmc *mmc)
@@ -606,7 +618,7 @@ static int init_port(unsigned dev_index, enum periph_id mmc_id,
 	struct mmc_host *host;
 	struct mmc *mmc;
 
-	debug(" tegra2_mmc_init: index %d, bus width %d, removable %d\n",
+	debug(" init_port: index %d, bus width %d, removable %d\n",
 		dev_index, bus_width, removable);
 	if (dev_index >= MAX_HOSTS)
 		return -1;
@@ -630,6 +642,11 @@ static int init_port(unsigned dev_index, enum periph_id mmc_id,
 	mmc->send_cmd = mmc_send_cmd;
 	mmc->set_ios = mmc_set_ios;
 	mmc->init = mmc_core_init;
+
+	debug("&host = %08x, dev_index = %d\n",
+		&mmc_host[dev_index], dev_index);
+	debug("host->reg = %08x\n", reg);
+	debug("host->mmc_id = %d\n", mmc_id);
 
 	mmc->voltages = MMC_VDD_32_33 | MMC_VDD_33_34 | MMC_VDD_165_195;
 	if (bus_width == 8)
@@ -715,8 +732,8 @@ int tegra2_mmc_init(const void *blob)
 	/* Config pin as GPI for Card Detect (GPIO I5) */
 	gpio_direction_input(GPIO_PI5);
 
-	if (init_port(1, PERIPH_ID_SDMMC3,
-			(struct tegra2_mmc *)NV_PA_SDMMC3_BASE, 4, 1, GPIO_PI5,
+	if (init_port(1, PERIPH_ID_SDMMC1,
+			(struct tegra2_mmc *)NV_PA_SDMMC1_BASE, 4, 1, GPIO_PI5,
 			GPIO_PH1))
 		return -1;
 #endif
