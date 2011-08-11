@@ -38,8 +38,7 @@ COBJS-$(CONFIG_MXC_SPI) += mxc_spi.o
 COBJS-$(CONFIG_OMAP3_SPI) += omap3_spi.o
 COBJS-$(CONFIG_SOFT_SPI) += soft_spi.o
 COBJS-$(CONFIG_SH_SPI) += sh_spi.o
-COBJS-$(CONFIG_TEGRA2_SPI) += tegra2_spi.o
-COBJS-$(CONFIG_TEGRA3_SPI) += tegra_slink.o
+COBJS-$(CONFIG_TEGRA_SPI) += tegra_spi.o
 
 COBJS	:= $(COBJS-y)
 SRCS	:= $(COBJS:.o=.c)

@@ -22,18 +22,23 @@
  */
 
 #include <common.h>
+
 #include <malloc.h>
 #include <spi.h>
 #include <asm/clocks.h>
 #include <asm/io.h>
 #include <asm/arch/clock.h>
-#include "tegra_slink.h"
-
-/* NOTE: This is currently hard-coded for SPI4, aka SBC4 on T30 */
+#include <asm/arch/pinmux.h>
+#if !defined(CONFIG_USE_SLINK)
+#include <ns16550.h>		/* for NS16550_drain and NS16550_clear */
+#include <asm/arch/gpio.h>
+#include "uart-spi-fix.h"
+#endif
+#include "tegra_spi.h"
 
 int spi_cs_is_valid(unsigned int bus, unsigned int cs)
 {
-	/* Tegra SLINK - only 1 device ('bus/cs') */
+	/* Tegra SPI - only 1 device ('bus/cs') */
 	if (bus > 0 && cs != 0)
 		return 0;
 	else
@@ -57,8 +62,8 @@ struct spi_slave *spi_setup_slave(unsigned int bus, unsigned int cs,
 	slave->cs = cs;
 
 	/*
-	 * Currently, Tegra SLINK uses mode 0 & a 24MHz clock.
-	 * Use 'mode' and 'max_hz' to change that here, if needed.
+	 * Currently, Tegra SPI uses mode 0 & a 24MHz clock.
+	 * Use 'mode' and 'maz_hz' to change that here, if needed.
 	 */
 
 	return slave;
@@ -71,35 +76,53 @@ void spi_free_slave(struct spi_slave *slave)
 
 void spi_init(void)
 {
-	struct slink_tegra *spi = (struct slink_tegra *)TEGRA_SLINK4_BASE;
+	struct spi_tegra *spi = (struct spi_tegra *)TEGRA_SPI_BASE;
 	u32 reg;
-	debug("spi_init entry\n");
+	enum periph_id id;
 
-	/* Change SPI clock to 6MHz (for DEBUG!), PLLP_OUT0 source */
-	clock_start_periph_pll(PERIPH_ID_SBC4, CLOCK_ID_PERIPH, (CLK_24M/4));
+#if defined(CONFIG_USE_SLINK)
+	id = PERIPH_ID_SBC4;
+#else
+	id = PERIPH_ID_SPI1;
+#endif
+	/* Change SPI clock to 24MHz, PLLP_OUT0 source */
+	clock_start_periph_pll(id, CLOCK_ID_PERIPH, CLK_24M);
 
 	/* Clear stale status here */
-	reg = SLINK_STAT_RDY | SLINK_STAT_RXF_FLUSH | SLINK_STAT_TXF_FLUSH | \
-		SLINK_STAT_RXF_UNR | SLINK_STAT_TXF_OVF;
+	reg = SPI_STAT_RDY | SPI_STAT_RXF_FLUSH | SPI_STAT_TXF_FLUSH | \
+		SPI_STAT_RXF_UNR | SPI_STAT_TXF_OVF;
 	writel(reg, &spi->status);
 	debug("spi_init: STATUS = %08x\n", readl(&spi->status));
 
+#if defined(CONFIG_USE_SLINK)
 	/* Set master mode */
 	reg = readl(&spi->command);
-	writel(reg | SLINK_CMD_M_S, &spi->command);
+	writel(reg | SPI_CMD_M_S, &spi->command);
 	debug("spi_init: COMMAND = %08x\n", readl(&spi->command));
+#endif	/* SLINK */
 
 	/*
 	 * Use sw-controlled CS, so we can clock in data after ReadID, etc.
 	 */
 
 	reg = readl(&spi->command);
-	writel(reg | SLINK_CMD_CS_SOFT, &spi->command);
+	writel(reg | SPI_CMD_CS_SOFT, &spi->command);
 	debug("spi_init: COMMAND = %08x\n", readl(&spi->command));
 
+#if !defined(CONFIG_USE_SLINK)
 	/*
-	 * Pinmuxs on Tegra3 are done globally @ init, no need to do it here.
+	 * SPI pins on Tegra2 Seaboard are muxed - change pinmux last due
+	 * to UART issue.
 	 */
+	pinmux_set_func(PINGRP_GMD, PMUX_FUNC_SFLASH);
+	pinmux_tristate_disable(PINGRP_LSPI);
+
+	/*
+	 * NOTE:
+	 * Don't set PinMux bits 3:2 to SPI here or subsequent UART data
+	 * won't go out! It'll be correctly set in spi_uart_switch().
+	 */
+#endif	/* !SLINK */
 }
 
 int spi_claim_bus(struct spi_slave *slave)
@@ -109,55 +132,69 @@ int spi_claim_bus(struct spi_slave *slave)
 
 void spi_release_bus(struct spi_slave *slave)
 {
+	/*
+	 * We can't release UART_DISABLE and set pinmux to UART4 here since
+	 * some code (e,g, spi_flash_probe) uses printf() while the SPI
+	 * bus is held. That is arguably bad, but it has the advantage of
+	 * already being in the source tree.
+	 */
 }
 
 void spi_cs_activate(struct spi_slave *slave)
 {
-	struct slink_tegra *spi = (struct slink_tegra *)TEGRA_SLINK4_BASE;
+	struct spi_tegra *spi = (struct spi_tegra *)TEGRA_SPI_BASE;
 	u32 val;
 
+#if !defined(CONFIG_USE_SLINK)
+	spi_enable();
+#endif
 	/* CS is negated on Tegra, so drive a 1 to get a 0 */
 	val = readl(&spi->command);
-	writel(val | SLINK_CMD_CS_VAL, &spi->command);
+	writel(val | SPI_CMD_CS_VAL, &spi->command);
 }
 
 void spi_cs_deactivate(struct spi_slave *slave)
 {
-	struct slink_tegra *spi = (struct slink_tegra *)TEGRA_SLINK4_BASE;
+	struct spi_tegra *spi = (struct spi_tegra *)TEGRA_SPI_BASE;
 	u32 val;
 
 	/* CS is negated on Tegra, so drive a 0 to get a 1 */
 	val = readl(&spi->command);
-	writel(val & ~SLINK_CMD_CS_VAL, &spi->command);
+	writel(val & ~SPI_CMD_CS_VAL, &spi->command);
 }
 
 int spi_xfer(struct spi_slave *slave, unsigned int bitlen, const void *dout,
 		void *din, unsigned long flags)
 {
-	struct slink_tegra *spi = (struct slink_tegra *)TEGRA_SLINK4_BASE;
-	unsigned int status, status2;
+	struct spi_tegra *spi = (struct spi_tegra *)TEGRA_SPI_BASE;
+	unsigned int status;
 	int num_bytes = (bitlen + 7) / 8;
 	int i, ret, tm, bytes, bits, isRead = 0;
 	u32 reg, tmpdout, tmpdin = 0;
-	debug("spi_xfer entry\n");
+
+	debug("spi_xfer: slave %u:%u dout %08X din %08X bitlen %u\n",
+	      slave->bus, slave->cs, *(u8 *)dout, *(u8 *)din, bitlen);
 
 	ret = tm = 0;
 
 	status = readl(&spi->status);
 	writel(status, &spi->status);	/* Clear all SPI events via R/W */
-	status2 = readl(&spi->status2);
-	writel(status2, &spi->status2);	/* Clear all STATUS2 events via R/W */
-
 	debug("spi_xfer entry: STATUS = %08x\n", status);
-	debug("spi_xfer entry: STATUS2 = %08x\n", status2);
+#if defined(CONFIG_USE_SLINK)
+	reg = readl(&spi->status2);
+	writel(reg, &spi->status2);	/* Clear all STATUS2 events via R/W */
+	debug("spi_xfer entry: STATUS2 = %08x\n", reg);
 
 	debug("spi_xfer entry: COMMAND = %08x\n", readl(&spi->command));
-
 	reg = readl(&spi->command2);
-	writel((reg |= (SLINK_CMD2_TXEN | SLINK_CMD2_RXEN)), &spi->command2);
-	writel((reg |= SLINK_CMD2_SS_EN), &spi->command2);
+	writel((reg |= (SPI_CMD2_TXEN | SPI_CMD2_RXEN)), &spi->command2);
+	writel((reg |= SPI_CMD2_SS_EN), &spi->command2);
 	debug("spi_xfer: COMMAND2 = %08x\n", readl(&spi->command2));
-
+#else	/* SPIFLASH a la Tegra2 */
+	reg = readl(&spi->command);
+	writel((reg |= (SPI_CMD_TXEN | SPI_CMD_RXEN)), &spi->command);
+	debug("spi_xfer: COMMAND = %08x\n", readl(&spi->command));
+#endif
 	if (flags & SPI_XFER_BEGIN)
 		spi_cs_activate(slave);
 
@@ -171,7 +208,6 @@ int spi_xfer(struct spi_slave *slave, unsigned int bitlen, const void *dout,
 			for (i = 0; i < bytes; ++i)
 				tmpdout = (tmpdout << 8) | ((u8 *) dout)[i];
 		}
-		debug("spi_xfer: TmpDout = %08X\n", tmpdout);
 
 		num_bytes -= bytes;
 		if (dout)
@@ -179,50 +215,43 @@ int spi_xfer(struct spi_slave *slave, unsigned int bitlen, const void *dout,
 		bitlen -= bits;
 
 		reg = readl(&spi->command);
-		reg &= ~SLINK_CMD_BIT_LENGTH_MASK;
+		reg &= ~SPI_CMD_BIT_LENGTH_MASK;
 		reg |= (bits - 1);
 		writel(reg, &spi->command);
-		debug("spi_xfer: bitlength = %d, COMMAND = %08x\n",
-			bits, readl(&spi->command));
 
 		/* Write data to FIFO and initiate transfer */
 		writel(tmpdout, &spi->tx_fifo);
-		debug("spi_xfer: wrote TX FIFO, address %08X\n", &spi->tx_fifo);
-		writel((reg |= SLINK_CMD_GO), &spi->command);
-		debug("spi_xfer: Sent GO command\n");
+		writel((reg |= SPI_CMD_GO), &spi->command);
 
 		/*
 		 * Wait for SPI transmit FIFO to empty, or to time out.
 		 * The RX FIFO status will be read and cleared last
 		 */
-		for (tm = 0, isRead = 0; tm < SLINK_TIMEOUT; ++tm) {
+		for (tm = 0, isRead = 0; tm < SPI_TIMEOUT; ++tm) {
 			status = readl(&spi->status);
 
-			while (status & SLINK_STAT_BSY) {
+			while (status & SPI_STAT_BSY) {
 				status = readl(&spi->status);
-				debug("spi_xfer: BUSY: %08x\n", status);
 
 				tm++;
-				if (tm > SLINK_TIMEOUT) {
+				if (tm > SPI_TIMEOUT) {
 					tm = 0;
 					break;
 				}
 			}
 
-			while (!(status & SLINK_STAT_RDY)) {
+			while (!(status & SPI_STAT_RDY)) {
 				status = readl(&spi->status);
-				debug("spi_xfer: !READY: %08x\n", status);
 
 				tm++;
-				if (tm > SLINK_TIMEOUT) {
+				if (tm > SPI_TIMEOUT) {
 					tm = 0;
 					break;
 				}
 			}
 
-			if (!(status & SLINK_STAT_RXF_EMPTY)) {
+			if (!(status & SPI_STAT_RXF_EMPTY)) {
 				tmpdin = readl(&spi->rx_fifo);
-				debug("spi_xfer: RXFIFO data: %08X\n", tmpdin);
 				isRead = 1;
 				status = readl(&spi->status);
 
@@ -239,11 +268,11 @@ int spi_xfer(struct spi_slave *slave, unsigned int bitlen, const void *dout,
 
 			/* We can exit when we've had both RX and TX activity */
 			status = readl(&spi->status);
-			if (isRead && (status & SLINK_STAT_TXF_EMPTY))
+			if (isRead && (status & SPI_STAT_TXF_EMPTY))
 				break;
 		}
 
-		if (tm >= SLINK_TIMEOUT)
+		if (tm >= SPI_TIMEOUT)
 			ret = -1;
 
 		status = readl(&spi->status);

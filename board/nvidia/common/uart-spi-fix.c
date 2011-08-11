@@ -30,7 +30,6 @@
 #include <asm/arch/gpio.h>
 #include <asm/arch/pinmux.h>
 #include <asm/arch/tegra.h>
-#include <asm/arch/tegra_spi.h>
 #include "uart-spi-fix.h"
 
 
