@@ -36,6 +36,7 @@ static unsigned int i2c_bus_num;
 struct i2c_bus {
 	int			id;
 	enum periph_id		periph_id;
+	int			use_dvc_ctlr;
 	int			pinmux_config;
 	struct i2c_control	*control;
 	struct i2c_ctlr		*regs;
@@ -43,6 +44,7 @@ struct i2c_bus {
 
 struct i2c_bus i2c_controllers[CONFIG_SYS_MAX_I2C_BUS];
 
+#if defined(CONFIG_TEGRA2)
 static void i2c_pin_mux_select(struct i2c_bus *i2c_bus, int pinmux_config)
 {
 	switch (i2c_bus->periph_id) {
@@ -125,6 +127,7 @@ static void i2c_pin_mux_tristate(struct i2c_bus *i2c_bus, int pinmux_config,
 
 	pinmux_set_tristate(pin, tristate);
 }
+#endif
 
 static void set_packet_mode(struct i2c_bus *i2c_bus)
 {
@@ -133,7 +136,7 @@ static void set_packet_mode(struct i2c_bus *i2c_bus)
 	config = bf_pack(I2C_CNFG_NEW_MASTER_FSM, 1) |
 		 bf_pack(I2C_CNFG_PACKET_MODE, 1);
 
-	if (i2c_bus->periph_id == PERIPH_ID_DVC_I2C) {
+	if (i2c_bus->use_dvc_ctlr) {
 		struct dvc_ctlr *dvc = (struct dvc_ctlr *)i2c_bus->regs;
 
 		writel(config, &dvc->cnfg);
@@ -166,14 +169,16 @@ static void i2c_init_controller(struct i2c_bus *i2c_bus, u32 clock_khz)
 	i2c_reset_controller(i2c_bus);
 
 	/* Configure I2C controller. */
-	if (i2c_bus->periph_id == PERIPH_ID_DVC_I2C) {	/* only for DVC I2C */
+	if (i2c_bus->use_dvc_ctlr) {	/* only for DVC I2C CONTROLLER */
 		struct dvc_ctlr *dvc = (struct dvc_ctlr *)i2c_bus->regs;
 
 		bf_writel(DVC_CTRL_REG3_I2C_HW_SW_PROG, 1, &dvc->ctrl3);
 	}
 
+#if defined(CONFIG_TEGRA2)
 	i2c_pin_mux_select(i2c_bus, i2c_bus->pinmux_config);
 	i2c_pin_mux_tristate(i2c_bus, i2c_bus->pinmux_config, 0);
+#endif
 }
 
 static void send_packet_headers(
@@ -214,6 +219,7 @@ static int wait_for_tx_fifo_empty(struct i2c_control *control)
 
 	while (timeout_us >= 0) {
 		count = bf_readl(TX_FIFO_EMPTY_CNT, &control->fifo_status);
+
 		if (count == I2C_FIFO_DEPTH)
 			return 1;
 		udelay(10);
@@ -246,10 +252,13 @@ static int wait_for_transfer_complete(struct i2c_control *control)
 
 	while (timeout_us >= 0) {
 		int_status = readl(&control->int_status);
+
 		if (bf_unpack(I2C_INT_NO_ACK, int_status))
 			return -int_status;
+
 		if (bf_unpack(I2C_INT_ARBITRATION_LOST, int_status))
 			return -int_status;
+
 		if (bf_unpack(I2C_INT_PACKET_XFER_COMPLETE, int_status))
 			return 0;
 
@@ -377,16 +386,30 @@ void i2c_init_board(void)
 		PERIPH_ID_DVC_I2C,
 		PERIPH_ID_I2C1,
 		PERIPH_ID_I2C2,
-		PERIPH_ID_I2C3
+		PERIPH_ID_I2C3,
+#if defined(CONFIG_TEGRA3)
+/* TODO:	PERIPH_ID_I2C4, */
+#endif
 	};
 
 	u32 *i2c_bus_base[CONFIG_SYS_MAX_I2C_BUS] = {
+#if defined(CONFIG_TEGRA2)
 		(u32 *)NV_PA_DVC_BASE,
 		(u32 *)NV_PA_I2C1_BASE,
 		(u32 *)NV_PA_I2C2_BASE,
-		(u32 *)NV_PA_I2C3_BASE
+		(u32 *)NV_PA_I2C3_BASE,
+#endif
+
+#if defined(CONFIG_TEGRA3)
+		(u32 *)NV_PA_I2C5_BASE,
+		(u32 *)NV_PA_I2C1_BASE,
+		(u32 *)NV_PA_I2C2_BASE,
+		(u32 *)NV_PA_I2C3_BASE,
+/* TODO:	(u32 *)NV_PA_I2C4_BASE, */
+#endif
 	};
 
+#if defined(CONFIG_TEGRA2)
 	/* pinmux_configs based on the pinmux configuration */
 	int pinmux_configs[CONFIG_SYS_MAX_I2C_BUS] = {
 		CONFIG_I2CP_PIN_MUX,	/* for I2CP (DVC I2C) */
@@ -394,19 +417,24 @@ void i2c_init_board(void)
 		CONFIG_I2C2_PIN_MUX,	/* for I2C2 */
 		CONFIG_I2C3_PIN_MUX	/* for I2C3 */
 	};
+#endif
 
 	/* build the i2c_controllers[] for each controller */
 	for (i = 0; i < CONFIG_SYS_MAX_I2C_BUS; ++i) {
 		i2c_bus = &i2c_controllers[i];
 		i2c_bus->id = i;
 		i2c_bus->periph_id = i2c_periph_ids[i];
-		i2c_bus->pinmux_config = pinmux_configs[i];
 		i2c_bus->regs = (struct i2c_ctlr *)i2c_bus_base[i];
 
-		if (i2c_bus->periph_id == PERIPH_ID_DVC_I2C)
+#if defined(CONFIG_TEGRA2)
+		i2c_bus->pinmux_config = pinmux_configs[i];
+
+		if (i2c_bus->periph_id == PERIPH_ID_DVC_I2C) {
 			i2c_bus->control =
 				&((struct dvc_ctlr *)i2c_bus->regs)->control;
-		else
+			i2c_bus->use_dvc_ctlr = 1;
+		} else
+#endif
 			i2c_bus->control = &i2c_bus->regs->control;
 
 		i2c_init_controller(i2c_bus, I2CSPEED_KHZ);
@@ -559,9 +587,11 @@ int i2c_set_bus_num(unsigned int bus)
 {
 	if (bus >= CONFIG_SYS_MAX_I2C_BUS)
 		return -1;
+
 	i2c_bus_num = bus;
 
 	return 0;
 }
 #endif
+
 

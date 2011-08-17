@@ -99,8 +99,6 @@
 /* Environment in SPI */
 #define CONFIG_ENV_IS_IN_SPI_FLASH
 
-#if 0			//tcw - disable I2C for now
-
 /* I2C */
 #define CONFIG_TEGRA2_I2C
 #define CONFIG_SYS_I2C_INIT_BOARD
@@ -108,14 +106,6 @@
 #define CONFIG_SYS_MAX_I2C_BUS		4
 #define CONFIG_SYS_I2C_SPEED		100000
 #define CONFIG_CMD_I2C
-
-/* pin-mux settings for Seaboard - change for Cardhu */
-#define CONFIG_I2CP_PIN_MUX		1
-#define CONFIG_I2C1_PIN_MUX		1
-#define CONFIG_I2C2_PIN_MUX		2
-#define CONFIG_I2C3_PIN_MUX		1
-
-#endif				//tcw
 
 /* SD/MMC */
 #define CONFIG_MMC
