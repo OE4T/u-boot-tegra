@@ -79,7 +79,6 @@
 
 #define CONFIG_SYS_BOARD_ODMDATA	0x80080105 /* 2GB, ??? */
 
-#define CONFIG_ENV_IS_NOWHERE
 #define CONFIG_ENV_SECT_SIZE    CONFIG_ENV_SIZE
 #define CONFIG_ENV_OFFSET       (SZ_4M - CONFIG_ENV_SECT_SIZE)
 
@@ -89,10 +88,9 @@
 #define CONFIG_TEGRA2_GPIO
 #define CONFIG_CMD_TEGRA2_GPIO_INFO
 
-#if 0			//tcw - disable most periphs for now
-
 /* SPI */
-#define CONFIG_TEGRA2_SPI
+#define CONFIG_TEGRA_SPI
+#define CONFIG_USE_SLINK	/* Cardhu SPI chip is on SBC4 */
 #define CONFIG_SPI_FLASH
 #define CONFIG_SPI_FLASH_WINBOND
 #define CONFIG_SF_DEFAULT_MODE		SPI_MODE_0
@@ -100,6 +98,8 @@
 #define CONFIG_CMD_SF
 /* Environment in SPI */
 #define CONFIG_ENV_IS_IN_SPI_FLASH
+
+#if 0			//tcw - disable I2C for now
 
 /* I2C */
 #define CONFIG_TEGRA2_I2C
@@ -115,6 +115,8 @@
 #define CONFIG_I2C2_PIN_MUX		2
 #define CONFIG_I2C3_PIN_MUX		1
 
+#endif				//tcw
+
 /* SD/MMC */
 #define CONFIG_MMC
 #define CONFIG_GENERIC_MMC
@@ -125,6 +127,9 @@
 #define CONFIG_EFI_PARTITION
 #define CONFIG_CMD_EXT2
 #define CONFIG_CMD_FAT
+#define CONFIG_MMC_TRACE
+
+#if 0			//tcw - disable kbd, LCD for now
 
 #define CONFIG_TEGRA2_KEYBOARD
 #define CONFIG_KEYBOARD
