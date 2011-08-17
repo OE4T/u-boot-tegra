@@ -116,6 +116,7 @@ static void set_host_mode(struct usb_ctlr *usbctlr)
 	if (bf_readl(VBUS_VLD_STS, &usbctlr->phy_vbus_sensors))
 		return;
 
+#if !defined(CONFIG_TEGRA3)
 	/*
 	 * If not driving, we set GPIO USB1_VBus_En. Seaboard platform uses
 	 * PAD SLXK (GPIO D.00) as USB1_VBus_En Config as GPIO
@@ -124,6 +125,9 @@ static void set_host_mode(struct usb_ctlr *usbctlr)
 
 	/* Z_SLXK = 0, normal, not tristate */
 	pinmux_tristate_disable(PINGRP_SLXK);
+#else
+	/* TBD - do T30/Cardhu USB GPIOs and muxes here */
+#endif
 }
 
 /* Put our ports into host mode */
