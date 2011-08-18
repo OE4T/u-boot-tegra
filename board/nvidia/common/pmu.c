@@ -73,7 +73,6 @@ static int vdd_init_nominal_table(void)
 	return 0;
 }
 
-#define MAX_I2C_RETRY	3
 static int pmu_read(int reg)
 {
 	int	i;

@@ -43,6 +43,7 @@
 #include "board.h"
 
 #ifdef CONFIG_TEGRA2_MMC
+#include <asm/arch/pmu.h>
 #include <mmc.h>
 #endif
 #ifdef CONFIG_OF_CONTROL
@@ -192,6 +193,35 @@ static void gpio_init(const void *blob)
 #endif
 }
 
+/*
+ * Do I2C/PMU writes to bring up SD card bus power
+ *
+ */
+static void board_sdmmc_voltage_init(void)
+{
+#ifdef CONFIG_TEGRA2_MMC
+	uchar reg, data_buffer[1];
+	int i;
+
+	i2c_set_bus_num(0);		/* PMU is on bus 0 */
+
+	data_buffer[0] = 0x65;
+	reg = 0x32;
+
+	for (i = 0; i < MAX_I2C_RETRY; ++i) {
+		if (i2c_write(PMU_I2C_ADDRESS, reg, 1, data_buffer, 1))
+			udelay(100);
+	}
+
+	data_buffer[0] = 0x09;
+	reg = 0x67;
+
+	for (i = 0; i < MAX_I2C_RETRY; ++i) {
+		if (i2c_write(PMU_I2C_ADDRESS, reg, 1, data_buffer, 1))
+			udelay(100);
+	}
+#endif
+}
 
 /*
  * Routine: power_det_init
@@ -242,6 +272,8 @@ int board_init(void)
 	pmu_set_nominal();
 
 	board_emc_init();
+
+	board_sdmmc_voltage_init();
 #endif
 
 #ifdef CONFIG_TEGRA2_LP0

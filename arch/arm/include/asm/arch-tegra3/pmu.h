@@ -39,7 +39,7 @@
 #define stp(x, y) ((x < y) ? VDD_TRANSITION_STEP : -VDD_TRANSITION_STEP)
 
 #define DVC_I2C_BUS_NUMBER	0
-#define PMU_I2C_ADDRESS		0x34
+#define PMU_I2C_ADDRESS		0x2D
 
 #define PMU_CORE_VOLTAGE_REG	0x26
 #define PMU_CPU_VOLTAGE_REG	0x23
@@ -59,6 +59,8 @@
 #define VDD_RELATION		0x02	/*  50mv */
 #define VDD_TRANSITION_STEP	0x06	/* 150mv */
 #define VDD_TRANSITION_RATE	0x07
+
+#define MAX_I2C_RETRY	3
 
 int tegra2_pmu_is_voltage_nominal(void);
 
