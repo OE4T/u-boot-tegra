@@ -29,6 +29,8 @@
 #define TEGRA_GPIO_PORTS 4   /* The number of ports per bank */
 #define TEGRA_GPIO_BANKS 8   /* The number of banks */
 
+#define CONFIG_SYS_MAX_GPIO_PORT        27      /* GPIO_PBBx */
+
 /* GPIO Controller registers for a single bank */
 struct gpio_ctlr_bank {
 	uint gpio_config[TEGRA_GPIO_PORTS];

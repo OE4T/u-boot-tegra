@@ -171,11 +171,11 @@ static int gpio_info(int gp)
 
 	port = GPIO_PORT8(gp);		/* 8-bit port # */
 
-	printf("Tegra2 GPIO port %d:\n\n", port);
+	printf("Tegra GPIO port %d:\n\n", port);
 	printf("gpio bits: 76543210\n");
 	printf("-------------------\n");
 
-	if (port < 0 || port > 27)
+	if (port < 0 || port > CONFIG_SYS_MAX_GPIO_PORT)
 		return -1;
 
 	printf("GPIO_CNF:  ");
