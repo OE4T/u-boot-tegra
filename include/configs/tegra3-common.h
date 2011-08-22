@@ -308,8 +308,14 @@
 #define PHYS_SDRAM_1		NV_PA_SDRAM_BASE
 #define PHYS_SDRAM_1_SIZE	SZ_1GB
 
-/* Below should be (NV_PA_SDRAM_BASE + 0x00E08000), but ld error out */
-#define CONFIG_SYS_TEXT_BASE	0x80108000
+
+/*
+ * NOTE: changed to E08000 from 108000, so you need to use a modified
+ *  nvflash/bootloader.bin combo to flash a U-Boot binary,from 22 Aug on.
+ */
+
+/* Below should be (NV_PA_SDRAM_BASE + 0x00E08000), but ld errors out */
+#define CONFIG_SYS_TEXT_BASE	0x80E08000
 #define CONFIG_SYS_SDRAM_BASE	PHYS_SDRAM_1
 
 #define CONFIG_SYS_INIT_RAM_ADDR	CONFIG_STACKBASE
