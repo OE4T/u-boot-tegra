@@ -199,7 +199,7 @@ static void gpio_init(const void *blob)
  */
 static void board_sdmmc_voltage_init(void)
 {
-#ifdef CONFIG_TEGRA2_MMC
+#if defined(CONFIG_TEGRA3) && defined(CONFIG_TEGRA2_MMC)
 	uchar reg, data_buffer[1];
 	int i;
 
