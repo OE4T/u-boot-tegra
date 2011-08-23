@@ -4,13 +4,13 @@
 /include/ "../../../arch/arm/cpu/armv7/tegra3/tegra30.dtsi"
 
 / {
-	model = "NVIDIA Cardhu";
-	compatible = "nvidia,seaboard", "nvidia,tegra250";
+	model = "Google Waluigi";
+	compatible = "google,waluigi", "nvidia,tegra30";
 
 	config {
 		silent_console = <0>;
 		odmdata = <0x300d8011>;
-		hwid = "ARM CARDHU TEST 6666";
+		hwid = "ARM WALUIGI TEST 6666";
 	};
 
 	aliases {
