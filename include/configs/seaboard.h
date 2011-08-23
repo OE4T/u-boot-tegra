@@ -100,6 +100,8 @@
 #define CONFIG_I2C2_PIN_MUX		2
 #define CONFIG_I2C3_PIN_MUX		1
 
+#define CONFIG_ENABLE_EMC_INIT		/* voltage control over I2C */
+
 /* SD/MMC */
 #define CONFIG_MMC
 #define CONFIG_GENERIC_MMC
