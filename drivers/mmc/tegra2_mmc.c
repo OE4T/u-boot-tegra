@@ -166,7 +166,7 @@ static int mmc_prepare_data(struct mmc_host *host, struct mmc_data *data)
 	 */
 	if (((uint)data->dest) & (CACHE_LINE_SIZE - 1))
 	{
-		printf("%s: Unaligned data, using slower bounce buffer\n",
+		debug("%s: Unaligned data, using slower bounce buffer\n",
 		       __func__);
 
 		if (mmc_setup_bounce_data(host, data) < 0)
@@ -345,7 +345,7 @@ static int mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd,
 		}
 	}
 
-	debug("Last IntStatus was %08X\n", mask, &host->reg->norintsts);
+	debug("Last IntStatus was %08X\n", mask);
 	if (i == retry) {
 		printf("%s: Timed out waiting for status update\n", __func__);
 		return TIMEOUT;
