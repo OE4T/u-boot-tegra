@@ -28,7 +28,7 @@
 #include <asm/sizes.h>
 
 /* High-level configuration options */
-#define TEGRA2_SYSMEM		"mem=384M@0M nvmem=128M@384M mem=512M@512M"
+#define TEGRA3_SYSMEM		"mem=1023M@2048M vmalloc=128M"
 #define V_PROMPT		"Tegra3 # "
 
 #if 0			//tcw - disable LP0 support for bringup
@@ -82,7 +82,7 @@
 #define CONFIG_ENV_SECT_SIZE    CONFIG_ENV_SIZE
 #define CONFIG_ENV_OFFSET       (SZ_4M - CONFIG_ENV_SECT_SIZE)
 
-#define TEGRA2_MMC_DEFAULT_DEVICE	"0"
+#define TEGRA_MMC_DEFAULT_DEVICE	"1"	/* TCW SD-card for now */
 
 /* GPIO */
 #define CONFIG_TEGRA2_GPIO
@@ -117,7 +117,6 @@
 #define CONFIG_EFI_PARTITION
 #define CONFIG_CMD_EXT2
 #define CONFIG_CMD_FAT
-#define CONFIG_MMC_TRACE
 
 #if 0			//tcw - disable kbd, LCD for now
 

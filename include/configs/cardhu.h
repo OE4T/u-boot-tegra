@@ -28,7 +28,7 @@
 #include <asm/sizes.h>
 
 /* High-level configuration options */
-#define TEGRA2_SYSMEM		"mem=384M@0M nvmem=128M@384M mem=512M@512M"
+#define TEGRA3_SYSMEM		"mem=1023M@2048M vmalloc=128M"
 #define V_PROMPT		"Tegra3 # "
 
 #if 0			//tcw - disable LP0 support for bringup
@@ -38,9 +38,10 @@
 #define CONFIG_TEGRA3_CARDHU
 #define CONFIG_SYS_SKIP_ARM_RELOCATION
 
-#define z_pause()       \
-{       \
-        while (1); \
+#define z_pause()	\
+{			\
+	while (1)	\
+		;	\
 }
 	
 #include "tegra3-common.h"
@@ -80,7 +81,7 @@
 #define CONFIG_ENV_SECT_SIZE    CONFIG_ENV_SIZE
 #define CONFIG_ENV_OFFSET       (SZ_4M - CONFIG_ENV_SECT_SIZE)
 
-#define TEGRA2_MMC_DEFAULT_DEVICE	"0"
+#define TEGRA_MMC_DEFAULT_DEVICE	"1"	/* TCW SD-card for now */
 
 /* GPIO */
 #define CONFIG_TEGRA2_GPIO
@@ -116,6 +117,7 @@
 #define CONFIG_CMD_EXT2
 #define CONFIG_CMD_FAT
 //tcw#define CONFIG_MMC_TRACE
+
 #if 0			//tcw - disable kbd, LCD for now
 
 #define CONFIG_TEGRA2_KEYBOARD
@@ -186,7 +188,7 @@
 #define CONFIG_VIDEO_TEGRA2
 
 /* TODO: This needs to be configurable at run-time */
-#define LCD_BPP             LCD_COLOR16
+#define LCD_BPP	LCD_COLOR16
 #define CONFIG_SYS_WHITE_ON_BLACK       /*Console colors*/
 
 #endif		//tcw if 0 periphs

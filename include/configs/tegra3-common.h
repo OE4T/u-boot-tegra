@@ -198,7 +198,7 @@
 #define CONFIG_SYS_NO_FLASH
 
 #ifdef CONFIG_TEGRA2_LP0
-#define TEGRA_LP0_ADDR			0x1C406000
+#define TEGRA_LP0_ADDR			0x9C406000
 #define TEGRA_LP0_SIZE			SZ_8K
 #define TEGRA_LP0_VEC \
 	"lp0_vec=" QUOTE(TEGRA_LP0_SIZE) "@" QUOTE(TEGRA_LP0_ADDR) " "
@@ -215,11 +215,16 @@
 	"serial#=1\0" \
 	"tftpserverip=172.22.72.144\0" \
 	"nfsserverip=172.22.72.144\0" \
-	"extra_bootargs=\0" \
-	"platform_extras=" TEGRA2_SYSMEM"\0" \
+	"extra_bootargs=" \
+		"usbcore.old_scheme_first=1 " \
+		"core_edp_mv=130 " \
+		"panel=lvds " \
+		"tegraid=30.1.2.0.0 " \
+		"debug_uartport=lsport\0" \
+	"platform_extras=" TEGRA3_SYSMEM"\0" \
 	"videospec=tegrafb\0" \
 	"lp0_args=" TEGRA_LP0_VEC "\0" \
-	"mmcdev=" TEGRA2_MMC_DEFAULT_DEVICE "\0" \
+	"mmcdev=" TEGRA_MMC_DEFAULT_DEVICE "\0" \
 	"dev_extras=\0" \
 	\
 	"regen_all="\
@@ -242,11 +247,11 @@
 		"bootm ${loadaddr}\0" \
 	\
 	"mmc_setup=setenv bootdev_bootargs " \
-		"root=/dev/mmcblk${mmcdev}p3 rw rootwait; " \
+		"root=/dev/mmcblk${mmcdev}p1 rw rootwait; " \
 		"run regen_all\0" \
 	"mmc_boot=run mmc_setup; " \
 		"mmc rescan ${mmcdev}; " \
-		"ext2load mmc ${mmcdev}:3 ${loadaddr} /boot/${bootfile}; " \
+		"ext2load mmc ${mmcdev}:1 ${loadaddr} ${bootfile}; " \
 		"bootm ${loadaddr}\0" \
 	\
 	"usb_setup=setenv bootdev_bootargs root=/dev/sda3 rw rootwait; " \
@@ -256,16 +261,16 @@
 		"bootm ${loadaddr}\0" \
 
 #define CONFIG_BOOTCOMMAND \
-  "usb start; "\
-  "if test ${ethact} != \"\"; then "\
-    "run dhcp_boot ; " \
-  "fi ; " \
-  "run usb_boot ; " \
-  "run mmc_boot ; "
+	"run mmc_boot ; " \
+	"usb start; "\
+	"if test ${ethact} != \"\"; then "\
+		"run dhcp_boot ; " \
+	"fi ; " \
+	"run usb_boot ; "
 
 /* default location for kernel */
-#define CONFIG_LOADADDR		(NV_PA_SDRAM_BASE + 0x408000)
-#define CONFIG_BOOTDELAY	10		/* -1 to disable auto boot */
+#define CONFIG_LOADADDR		0x80408000
+#define CONFIG_BOOTDELAY	3		/* -1 to disable auto boot */
 
 /*
  * Miscellaneous configurable options
