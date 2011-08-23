@@ -29,8 +29,8 @@ COBJS-y += board.o
 COBJS-$(CONFIG_USB_EHCI_TEGRA) += usb.o
 COBJS-$(CONFIG_SPI_UART_SWITCH) += uart-spi-fix.o
 COBJS-$(CONFIG_TEGRA2_KEYBOARD) += generic_kbc.o
-COBJS-$(CONFIG_TEGRA2_I2C) += pmu.o
-COBJS-$(CONFIG_TEGRA2_I2C) += emc.o
+COBJS-$(CONFIG_ENABLE_EMC_INIT) += pmu.o
+COBJS-$(CONFIG_ENABLE_EMC_INIT) += emc.o
 COBJS-$(CONFIG_TEGRA2_LP0) += crypto/aes_ref.o
 COBJS-$(CONFIG_TEGRA2_LP0) += crypto/crypto.o
 

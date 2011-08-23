@@ -269,10 +269,10 @@ int board_init(void)
 #ifdef CONFIG_TEGRA2_I2C
 	i2c_init_board();
 
+#ifdef	CONFIG_ENABLE_EMC_INIT
 	pmu_set_nominal();
-
 	board_emc_init();
-
+#endif
 	board_sdmmc_voltage_init();
 #endif
 
