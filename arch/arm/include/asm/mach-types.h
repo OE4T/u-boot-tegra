@@ -3313,6 +3313,7 @@ extern unsigned int __machine_arch_type;
 #define MACH_TYPE_DINGO                3337
 #define MACH_TYPE_GOFLEXHOME           3338
 #define MACH_TYPE_CARDHU               3436
+#define MACH_TYPE_WALUIGI              3591	//tcw hack
 
 #ifdef CONFIG_ARCH_EBSA110
 # ifdef machine_arch_type
@@ -42924,6 +42925,18 @@ extern unsigned int __machine_arch_type;
 # define machine_is_cardhu()	(machine_arch_type == MACH_TYPE_CARDHU)
 #else
 # define machine_is_cardhu()	(0)
+#endif
+
+#ifdef CONFIG_MACH_WALUIGI
+# ifdef machine_arch_type
+#  undef machine_arch_type
+#  define machine_arch_type	__machine_arch_type
+# else
+#  define machine_arch_type	MACH_TYPE_WALUIGI
+# endif
+# define machine_is_waluigi()	(machine_arch_type == MACH_TYPE_WALUIGI)
+#else
+# define machine_is_waluigi()	(0)
 #endif
 
 /*
