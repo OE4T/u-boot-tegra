@@ -37,13 +37,14 @@
 
 #define CONFIG_TEGRA3_CARDHU
 #define CONFIG_SYS_SKIP_ARM_RELOCATION
+#define CONFIG_SYS_PLLP_BASE_IS_408MHZ
 
 #define z_pause()	\
 {			\
 	while (1)	\
 		;	\
 }
-	
+
 #include "tegra3-common.h"
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
@@ -116,7 +117,6 @@
 #define CONFIG_EFI_PARTITION
 #define CONFIG_CMD_EXT2
 #define CONFIG_CMD_FAT
-//tcw#define CONFIG_MMC_TRACE
 
 #if 0			//tcw - disable kbd, LCD for now
 

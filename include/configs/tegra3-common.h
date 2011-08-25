@@ -92,10 +92,13 @@
 #define CONFIG_SYS_NS16550_REG_SIZE	(-4)
 
 #ifdef CONFIG_OF_CONTROL
-#define CONFIG_COMPAT_STRING		"nvidia,tegra250"
+#define CONFIG_COMPAT_STRING		"nvidia,tegra30"
 #else
-#define V_NS16550_CLK			216000000	/* 216MHz (pllp_out0) */
-
+#if defined(CONFIG_SYS_PLLP_BASE_IS_408MHZ)
+#define V_NS16550_CLK			408000000	/* 408MHz PLLP_OUT0 */
+#else
+#define V_NS16550_CLK			216000000	/* 216MHZ PLLP_OUT0 */
+#endif
 #define CONFIG_SYS_NS16550_SERIAL
 #define CONFIG_SYS_NS16550_CLK		V_NS16550_CLK
 
@@ -220,7 +223,8 @@
 		"core_edp_mv=130 " \
 		"panel=lvds " \
 		"tegraid=30.1.2.0.0 " \
-		"debug_uartport=lsport\0" \
+		"debug_uartport=lsport " \
+		"pmuboard=0x0c08:0x0a01:0x04:0x41:0x08\0" \
 	"platform_extras=" TEGRA3_SYSMEM"\0" \
 	"videospec=tegrafb\0" \
 	"lp0_args=" TEGRA_LP0_VEC "\0" \

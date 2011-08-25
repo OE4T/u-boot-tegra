@@ -33,7 +33,11 @@
 
 	serial@70006300 {
 		status = "ok";
-		clock-frequency = <216000000>;
+		/*
+		 * TBD - use CONFIG_SYS_PLLP_BASE_IS_408MHZ somehow here.
+		 * Currently I put this back to 216MHz in fdt_decode.c
+		 */
+		clock-frequency = <408000000>;
 	};
 
 	sdhci@78000000 {

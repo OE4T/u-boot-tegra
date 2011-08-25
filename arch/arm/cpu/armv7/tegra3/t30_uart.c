@@ -693,9 +693,12 @@ NvU32 NvBlUartRx(NvU8 const * uart_base)
     return NV_READ8(uart_base + UART_THR_DLAB_0_0);
 }
 
-#define NVRM_PLLP_FIXED_FREQ_KHZ         (216000)
-//#define NV_DEFAULT_DEBUG_BAUD 		115200
-#define NV_DEFAULT_DEBUG_BAUD 		57600
+#if defined(CONFIG_SYS_PLLP_BASE_IS_408MHZ)
+#define NVRM_PLLP_FIXED_FREQ_KHZ	(408000)
+#else
+#define NVRM_PLLP_FIXED_FREQ_KHZ	(216000)
+#endif
+#define NV_DEFAULT_DEBUG_BAUD		115200
 
 void NvBlUartInitBase(NvU8 * uart_base)
 {

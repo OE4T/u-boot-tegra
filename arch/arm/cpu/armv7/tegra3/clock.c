@@ -857,13 +857,14 @@ void common_pll_init(void)
 	 */
 	switch (clock_get_rate(CLOCK_ID_OSC)) {
 	case 12000000: /* OSC is 12Mhz */
+#if defined(CONFIG_SYS_PLLP_BASE_IS_408MHZ)
+		clock_set_rate(CLOCK_ID_PERIPH, 408, 12, 0, 8);
+#else
 		clock_set_rate(CLOCK_ID_PERIPH, 432, 12, 1, 8);
+#endif
 		clock_set_rate(CLOCK_ID_CGENERAL, 600, 12, 0, 8);
 		break;
-	case 26000000: /* OSC is 26Mhz */
-		clock_set_rate(CLOCK_ID_PERIPH, 432, 26, 1, 8);
-		clock_set_rate(CLOCK_ID_CGENERAL, 600, 26, 0, 8);
-		break;
+	/* TBD - handle other OSC freqs (13, 26, etc.) */
 	}
 }
 

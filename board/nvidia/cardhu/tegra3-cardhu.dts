@@ -5,7 +5,7 @@
 
 / {
 	model = "NVIDIA Cardhu";
-	compatible = "nvidia,seaboard", "nvidia,tegra250";
+	compatible = "nvidia,cardhu", "nvidia,tegra30";
 
 	config {
 		silent_console = <0>;
@@ -33,7 +33,11 @@
 
 	serial@70006000 {
 		status = "ok";
-		clock-frequency = <216000000>;
+		/*
+		 * TBD - use CONFIG_SYS_PLLP_BASE_IS_408MHZ somehow here.
+		 * Currently I put this back to 216MHz in fdt_decode.c
+		 */
+		clock-frequency = <408000000>;
 	};
 
 	sdhci@78000000 {

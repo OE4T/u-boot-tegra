@@ -37,6 +37,7 @@
 
 #define CONFIG_TEGRA3_WALUIGI
 #define CONFIG_SYS_SKIP_ARM_RELOCATION
+#define CONFIG_SYS_PLLP_BASE_IS_408MHZ
 
 #define z_pause()	\
 {			\
@@ -55,8 +56,8 @@
 #ifndef CONFIG_OF_CONTROL
 /* Things in here are defined by the device tree now. Let it grow! */
 
-#define CONFIG_TEGRA2_ENABLE_UARTA
-#define CONFIG_SYS_NS16550_COM1		NV_PA_APB_UARTA_BASE
+#define CONFIG_TEGRA2_ENABLE_UARTD
+#define CONFIG_SYS_NS16550_COM1		NV_PA_APB_UARTD_BASE
 
 /* To select the order in which U-Boot sees USB ports */
 #define CONFIG_TEGRA2_USB0      NV_PA_USB3_BASE
@@ -66,8 +67,7 @@
 
 /* Put USB1 in host mode */
 #define CONFIG_TEGRA2_USB1_HOST
-//TBD - change this once there is a MACH_TYPE_WALUIGI
-#define CONFIG_MACH_TYPE	MACH_TYPE_CARDHU
+#define CONFIG_MACH_TYPE	MACH_TYPE_WALUIGI
 
 #endif /* CONFIG_OF_CONTROL not defined ^^^^^^^ */
 

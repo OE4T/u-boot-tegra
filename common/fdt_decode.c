@@ -297,7 +297,9 @@ int fdt_decode_uart_console(const void *blob, struct fdt_uart *uart,
 	uart->interrupt = get_int(blob, node, "interrupts", -1);
 	uart->silent = get_config_int(blob, "silent_console", 0);
 	uart->compat = fdt_decode_lookup(blob, node);
-
+#if !defined(CONFIG_SYS_PLLP_BASE_IS_408MHZ)
+	uart->clock_freq = 216000000;
+#endif
 	/* Calculate divisor if required */
 	if (uart->divisor == -1)
 		fdt_decode_uart_calc_divisor(uart);

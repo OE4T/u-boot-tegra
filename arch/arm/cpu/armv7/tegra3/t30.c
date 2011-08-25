@@ -296,7 +296,15 @@ VOID AvpClockEnableCorsight(BOOLEAN enable)
           // Note that CoreSight has a fractional divider (LSB == .5).
           Reg = NV_CAR_REGR(CLK_RST_PA_BASE, CLK_SOURCE_CSITE);
           Reg = NV_FLD_SET_DRF_NUM(CLK_RST_CONTROLLER, CLK_SOURCE_CSITE,
-                  CSITE_CLK_DIVISOR, CLK_DIVIDER(NVBL_PLLP_KHZ, 144000), Reg);
+#if defined(CONFIG_SYS_PLLP_BASE_IS_408MHZ)
+		/*
+		 * Clock divider request for 204MHz would setup CSITE clock as
+		 * 144MHz for PLLP base 216MHz, and 204MHz for PLLP base 408MHz
+		 */
+		CSITE_CLK_DIVISOR, CLK_DIVIDER(NVBL_PLLP_KHZ, 204000), Reg);
+#else
+		CSITE_CLK_DIVISOR, CLK_DIVIDER(NVBL_PLLP_KHZ, 144000), Reg);
+#endif
           NV_CAR_REGW(CLK_RST_PA_BASE, CLK_SOURCE_CSITE, Reg);
 
           AvpStallUs(3);
@@ -439,28 +447,16 @@ VOID AvpHaltAp20(void)
 
 VOID InitPllP(NvBootClocksOscFreq OscFreq)
 {
-  UINT32   Base = 0;
-  UINT32   Misc = 0;
-//  UINT32   Reg;
-
-#if 0 // jz 6/24/01
-  Base = NV_CAR_REGR(CLK_RST_PA_BASE, PLLP_BASE);
-  if (Base & NV_DRF_DEF(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_ENABLE, ENABLE))
-  {
-      Misc = NV_CAR_REGR(CLK_RST_PA_BASE, PLLP_MISC);
-      Misc = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, PLLP_MISC, PLLP_LOCK_ENABLE, ENABLE, Misc);
-      NV_CAR_REGW(CLK_RST_PA_BASE, PLLP_MISC, Misc);
-      return;
-  }
-#endif // jz
-
-  {
-#if 0
-uart_post('-'); uart_post('0'); uart_post(' ');
-Misc = NV_CAR_REGR(CLK_RST_PA_BASE, PLLP_MISC);
-NvBlPrintU32(Misc);
+	UINT32   Base, Misc;
+#if defined(CONFIG_SYS_PLLP_BASE_IS_408MHZ)
+	UINT32 OutA, OutB;
 #endif
-      // DIVP/DIVM/DIVN values taken from arclk_rst.h table for fixed 216 MHz operation.
+	Misc = Base = 0;
+
+	/*
+	 * DIVP/DIVM/DIVN values taken from arclk_rst.h table for fixed
+	 *  216MHz or 408MHz operation.
+	 */
       switch (OscFreq)
       {
           case NvBootClocksOscFreq_13:
@@ -469,8 +465,13 @@ NvBlPrintU32(Misc);
                    | NV_DRF_DEF(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_REF_DIS, REF_ENABLE)
                    | NV_DRF_DEF(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_BASE_OVRRIDE, ENABLE)
                    | NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_LOCK, 0x0)
+#if defined(CONFIG_SYS_PLLP_BASE_IS_408MHZ)
+		| NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_DIVP, 0x0)
+		| NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_DIVN, 0x198)
+#else
                    | NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_DIVP, 0x1)
                    | NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_DIVN, 0xD8)
+#endif
                    | NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_DIVM, 0xD);
               Misc = NV_DRF_NUM(CLK_RST_CONTROLLER, PLLC_MISC, PLLC_CPCON, 8);
               break;
@@ -486,8 +487,13 @@ NvBlPrintU32(Misc);
                    | NV_DRF_DEF(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_REF_DIS, REF_ENABLE)
                    | NV_DRF_DEF(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_BASE_OVRRIDE, ENABLE)
                    | NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_LOCK, 0x0)
+#if defined(CONFIG_SYS_PLLP_BASE_IS_408MHZ)
+		| NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_DIVP, 0x0)
+		| NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_DIVN, 0x154)
+#else
                    | NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_DIVP, 0x1)
                    | NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_DIVN, 0xB4)
+#endif
                    | NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_DIVM, 0x16);
               Misc = NV_DRF_NUM(CLK_RST_CONTROLLER, PLLC_MISC, PLLC_CPCON, 4);
               break;
@@ -498,11 +504,16 @@ NvBlPrintU32(Misc);
                    | NV_DRF_DEF(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_REF_DIS, REF_ENABLE)
                    | NV_DRF_DEF(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_BASE_OVRRIDE, ENABLE)
                    | NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_LOCK, 0x0)
+#if defined(CONFIG_SYS_PLLP_BASE_IS_408MHZ)
+		| NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_DIVP, 0x0)
+		| NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_DIVN, 0x198)
+#else
                    | NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_DIVP, 0x1)
 //                   | NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_DIVN, 0xD8)
                    | NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_DIVN, 0x1B0)
+#endif
                    | NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_DIVM, 0x0C);
-//              Misc = NV_DRF_NUM(CLK_RST_CONTROLLER, PLLC_MISC, PLLC_CPCON, 8);//              Misc = NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_MISC, PLLP_CPCON, 8);
+//              Misc = NV_DRF_NUM(CLK_RST_CONTROLLER, PLLC_MISC, PLLC_CPCON, 8);
       Misc = NV_FLD_SET_DRF_NUM(CLK_RST_CONTROLLER, PLLP_MISC, PLLP_CPCON, 8, Misc);
   Misc = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, PLLP_MISC, PLLP_LOCK_ENABLE, DISABLE, Misc);
               break;
@@ -513,8 +524,13 @@ NvBlPrintU32(Misc);
                    | NV_DRF_DEF(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_REF_DIS, REF_ENABLE)
                    | NV_DRF_DEF(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_BASE_OVRRIDE, ENABLE)
                    | NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_LOCK, 0x0)
+#if defined(CONFIG_SYS_PLLP_BASE_IS_408MHZ)
+		| NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_DIVP, 0x0)
+		| NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_DIVN, 0x198)
+#else
                    | NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_DIVP, 0x1)
                    | NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_DIVN, 0xD8)
+#endif
                    | NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_DIVM, 0x1A);
               Misc = NV_DRF_NUM(CLK_RST_CONTROLLER, PLLC_MISC, PLLC_CPCON, 8);
               break;
@@ -524,8 +540,13 @@ NvBlPrintU32(Misc);
                    | NV_DRF_DEF(CLK_RST_CONTROLLER, PLLC_BASE, PLLC_ENABLE, DISABLE)
                    | NV_DRF_DEF(CLK_RST_CONTROLLER, PLLC_BASE, PLLC_REF_DIS, REF_ENABLE)
                    | NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_LOCK, 0x0)
+#if defined(CONFIG_SYS_PLLP_BASE_IS_408MHZ)
+		| NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_DIVP, 0x0)
+		| NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_DIVN, 0x154)
+#else
                    | NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_DIVP, 0x1)
                    | NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_DIVN, 0xB4)
+#endif
                    | NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_DIVM, 0x14);
               Misc = NV_DRF_NUM(CLK_RST_CONTROLLER, PLLC_MISC, PLLC_CPCON, 4);
               break;
@@ -533,73 +554,65 @@ NvBlPrintU32(Misc);
           default:
               break;
       }
-  }
-
-#if 0
-uart_post('-'); uart_post('1'); uart_post(' ');
-NvBlPrintU32(Base); NvBlPrintU32(Misc);
-#endif
 
   NV_CAR_REGW(CLK_RST_PA_BASE, PLLP_MISC, Misc);
   NV_CAR_REGW(CLK_RST_PA_BASE, PLLP_BASE, Base);
 
   // disable override
   Base = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_BASE_OVRRIDE, DISABLE, Base);
-#if 0
-uart_post('-'); uart_post('2'); uart_post(' ');
-NvBlPrintU32(Base); 
-#endif
   NV_CAR_REGW(CLK_RST_PA_BASE, PLLP_BASE, Base);
 
   // reenable PLLP
   Base = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_ENABLE, ENABLE, Base);
   NV_CAR_REGW(CLK_RST_PA_BASE, PLLP_BASE, Base);
-#if 0
-uart_post('-'); uart_post('3'); uart_post(' ');
-NvBlPrintU32(Base); 
-#else
+
   // Give clocks time to stabilize.
   AvpStallUs(20);
-//  AvpStallMs(1);
-#endif
 
   // disable bypass
   Base = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_BYPASS, DISABLE, Base);
-#if 0
-uart_post('-'); uart_post('4'); uart_post(' ');
-NvBlPrintU32(Base); 
-#endif
   NV_CAR_REGW(CLK_RST_PA_BASE, PLLP_BASE, Base);
 
+#if defined(CONFIG_SYS_PLLP_BASE_IS_408MHZ)
+	/* Set pllp_out1,2,3,4 to frequencies 9.6MHz, 48MHz, 102MHz, 204MHz */
+	OutA = NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_OUTA, PLLP_OUT1_RATIO, 83) |
+	NV_DRF_DEF(CLK_RST_CONTROLLER, PLLP_OUTA, PLLP_OUT1_OVRRIDE, ENABLE) |
+	NV_DRF_DEF(CLK_RST_CONTROLLER, PLLP_OUTA, PLLP_OUT1_CLKEN, ENABLE) |
+	NV_DRF_DEF(CLK_RST_CONTROLLER, PLLP_OUTA, PLLP_OUT1_RSTN,
+		RESET_DISABLE) |
+
+	NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_OUTA, PLLP_OUT2_RATIO, 15) |
+	NV_DRF_DEF(CLK_RST_CONTROLLER, PLLP_OUTA, PLLP_OUT2_OVRRIDE, ENABLE) |
+	NV_DRF_DEF(CLK_RST_CONTROLLER, PLLP_OUTA, PLLP_OUT2_CLKEN, ENABLE) |
+	NV_DRF_DEF(CLK_RST_CONTROLLER, PLLP_OUTA, PLLP_OUT2_RSTN,
+		RESET_DISABLE);
+
+	OutB = NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_OUTB, PLLP_OUT3_RATIO, 6) |
+	NV_DRF_DEF(CLK_RST_CONTROLLER, PLLP_OUTB, PLLP_OUT3_OVRRIDE, ENABLE) |
+	NV_DRF_DEF(CLK_RST_CONTROLLER, PLLP_OUTB, PLLP_OUT3_CLKEN, ENABLE) |
+	NV_DRF_DEF(CLK_RST_CONTROLLER, PLLP_OUTB, PLLP_OUT3_RSTN,
+		RESET_DISABLE) |
+
+	NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_OUTB, PLLP_OUT4_RATIO, 2) |
+	NV_DRF_DEF(CLK_RST_CONTROLLER, PLLP_OUTB, PLLP_OUT4_OVRRIDE, ENABLE) |
+	NV_DRF_DEF(CLK_RST_CONTROLLER, PLLP_OUTB, PLLP_OUT4_CLKEN, ENABLE) |
+	NV_DRF_DEF(CLK_RST_CONTROLLER, PLLP_OUTB, PLLP_OUT4_RSTN,
+		RESET_DISABLE);
+
+	NV_CAR_REGW(CLK_RST_PA_BASE, PLLP_OUTA, OutA);
+	NV_CAR_REGW(CLK_RST_PA_BASE, PLLP_OUTA, OutB);
+#endif
 
   // lock enable
   Misc = NV_CAR_REGR(CLK_RST_PA_BASE, PLLP_MISC);
   Misc = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, PLLP_MISC, PLLP_LOCK_ENABLE, ENABLE, Misc);
-#if 0
-uart_post('-'); uart_post('5'); uart_post(' ');
-NvBlPrintU32(Misc); 
-#endif
   NV_CAR_REGW(CLK_RST_PA_BASE, PLLP_MISC, Misc);
-
-#if 0
-  // debug print base after pll lock enable
-  Base = NV_CAR_REGR(CLK_RST_PA_BASE, PLLP_BASE);
-uart_post('-'); uart_post('6'); uart_post(' ');
-NvBlPrintU32(Base); 
-#endif
-
 
   // Wait for PLL-P to lock.
   do
   {
       Base = NV_CAR_REGR(CLK_RST_PA_BASE, PLLP_BASE);
   } while (!NV_DRF_VAL(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_LOCK, Base));
-
-#if 0
-PostCc('P');
-NvBlPrintU32(Base);
-debug_pause();
-#endif
 }
 
 VOID InitPllX(NvBootClocksOscFreq OscFreq)
@@ -878,6 +891,22 @@ NvBlCpuClusterId NvBlAvpQueryBootCpuClusterId(void)
   return NvBlCpuClusterId_G;
 }
 
+#if defined(CONFIG_SYS_PLLP_BASE_IS_408MHZ)
+void set_avp_clock_to_clkm(void)
+{
+	UINT32 Reg;
+
+	/* Use CLKM as AVP clock source */
+	Reg = NV_CAR_REGR(CLK_RST_PA_BASE, SCLK_BURST_POLICY);
+	Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, SCLK_BURST_POLICY,
+		SYS_STATE, RUN, Reg);
+	Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, SCLK_BURST_POLICY,
+		SWAKEUP_RUN_SOURCE, CLKM, Reg);
+	NV_CAR_REGW(CLK_RST_PA_BASE, SCLK_BURST_POLICY, Reg);
+	AvpStallUs(3);
+}
+#endif
+
 //VOID ClockInitT30( const NvRmChipId* ChipId)
 VOID ClockInitT30(void)
 {
@@ -990,6 +1019,11 @@ VOID ClockInitT30(void)
 //uart_post('9'); uart_post('.'); uart_post(' ');
 //NvBlPrintU32(OscFreq);
 //debug_pause();
+
+#if defined(CONFIG_SYS_PLLP_BASE_IS_408MHZ)
+	/* Move AVP clock to CLM temporarily. Reset to PLLP_OUT4 later */
+	set_avp_clock_to_clkm();
+#endif
 
   // Initialize PLL-P.
   InitPllP(OscFreq);
