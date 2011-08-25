@@ -269,7 +269,7 @@ int board_init(void)
 #ifdef CONFIG_TEGRA2_I2C
 	i2c_init_board();
 
-#ifdef	CONFIG_ENABLE_EMC_INIT
+#ifdef CONFIG_ENABLE_EMC_INIT
 	pmu_set_nominal();
 	board_emc_init();
 #endif
@@ -417,6 +417,7 @@ static struct arch_name_map name_map[] = {
 	{"NVIDIA Seaboard", MACH_TYPE_SEABOARD},
 	{"Google Aebl", MACH_TYPE_AEBL},
 	{"NVIDIA Cardhu", MACH_TYPE_CARDHU},
+	{"Google Waluigi", MACH_TYPE_WALUIGI},
 	{"<not defined>", MACH_TYPE_SEABOARD} /* this is the default */
 };
 
