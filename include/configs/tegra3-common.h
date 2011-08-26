@@ -115,6 +115,8 @@
 #define CONFIG_BAUDRATE			115200
 #define CONFIG_SYS_BAUDRATE_TABLE	{4800, 9600, 19200, 38400, 57600,\
 					115200}
+
+#if	0			//TCW disable USB for kernel debug
 /*
  * USB Host.
  */
@@ -138,15 +140,18 @@
 #define CONFIG_USB_STOR_NO_RETRY
 
 #define CONFIG_CMD_USB		/* USB Host support		*/
+#endif	//0			//TCW disable USB for kernel debug
 
 /* partition types and file systems we want */
 #define CONFIG_DOS_PARTITION
 #define CONFIG_EFI_PARTITION
 #define CONFIG_CMD_EXT2
 
+#if	0			//TCW disable USB for kernel debug
 /* support USB ethernet adapters */
 #define CONFIG_USB_HOST_ETHER
 #define CONFIG_USB_ETHER_ASIX
+#endif	//0			//TCW disable USB for kernel debug
 
 /* include default commands */
 #include <config_cmd_default.h>
@@ -220,7 +225,7 @@
 	"nfsserverip=172.22.72.144\0" \
 	"extra_bootargs=" \
 		"usbcore.old_scheme_first=1 " \
-		"core_edp_mv=130 " \
+		"core_edp_mv=1300 " \
 		"panel=lvds " \
 		"tegraid=30.1.2.0.0 " \
 		"debug_uartport=lsport " \
