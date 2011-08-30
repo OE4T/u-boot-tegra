@@ -48,6 +48,8 @@
     defined(CONFIG_MMC) || \
     defined(CONFIG_SYSTEMACE)
 
+ulong pgpt_pte_ptr;
+
 /* Convert char[2] in little endian format to the host format integer
  */
 static inline unsigned short le16_to_int(unsigned char *le16)
@@ -110,7 +112,7 @@ static int is_pte_valid(gpt_entry * pte);
 void print_part_efi(block_dev_desc_t * dev_desc)
 {
 	gpt_header *gpt_head = memalign(CACHE_LINE_SIZE, sizeof(gpt_header));
-	gpt_entry **pgpt_pte = NULL;
+	gpt_entry **pgpt_pte = (void *)&pgpt_pte_ptr;
 	int i = 0;
 
 	if (gpt_head == NULL) {
@@ -160,7 +162,7 @@ int get_partition_info_efi(block_dev_desc_t * dev_desc, int part,
 				disk_partition_t * info)
 {
 	gpt_header *gpt_head = memalign(CACHE_LINE_SIZE, sizeof(gpt_header));
-	gpt_entry **pgpt_pte = NULL;
+	gpt_entry **pgpt_pte = (void *)&pgpt_pte_ptr;
 	int err = 0;
 
 	if (gpt_head == NULL) {
