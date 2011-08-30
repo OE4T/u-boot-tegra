@@ -256,11 +256,11 @@
 		"bootm ${loadaddr}\0" \
 	\
 	"mmc_setup=setenv bootdev_bootargs " \
-		"root=/dev/mmcblk${mmcdev}p1 rw rootwait; " \
+		"root=/dev/mmcblk${mmcdev}p3 rw rootwait; " \
 		"run regen_all\0" \
 	"mmc_boot=run mmc_setup; " \
 		"mmc rescan ${mmcdev}; " \
-		"ext2load mmc ${mmcdev}:1 ${loadaddr} ${bootfile}; " \
+		"ext2load mmc ${mmcdev}:3 ${loadaddr} /boot/${bootfile}; " \
 		"bootm ${loadaddr}\0" \
 	\
 	"usb_setup=setenv bootdev_bootargs root=/dev/sda3 rw rootwait; " \
