@@ -56,6 +56,19 @@
 #define CONFIG_TEGRA2_USB1_HOST
 #endif /* CONFIG_OF_CONTROL */
 
+/* I2C */
+#define CONFIG_TEGRA2_I2C
+#define CONFIG_SYS_I2C_INIT_BOARD
+#define CONFIG_I2C_MULTI_BUS
+#define CONFIG_SYS_MAX_I2C_BUS          4
+#define CONFIG_SYS_I2C_SPEED            100000
+#define CONFIG_CMD_I2C
+
+/* pin-mux settings for harmony */
+#define CONFIG_I2CP_PIN_MUX             1
+#define CONFIG_I2C1_PIN_MUX             1
+#define CONFIG_I2C2_PIN_MUX             1
+#define CONFIG_I2C3_PIN_MUX             1
 
 #define CONFIG_MACH_TYPE		MACH_TYPE_HARMONY
 #define CONFIG_SYS_BOARD_ODMDATA	0x300d8011 /* lp1, 1GB */

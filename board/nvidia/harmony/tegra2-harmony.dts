@@ -1,0 +1,70 @@
+/dts-v1/;
+
+/memreserve/ 0x1c000000 0x04000000;
+/include/ "../../../arch/arm/cpu/armv7/tegra2/tegra250.dtsi"
+
+/ {
+	model = "NVIDIA Harmony";
+	compatible = "nvidia,harmony", "nvidia,tegra250";
+
+	config {
+		silent_console = <0>;
+		odmdata = <0x300d8011>;
+		machine-arch-id = <2731>;
+	};
+
+	aliases {
+		console = "/serial@70006300";
+                usb0 = "/usb@0xc5008000";
+                usb1 = "/usb@0xc5000000";
+
+                sdmmc0 = "/sdhci@c8000600";
+                sdmmc1 = "/sdhci@c8000200";
+	};
+
+	chosen {
+		bootargs = "";
+	};
+
+	memory {
+		device_type = "memory";
+		reg = <0x00000000 0x40000000>;
+	};
+
+	serial@70006300 {
+		status = "ok";
+		clock-frequency = <216000000>;
+	};
+
+	sdhci@c8000200 {
+		status = "ok";
+                width = <4>;	/* width of SDIO port */
+                removable = <1>;
+                /* Parameter 3 bit 0:1=output, 0=input; bit 1:1=high, 0=low */
+                cd-gpio = <&gpio 69 0>; /* card detect, gpio PI5 */
+                wp-gpio = <&gpio 57 0>; /* write protect, gpio PH1 */
+                power-gpio = <&gpio 70 3>; /* power enable, gpio PI6 */
+	};
+
+	sdhci@c8000600 {
+		status = "ok";
+                width = <4>;	/* width of SDIO port */
+                removable = <0>;
+	};
+
+	usb@0xc5000000 {
+		status = "ok";
+		host-mode = <1>;
+	};
+
+	usbphy: usbphy@0 {
+		compatible = "smsc,usb3315";
+		status = "ok";
+	};
+
+	usb@0xc5008000 {
+		status = "ok";
+		utmi = <&usbphy>;
+		host-mode = <0>;
+	};
+};
