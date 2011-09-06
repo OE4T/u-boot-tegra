@@ -36,13 +36,8 @@
 /*
  * Include the declaration of parameter structures for all supported devices.
  */
-#include "nvboot_mobile_lba_nand_param.h"
-#include "nvboot_mux_one_nand_param.h"
-#include "nvboot_nand_param.h"
-#include "nvboot_snor_param.h"
 #include "nvboot_sdmmc_param.h"
 #include "nvboot_spi_flash_param.h"
-#include "nvboot_sata_param.h"
 
 #if defined(__cplusplus)
 extern "C"
@@ -56,26 +51,11 @@ typedef union
 {
     /// Dummy member to fix the size of NvBootDevParams
     NvU8 Size[64];
-    /// Specifies optimized parameters for mobileLA NAND
-    NvBootMobileLbaNandParams MobileLbaNandParams;
-
-    /// Specifies optimized parameters for MuxOneNAND and FlexMuxOneNAND
-    NvBootMuxOneNandParams    MuxOneNandParams;
-
-    /// Specifies optimized parameters for NAND
-    NvBootNandParams          NandParams;
-
     /// Specifies optimized parameters for eMMC and eSD
     NvBootSdmmcParams         SdmmcParams;
-
-    /// Specifies optimized parameters for SNOR
-    NvBootSnorParams          SnorParams;
-
     /// Specifies optimized parameters for SPI NOR
     NvBootSpiFlashParams      SpiFlashParams;
 
-    /// Specifies optimized parameters for SATA
-    NvBootSataParams          SataParams;
 } NvBootDevParams;
 
 #if defined(__cplusplus)
