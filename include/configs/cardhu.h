@@ -77,7 +77,7 @@
 					"stdout=serial,lcd\0" \
 					"stderr=serial,lcd\0"
 
-#define CONFIG_SYS_BOARD_ODMDATA	0x80080105 /* 2GB, ??? */
+#define CONFIG_SYS_BOARD_ODMDATA	0x40080105	/* 1GB, UARTA, etc */
 
 #define CONFIG_ENV_SECT_SIZE    CONFIG_ENV_SIZE
 #define CONFIG_ENV_OFFSET       (SZ_4M - CONFIG_ENV_SECT_SIZE)

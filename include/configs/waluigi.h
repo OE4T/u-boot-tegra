@@ -77,7 +77,8 @@
 					"stdout=serial,lcd\0" \
 					"stderr=serial,lcd\0"
 
-#define CONFIG_SYS_BOARD_ODMDATA	0x80080105 /* 2GB, ??? */
+/* TBD: Waluigi is supposed to have 2GB, but it hangs w/odmdata = 0x800xxxxx ??? */
+#define CONFIG_SYS_BOARD_ODMDATA	0x400D8105	/* 1GB, UARTD, etc */
 
 #define CONFIG_ENV_SECT_SIZE    CONFIG_ENV_SIZE
 #define CONFIG_ENV_OFFSET       (SZ_4M - CONFIG_ENV_SECT_SIZE)
