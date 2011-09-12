@@ -90,7 +90,13 @@ static struct pingroup_config tegra3_pinmux_common[] = {
 	DEFAULT_PINMUX(SDMMC4_DAT5,     SDMMC4,          UP,    NORMAL,     INPUT),
 	DEFAULT_PINMUX(SDMMC4_DAT6,     SDMMC4,          UP,    NORMAL,     INPUT),
 	DEFAULT_PINMUX(SDMMC4_DAT7,     SDMMC4,          UP,    NORMAL,     INPUT),
-	DEFAULT_PINMUX(SDMMC4_RST_N,    RSVD1,           DOWN,  NORMAL,     INPUT),
+	/*
+	 * SDMMC4_RST_N is one that is associated with SDMMC4 and is observed
+	 * with IO_RESET bit set to 1 after power on. Based on Tegra3 TRM,
+	 * all IO_RESET bits should be cleared. So, we clear it when
+	 * configuring pinmux on this pingroup.
+	 */
+	VI_PINMUX(SDMMC4_RST_N,		RSVD1,		DOWN,	NORMAL,	INPUT,	DISABLE,	DISABLE),
 
 	/* I2C1 pinmux */
 	I2C_PINMUX(GEN1_I2C_SCL,	I2C1,		NORMAL,	NORMAL,	INPUT,	DISABLE,	ENABLE),
@@ -174,16 +180,15 @@ static struct pingroup_config tegra3_pinmux_common[] = {
 	DEFAULT_PINMUX(LCD_DC1,         DISPLAYA,        NORMAL,    NORMAL,     INPUT),
 	DEFAULT_PINMUX(CRT_HSYNC,       CRT,             NORMAL,    NORMAL,     OUTPUT),
 	DEFAULT_PINMUX(CRT_VSYNC,       CRT,             NORMAL,    NORMAL,     OUTPUT),
-	DEFAULT_PINMUX(VI_D0,           RSVD1,           NORMAL,    NORMAL,     INPUT),
-	DEFAULT_PINMUX(VI_D1,           SDMMC2,          NORMAL,    NORMAL,     INPUT),
-	DEFAULT_PINMUX(VI_D2,           SDMMC2,          NORMAL,    NORMAL,     INPUT),
-	DEFAULT_PINMUX(VI_D3,           SDMMC2,          NORMAL,    NORMAL,     INPUT),
-	DEFAULT_PINMUX(VI_D4,           VI,              NORMAL,    NORMAL,     OUTPUT),
-	DEFAULT_PINMUX(VI_D5,           SDMMC2,          NORMAL,    NORMAL,     INPUT),
-	DEFAULT_PINMUX(VI_D7,           SDMMC2,          NORMAL,    NORMAL,     INPUT),
-	DEFAULT_PINMUX(VI_D10,          RSVD1,           NORMAL,    NORMAL,     INPUT),
-	DEFAULT_PINMUX(VI_MCLK,         VI,              UP,   NORMAL,     INPUT),
-
+	VI_PINMUX(VI_D0,	RSVD1,	NORMAL,	NORMAL,	INPUT,	DISABLE,	DISABLE),
+	VI_PINMUX(VI_D1,	SDMMC2,	NORMAL,	NORMAL,	INPUT,	DISABLE,	DISABLE),
+	VI_PINMUX(VI_D2,	SDMMC2,	NORMAL,	NORMAL,	INPUT,	DISABLE,	DISABLE),
+	VI_PINMUX(VI_D3,	SDMMC2,	NORMAL,	NORMAL,	INPUT,	DISABLE,	DISABLE),
+	VI_PINMUX(VI_D4,	VI,	NORMAL,	NORMAL,	OUTPUT,	DISABLE,	DISABLE),
+	VI_PINMUX(VI_D5,	SDMMC2,	NORMAL,	NORMAL,	INPUT,	DISABLE,	DISABLE),
+	VI_PINMUX(VI_D7,	SDMMC2,	NORMAL,	NORMAL,	INPUT,	DISABLE,	DISABLE),
+	VI_PINMUX(VI_D10,	RSVD1,	NORMAL,	NORMAL,	INPUT,	DISABLE,	DISABLE),
+	VI_PINMUX(VI_MCLK,	VI,	UP,	NORMAL,	INPUT,	DISABLE,	DISABLE),
 	DEFAULT_PINMUX(UART2_RXD,       IRDA,            NORMAL,    NORMAL,     INPUT),
 	DEFAULT_PINMUX(UART2_TXD,       IRDA,            NORMAL,    NORMAL,     OUTPUT),
 	DEFAULT_PINMUX(UART2_RTS_N,     UARTB,           NORMAL,    NORMAL,     OUTPUT),
@@ -284,7 +289,7 @@ static struct pingroup_config tegra3_pinmux_common[] = {
 	/* SDMMC1 CD gpio */
 	DEFAULT_PINMUX(GMI_IORDY,       RSVD1,           UP,   NORMAL,     INPUT),
 	/* SDMMC1 WP gpio */
-	DEFAULT_PINMUX(VI_D11,          RSVD1,           UP,   NORMAL,     INPUT),
+	VI_PINMUX(VI_D11,		RSVD1,		UP,	NORMAL,	INPUT,	DISABLE,	DISABLE),
 
 	/* Touch panel GPIO */
 	/* Touch IRQ */
