@@ -853,7 +853,7 @@ void common_pll_init(void)
 {
 	/*
 	 * PLLP output frequency set to 216Mh
-	 * PLLC output frequency set to 600Mhz
+	 * PLLC output frequency set to 228Mhz
 	 */
 	switch (clock_get_rate(CLOCK_ID_OSC)) {
 	case 12000000: /* OSC is 12Mhz */
@@ -862,7 +862,7 @@ void common_pll_init(void)
 #else
 		clock_set_rate(CLOCK_ID_PERIPH, 432, 12, 1, 8);
 #endif
-		clock_set_rate(CLOCK_ID_CGENERAL, 600, 12, 0, 8);
+		clock_set_rate(CLOCK_ID_CGENERAL, 456, 12, 1, 8);
 		break;
 	/* TBD - handle other OSC freqs (13, 26, etc.) */
 	}
