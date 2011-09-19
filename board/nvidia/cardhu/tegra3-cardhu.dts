@@ -61,21 +61,21 @@
 		width = <1366>;
 		height = <768>;
 		bits_per_pixel = <16>;
-		pwfm = <&pwfm2>;
+		pwfm = <&pwfm0>;
 		display = <&display1>;
 		frame-buffer = <0x1C022000>;
 
-		pixel_clock = <62200000>;
+		pixel_clock = <68000000>;
 
 		/* Timing: ref_to_sync, sync_width. back_porch, front_porch */
-		horiz_timing = <11 58 58 58>;
-		vert_timing = <1 4 4 4>;
+		horiz_timing = <0 30 52 64>;
+		vert_timing = <12 5 20 25>;
 
 		/* Parameter 3 bit 0:1=output, 0=input; bit 1:1=high, 0=low */
-		gpios = <&gpio 28 3>,	/* backlight PD4 */
-			<&gpio 10 3>,	/* lvds shutdown PB2 */
-			<&gpio 176 3>,	/* backlight vdd PW0 */
-			<&gpio 22 3>;	/* enable vdd pnl PC6 */
+		gpios = <&gpio 56 3>,	/* PH0, LCD1_BL_PWM */
+			<&gpio 58 3>,	/* PH2, LCD1_BL_EN */
+			<&gpio 90 3>,	/* PL2, LVDS1_SHTDN */
+			<&gpio 92 3>;	/* PL4, EN_VDD_PNL1 */
 	};
 
 	usb@0x7d000000 {

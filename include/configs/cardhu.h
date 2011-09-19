@@ -118,7 +118,7 @@
 #define CONFIG_CMD_EXT2
 #define CONFIG_CMD_FAT
 
-#if 0			//tcw - disable kbd, LCD for now
+#if 0 /* tcw - disable kbd for now */
 
 #define CONFIG_TEGRA2_KEYBOARD
 #define CONFIG_KEYBOARD
@@ -181,6 +181,8 @@
 	  0,     0,    0,    0,  '?',    0,    0,    0		\
 }
 
+#endif /* tcw if 0 periphs */
+
 /*
  *  LCDC configuration
  */
@@ -190,7 +192,5 @@
 /* TODO: This needs to be configurable at run-time */
 #define LCD_BPP	LCD_COLOR16
 #define CONFIG_SYS_WHITE_ON_BLACK       /*Console colors*/
-
-#endif		//tcw if 0 periphs
 
 #endif /* __CONFIG_H */
