@@ -19,7 +19,7 @@
  * MA 02111-1307 USA
  */
 
-/* Tegra2 Clock control functions */
+/* Tegra3 Clock control functions */
 
 #include <asm/io.h>
 #include <asm/arch/bitfield.h>
@@ -49,7 +49,7 @@ static unsigned osc_freq[CLOCK_OSC_FREQ_COUNT] = {
 };
 
 /*
- * Clock types that we can use as a source. The Tegra2 has muxes for the
+ * Clock types that we can use as a source. The Tegra3 has muxes for the
  * peripheral clocks, and in most cases there are four options for the clock
  * source. This gives us a clock 'type' and exploits what commonality exists
  * in the device.
@@ -70,6 +70,7 @@ enum clock_type_id {
 	CLOCK_TYPE_PCMT,
 	CLOCK_TYPE_PCXTS,
 	CLOCK_TYPE_PDCT,
+	CLOCK_TYPE_ACPT,
 
 	CLOCK_TYPE_COUNT,
 	CLOCK_TYPE_NONE = -1,	/* invalid clock type */
@@ -100,6 +101,7 @@ static enum clock_id clock_source[CLOCK_TYPE_COUNT] [CLOCK_MAX_MUX] = {
 	{ CLK(PERIPH),	CLK(CGENERAL),	CLK(MEMORY),	CLK(OSC)	},
 	{ CLK(PERIPH),	CLK(CGENERAL),	CLK(XCPU),	CLK(OSC)	},
 	{ CLK(PERIPH),	CLK(DISPLAY),	CLK(CGENERAL),	CLK(OSC)	},
+	{ CLK(AUDIO),	CLK(CGENERAL),	CLK(PERIPH),	CLK(OSC)	},
 };
 
 /*
@@ -122,25 +124,25 @@ enum periphc_internal_id {
 	PERIPHC_SPDIF_OUT,
 	PERIPHC_SPDIF_IN,
 	PERIPHC_PWM,
-	PERIPHC_SPI1,
-	PERIPHC_SPI2,
-	PERIPHC_SPI3,
+	PERIPHC_05h,
+	PERIPHC_SBC2,
+	PERIPHC_SBC3,
 
 	/* 0x08 */
-	PERIPHC_XIO,
+	PERIPHC_08h,
 	PERIPHC_I2C1,
 	PERIPHC_DVC_I2C,
-	PERIPHC_TWC,
-	PERIPHC_0c,
-	PERIPHC_10,	/* PERIPHC_SPI1, what is this really? */
+	PERIPHC_0bh,
+	PERIPHC_0ch,
+	PERIPHC_SBC1,
 	PERIPHC_DISP1,
 	PERIPHC_DISP2,
 
 	/* 0x10 */
 	PERIPHC_CVE,
-	PERIPHC_IDE0,
+	PERIPHC_11h,
 	PERIPHC_VI,
-	PERIPHC_1c,
+	PERIPHC_13h,
 	PERIPHC_SDMMC1,
 	PERIPHC_SDMMC2,
 	PERIPHC_G3D,
@@ -158,21 +160,21 @@ enum periphc_internal_id {
 
 	/* 0x20 */
 	PERIPHC_HOST1X,
-	PERIPHC_21,
+	PERIPHC_21h,
 	PERIPHC_TVO,
 	PERIPHC_HDMI,
-	PERIPHC_24,
+	PERIPHC_24h,
 	PERIPHC_TVDAC,
 	PERIPHC_I2C2,
 	PERIPHC_EMC,
 
 	/* 0x28 */
 	PERIPHC_UART3,
-	PERIPHC_29,
+	PERIPHC_29h,
 	PERIPHC_VI_SENSOR,
-	PERIPHC_2b,
-	PERIPHC_2c,
-	PERIPHC_SPI4,
+	PERIPHC_2bh,
+	PERIPHC_2ch,
+	PERIPHC_SBC4,
 	PERIPHC_I2C3,
 	PERIPHC_SDMMC3,
 
@@ -183,6 +185,44 @@ enum periphc_internal_id {
 	PERIPHC_OWR,
 	PERIPHC_NOR,
 	PERIPHC_CSITE,
+	PERIPHC_I2S0,
+	PERIPHC_37h,
+
+	PERIPHC_VW_FIRST,
+	/* 0x38 */
+	PERIPHC_G3D2 = PERIPHC_VW_FIRST,
+	PERIPHC_MSELECT,
+	PERIPHC_TSENSOR,
+	PERIPHC_I2S3,
+	PERIPHC_I2S4,
+	PERIPHC_I2C4,
+	PERIPHC_SBC5,
+	PERIPHC_SBC6,
+
+	/* 0x40 */
+	PERIPHC_AUDIO,
+	PERIPHC_41h,
+	PERIPHC_DAM0,
+	PERIPHC_DAM1,
+	PERIPHC_DAM2,
+	PERIPHC_HDA2CODEC2X,
+	PERIPHC_ACTMON,
+	PERIPHC_EXTPERIPH1,
+
+	/* 0x48 */
+	PERIPHC_EXTPERIPH2,
+	PERIPHC_EXTPERIPH3,
+	PERIPHC_NANDSPEED,
+	PERIPHC_I2CSLOW,
+	PERIPHC_SYS,
+	PERIPHC_SPEEDO,
+	PERIPHC_4eh,
+	PERIPHC_4fh,
+
+	/* 0x50 */
+	PERIPHC_SATAOOB,
+	PERIPHC_SATA,
+	PERIPHC_HDA,
 
 	PERIPHC_COUNT,
 
@@ -205,23 +245,23 @@ static enum clock_type_id clock_periph_type[PERIPHC_COUNT] = {
 	TYPE(PERIPHC_SPDIF_OUT,	CLOCK_TYPE_AXPT),
 	TYPE(PERIPHC_SPDIF_IN,	CLOCK_TYPE_PCM),
 	TYPE(PERIPHC_PWM,	CLOCK_TYPE_PCXTS),
-	TYPE(PERIPHC_SPI1,	CLOCK_TYPE_PCMT),
-	TYPE(PERIPHC_SPI22,	CLOCK_TYPE_PCMT),
-	TYPE(PERIPHC_SPI3,	CLOCK_TYPE_PCMT),
+	TYPE(PERIPHC_NONE,	CLOCK_TYPE_NONE),
+	TYPE(PERIPHC_SBC2,	CLOCK_TYPE_PCMT),
+	TYPE(PERIPHC_SBC3,	CLOCK_TYPE_PCMT),
 
 	/* 0x08 */
-	TYPE(PERIPHC_XIO,	CLOCK_TYPE_PCMT),
+	TYPE(PERIPHC_NONE,	CLOCK_TYPE_NONE),
 	TYPE(PERIPHC_I2C1,	CLOCK_TYPE_PCMT),
 	TYPE(PERIPHC_DVC_I2C,	CLOCK_TYPE_PCMT),
-	TYPE(PERIPHC_TWC,	CLOCK_TYPE_PCMT),
 	TYPE(PERIPHC_NONE,	CLOCK_TYPE_NONE),
-	TYPE(PERIPHC_SPI1,	CLOCK_TYPE_PCMT),
+	TYPE(PERIPHC_NONE,	CLOCK_TYPE_NONE),
+	TYPE(PERIPHC_SBC1,	CLOCK_TYPE_PCMT),
 	TYPE(PERIPHC_DISP1,	CLOCK_TYPE_PDCT),
 	TYPE(PERIPHC_DISP2,	CLOCK_TYPE_PDCT),
 
 	/* 0x10 */
 	TYPE(PERIPHC_CVE,	CLOCK_TYPE_PDCT),
-	TYPE(PERIPHC_IDE0,	CLOCK_TYPE_PCMT),
+	TYPE(PERIPHC_NONE,	CLOCK_TYPE_NONE),
 	TYPE(PERIPHC_VI,	CLOCK_TYPE_MCPA),
 	TYPE(PERIPHC_NONE,	CLOCK_TYPE_NONE),
 	TYPE(PERIPHC_SDMMC1,	CLOCK_TYPE_PCMT),
@@ -255,7 +295,7 @@ static enum clock_type_id clock_periph_type[PERIPHC_COUNT] = {
 	TYPE(PERIPHC_VI,	CLOCK_TYPE_MCPA),
 	TYPE(PERIPHC_NONE,	CLOCK_TYPE_NONE),
 	TYPE(PERIPHC_NONE,	CLOCK_TYPE_NONE),
-	TYPE(PERIPHC_SPI4,	CLOCK_TYPE_PCMT),
+	TYPE(PERIPHC_SBC4,	CLOCK_TYPE_PCMT),
 	TYPE(PERIPHC_I2C3,	CLOCK_TYPE_PCMT),
 	TYPE(PERIPHC_SDMMC3,	CLOCK_TYPE_PCMT),
 
@@ -266,6 +306,43 @@ static enum clock_type_id clock_periph_type[PERIPHC_COUNT] = {
 	TYPE(PERIPHC_OWR,	CLOCK_TYPE_PCMT),
 	TYPE(PERIPHC_NOR,	CLOCK_TYPE_PCMT),
 	TYPE(PERIPHC_CSITE,	CLOCK_TYPE_PCMT),
+	TYPE(PERIPHC_I2S0,	CLOCK_TYPE_AXPT),
+	TYPE(PERIPHC_NONE,	CLOCK_TYPE_NONE),
+
+	/* 0x38h */
+	TYPE(PERIPHC_G3D2,	CLOCK_TYPE_MCPA),
+	TYPE(PERIPHC_MSELECT,	CLOCK_TYPE_PCMT),
+	TYPE(PERIPHC_TSENSOR,	CLOCK_TYPE_PCM),
+	TYPE(PERIPHC_I2S3,	CLOCK_TYPE_AXPT),
+	TYPE(PERIPHC_I2S4,	CLOCK_TYPE_AXPT),
+	TYPE(PERIPHC_I2C4,	CLOCK_TYPE_PCMT),
+	TYPE(PERIPHC_SBC5,	CLOCK_TYPE_PCMT),
+	TYPE(PERIPHC_SBC6,	CLOCK_TYPE_PCMT),
+
+	/* 0x40 */
+	TYPE(PERIPHC_AUDIO,	CLOCK_TYPE_ACPT),
+	TYPE(PERIPHC_NONE,	CLOCK_TYPE_NONE),
+	TYPE(PERIPHC_DAM0,	CLOCK_TYPE_ACPT),
+	TYPE(PERIPHC_DAM1,	CLOCK_TYPE_ACPT),
+	TYPE(PERIPHC_DAM2,	CLOCK_TYPE_ACPT),
+	TYPE(PERIPHC_HDA2CODEC2X, CLOCK_TYPE_PCMT),
+	TYPE(PERIPHC_ACTMON,	CLOCK_TYPE_PCM),
+	TYPE(PERIPHC_EXTPERIPH1, CLOCK_TYPE_PCXTS),
+
+	/* 0x48 */
+	TYPE(PERIPHC_EXTPERIPH2, CLOCK_TYPE_PCXTS),
+	TYPE(PERIPHC_EXTPERIPH3, CLOCK_TYPE_PCXTS),
+	TYPE(PERIPHC_NANDSPEED,	CLOCK_TYPE_PCMT),
+	TYPE(PERIPHC_I2CSLOW,	CLOCK_TYPE_PCMT),
+	TYPE(PERIPHC_SYS,	CLOCK_TYPE_NONE),
+	TYPE(PERIPHC_SPEEDO,	CLOCK_TYPE_PCMT),
+	TYPE(PERIPHC_NONE,	CLOCK_TYPE_NONE),
+	TYPE(PERIPHC_NONE,	CLOCK_TYPE_NONE),
+
+	/* 0x50 */
+	TYPE(PERIPHC_SATAOOB,	CLOCK_TYPE_PCMT),
+	TYPE(PERIPHC_SATA,	CLOCK_TYPE_PCMT),
+	TYPE(PERIPHC_HDA,	CLOCK_TYPE_PCMT),
 };
 
 /*
@@ -281,15 +358,15 @@ static enum clock_type_id clock_periph_type[PERIPHC_COUNT] = {
 static s8 periph_id_to_internal_id[PERIPH_ID_COUNT] = {
 	/* Low word: 31:0 */
 	NONE(CPU),
-	NONE(RESERVED1),
-	NONE(RESERVED2),
-	NONE(AC97),
-	NONE(RTC),
+	NONE(COP),
+	NONE(TRIGSYS),
+	NONE(RESERVED3),
+	NONE(RESERVED4),
 	NONE(TMR),
 	PERIPHC_UART1,
 	PERIPHC_UART2,	/* and vfir 0x68 */
 
-	/* 0x08 */
+	/* 8 */
 	NONE(GPIO),
 	PERIPHC_SDMMC2,
 	NONE(SPDIF),		/* 0x08 and 0x0c, unclear which to use */
@@ -299,8 +376,8 @@ static s8 periph_id_to_internal_id[PERIPH_ID_COUNT] = {
 	PERIPHC_SDMMC1,
 	PERIPHC_SDMMC4,
 
-	/* 0x10 */
-	PERIPHC_TWC,
+	/* 16 */
+	NONE(RESERVED16),
 	PERIPHC_PWM,
 	PERIPHC_I2S2,
 	PERIPHC_EPP,
@@ -309,14 +386,14 @@ static s8 periph_id_to_internal_id[PERIPH_ID_COUNT] = {
 	NONE(USBD),
 	NONE(ISP),
 
-	/* 0x18 */
+	/* 24 */
 	PERIPHC_G3D,
-	PERIPHC_IDE0,
+	NONE(RESERVED25),
 	PERIPHC_DISP2,
 	PERIPHC_DISP1,
 	PERIPHC_HOST1X,
 	NONE(VCP),
-	NONE(RESERVED30),
+	PERIPHC_I2S0,
 	NONE(CACHE2),
 
 	/* Middle word: 63:32 */
@@ -324,32 +401,32 @@ static s8 periph_id_to_internal_id[PERIPH_ID_COUNT] = {
 	NONE(AHBDMA),
 	NONE(APBDMA),
 	NONE(RESERVED35),
-	NONE(KBC),
+	NONE(RESERVED36),
 	NONE(STAT_MON),
-	NONE(PMC),
-	NONE(FUSE),
+	NONE(RESERVED38),
+	NONE(RESERVED39),
 
-	/* 0x28 */
+	/* 40 */
 	NONE(KFUSE),
 	NONE(SBC1),	/* SBC1, 0x34, is this SPI1? */
 	PERIPHC_NOR,
-	PERIPHC_SPI1,
-	PERIPHC_SPI2,
-	PERIPHC_XIO,
-	PERIPHC_SPI3,
+	NONE(RESERVED43),
+	PERIPHC_SBC2,
+	NONE(RESERVED45),
+	PERIPHC_SBC3,
 	PERIPHC_DVC_I2C,
 
-	/* 0x30 */
+	/* 48 */
 	NONE(DSI),
 	PERIPHC_TVO,	/* also CVE 0x40 */
 	PERIPHC_MIPI,
 	PERIPHC_HDMI,
-	PERIPHC_CSITE,
+	NONE(CSI),
 	PERIPHC_TVDAC,
 	PERIPHC_I2C2,
 	PERIPHC_UART3,
 
-	/* 0x38 */
+	/* 56 */
 	NONE(RESERVED56),
 	PERIPHC_EMC,
 	NONE(USB2),
@@ -360,37 +437,104 @@ static s8 periph_id_to_internal_id[PERIPH_ID_COUNT] = {
 	NONE(BSEV),
 
 	/* Upper word 95:64 */
-	NONE(SPEEDO),
+	PERIPHC_SPEEDO,
 	PERIPHC_UART4,
 	PERIPHC_UART5,
 	PERIPHC_I2C3,
-	PERIPHC_SPI4,
+	PERIPHC_SBC4,
 	PERIPHC_SDMMC3,
 	NONE(PCIE),
 	PERIPHC_OWR,
 
-	/* 0x48 */
+	/* 72 */
 	NONE(AFI),
-	NONE(CORESIGHT),
-	NONE(RESERVED74),
+	PERIPHC_CSITE,
+	NONE(PCIEXCLK),
 	NONE(AVPUCQ),
 	NONE(RESERVED76),
 	NONE(RESERVED77),
 	NONE(RESERVED78),
-	NONE(RESERVED79),
+	NONE(DTV),
 
-	/* 0x50 */
-	NONE(RESERVED80),
-	NONE(RESERVED81),
-	NONE(RESERVED82),
+	/* 80 */
+	PERIPHC_NANDSPEED,
+	PERIPHC_I2CSLOW,
+	NONE(DSIB),
 	NONE(RESERVED83),
 	NONE(IRAMA),
 	NONE(IRAMB),
 	NONE(IRAMC),
 	NONE(IRAMD),
 
-	/* 0x58 */
+	/* 88 */
 	NONE(CRAM2),
+	NONE(RESERVED89),
+	NONE(MDOUBLER),
+	NONE(RESERVED91),
+	NONE(SUSOUT),
+	NONE(RESERVED93),
+	NONE(RESERVED94),
+	NONE(RESERVED95),
+
+	/* V word: 31:0 */
+	NONE(CPUG),
+	NONE(CPULP),
+	PERIPHC_G3D2,
+	PERIPHC_MSELECT,
+	PERIPHC_TSENSOR,
+	PERIPHC_I2S3,
+	PERIPHC_I2S4,
+	PERIPHC_I2C4,
+
+	/* 08 */
+	PERIPHC_SBC5,
+	PERIPHC_SBC6,
+	PERIPHC_AUDIO,
+	NONE(APBIF),
+	PERIPHC_DAM0,
+	PERIPHC_DAM1,
+	PERIPHC_DAM2,
+	PERIPHC_HDA2CODEC2X,
+
+	/* 16 */
+	NONE(ATOMICS),
+	NONE(RESERVED17),
+	NONE(RESERVED18),
+	NONE(RESERVED19),
+	NONE(RESERVED20),
+	NONE(RESERVED21),
+	NONE(RESERVED22),
+	PERIPHC_ACTMON,
+
+	/* 24 */
+	NONE(RESERVED24),
+	NONE(RESERVED25),
+	NONE(RESERVED26),
+	NONE(RESERVED27),
+	PERIPHC_SATA,
+	PERIPHC_HDA,
+	NONE(RESERVED30),
+	NONE(RESERVED31),
+
+	/* W word: 31:0 */
+	NONE(HDA2HDMICODEC),
+	NONE(SATACOLD),
+	NONE(RESERVED0_PCIERX0),
+	NONE(RESERVED1_PCIERX1),
+	NONE(RESERVED2_PCIERX2),
+	NONE(RESERVED3_PCIERX3),
+	NONE(RESERVED4_PCIERX4),
+	NONE(RESERVED5_PCIERX5),
+
+	/* 40 */
+	NONE(CEC),
+	NONE(RESERVED6_PCIE2),
+	NONE(RESERVED7_EMC),
+	NONE(RESERVED8_HDMI),
+	NONE(RESERVED9_SATA),
+	NONE(RESERVED10_MIPI),
+	NONE(EX_RESERVED46),
+	NONE(EX_RESERVED47),
 };
 
 /*
@@ -460,7 +604,11 @@ static u32 *get_periph_source_reg(enum periph_id periph_id)
 	assert(periph_id >= PERIPH_ID_FIRST && periph_id < PERIPH_ID_COUNT);
 	internal_id = periph_id_to_internal_id[periph_id];
 	assert(internal_id != -1);
-	return &clkrst->crc_clk_src[internal_id];
+	if (internal_id >= PERIPHC_VW_FIRST) {
+		internal_id -= PERIPHC_VW_FIRST;
+		return &clkrst->crc_clk_src_vw[internal_id];
+	} else
+		return &clkrst->crc_clk_src[internal_id];
 }
 
 void clock_ll_set_source_divisor(enum periph_id periph_id, int source,
@@ -701,11 +849,15 @@ void clock_set_enable(enum periph_id periph_id, int enable)
 {
 	struct clk_rst_ctlr *clkrst =
 			(struct clk_rst_ctlr *)NV_PA_CLK_RST_BASE;
-	u32 *clk = &clkrst->crc_clk_out_enb[PERIPH_REG(periph_id)];
+	u32 *clk;
 	u32 reg;
 
 	/* Enable/disable the clock to this peripheral */
 	assert(clock_periph_id_isvalid(periph_id));
+	if ((int)periph_id < (int)PERIPH_ID_VW_FIRST)
+		clk = &clkrst->crc_clk_out_enb[PERIPH_REG(periph_id)];
+	else
+		clk = &clkrst->crc_clk_out_enb_vw[PERIPH_REG(periph_id)];
 	reg = readl(clk);
 	if (enable)
 		reg |= PERIPH_MASK(periph_id);
@@ -728,11 +880,15 @@ void reset_set_enable(enum periph_id periph_id, int enable)
 {
 	struct clk_rst_ctlr *clkrst =
 			(struct clk_rst_ctlr *)NV_PA_CLK_RST_BASE;
-	u32 *reset = &clkrst->crc_rst_dev[PERIPH_REG(periph_id)];
+	u32 *reset;
 	u32 reg;
 
 	/* Enable/disable reset to the peripheral */
 	assert(clock_periph_id_isvalid(periph_id));
+	if (periph_id < PERIPH_ID_VW_FIRST)
+		reset = &clkrst->crc_rst_dev[PERIPH_REG(periph_id)];
+	else
+		reset = &clkrst->crc_rst_dev_vw[PERIPH_REG(periph_id)];
 	reg = readl(reset);
 	if (enable)
 		reg |= PERIPH_MASK(periph_id);
@@ -759,15 +915,15 @@ void reset_cmplx_set_enable(int cpu, int which, int reset)
 			(struct clk_rst_ctlr *)NV_PA_CLK_RST_BASE;
 	u32 mask;
 
-	/* Form the mask, which depends on the cpu chosen. Tegra2 has 2 */
-	assert(cpu >= 0 && cpu < 2);
+	/* Form the mask, which depends on the cpu chosen. Tegra3 has 4 */
+	assert(cpu >= 0 && cpu < 4);
 	mask = which << cpu;
 
 	/* either enable or disable those reset for that CPU */
 	if (reset)
-		writel(mask, &clkrst->crc_cpu_cmplx_set);
+		writel(mask, &clkrst->crc_rst_cpu_cmplx_set);
 	else
-		writel(mask, &clkrst->crc_cpu_cmplx_clr);
+		writel(mask, &clkrst->crc_rst_cpu_cmplx_clr);
 }
 
 unsigned clock_get_rate(enum clock_id clkid)
@@ -802,7 +958,7 @@ unsigned clock_get_rate(enum clock_id clkid)
  *     where Fo is the output frequency from the PLL.
  * Example: Set the output frequency to 216Mhz(Fo) with 12Mhz OSC(Fi)
  *     216Mhz = ((12Mhz / m) * n) / (2^p) so n=432,m=12,p=1
- * Please see Tegra TRM section 5.3 to get the detail for PLL Programming
+ * Please see Tegra TRM PLL Programming section to get the detail
  *
  * @param n PLL feedback divider(DIVN)
  * @param m PLL input divider(DIVN)

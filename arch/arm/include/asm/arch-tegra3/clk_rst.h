@@ -47,8 +47,10 @@ struct clk_pll_simple {
 enum {
 	TEGRA_CLK_PLLS		= 6,	/* Number of normal PLLs */
 	TEGRA_CLK_SIMPLE_PLLS	= 3,	/* Number of simple PLLs */
-	TEGRA_CLK_REGS		= 3,	/* Number of clock enable registers */
-	TEGRA_CLK_SOURCES	= 64,	/* Number of peripheral clock sources */
+	TEGRA_CLK_REGS		= 3,	/* Number of clock enable regs L/H/U */
+	TEGRA_CLK_SOURCES	= 64,	/* Number of ppl clock sources L/H/U */
+	TEGRA_CLK_REGS_VW	= 2,	/* Number of clock enable regs V/W */
+	TEGRA_CLK_SOURCES_VW	= 32,	/* Number of ppl clock sources V/W*/
 };
 
 /* Clock/Reset Controller (CLK_RST_CONTROLLER_) regs */
@@ -85,8 +87,22 @@ struct clk_rst_ctlr {
 
 	uint crc_clk_src[TEGRA_CLK_SOURCES]; /*_I2S1_0...	0x100-1fc */
 	uint crc_reserved20[80];	/*			0x200-33C */
-	uint crc_cpu_cmplx_set;		/* _CPU_CMPLX_SET_0,	0x340	  */
-	uint crc_cpu_cmplx_clr;		/* _CPU_CMPLX_CLR_0,	0x344     */
+	uint crc_rst_cpu_cmplx_set;	/* _RST_CPU_CMPLX_SET_0,    0x340 */
+	uint crc_rst_cpu_cmplx_clr;	/* _RST_CPU_CMPLX_CLR_0,    0x344 */
+	uint crc_clk_cpu_cmplx_set;	/* _CLK_CPU_CMPLX_SET_0,    0x348 */
+	uint crc_clk_cpu_cmplx_clr;	/* _CLK_CPU_CMPLX_SET_0,    0x34c */
+	uint crc_reserved30[2];		/* _reserved_30,      0x350,0x354 */
+	uint crc_rst_dev_vw[TEGRA_CLK_REGS_VW]; /* _RST_DEVICES_V/W_0 */
+	uint crc_clk_out_enb_vw[TEGRA_CLK_REGS_VW]; /* _CLK_OUT_ENB_V/W_0 */
+	uint crc_cclkg_brst_pol;	/* _CCLKG_BURST_POLICY_0,   0x368 */
+	uint crc_super_cclkg_div;	/* _SUPER_CCLKG_DIVIDER_0,  0x36C */
+	uint crc_cclklp_brst_pol;	/* _CCLKLP_BURST_POLICY_0,  0x370 */
+	uint crc_super_cclkp_div;	/* _SUPER_CCLKLP_DIVIDER_0, 0x374 */
+	uint crc_clk_cpug_cmplx;	/* _CLK_CPUG_CMPLX_0,       0x378 */
+	uint crc_clk_cpulp_cmplx;	/* _CLK_CPULP_CMPLX_0,      0x37C */
+	uint crc_cpu_softrst_ctrl;	/* _CPU_SOFTRST_CTRL_0,     0x380 */
+	uint crc_creserved31[11];	/* _reserved_31,        0x384-3ac */
+	uint crc_clk_src_vw[TEGRA_CLK_SOURCES_VW]; /* _G3D2_0..., 0x3b0-0x42c */
 };
 
 /* CLK_RST_CONTROLLER_CLK_CPU_CMPLX_0 */
