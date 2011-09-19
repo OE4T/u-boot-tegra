@@ -29,6 +29,7 @@
 #include <asm/arch/pwfm.h>
 #include <asm/arch/display.h>
 #include <asm/system.h>
+#include <asm/io.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -56,13 +57,29 @@ ushort lcd_cursor_height;
 static void clk_init(void)
 {
 	/* TODO: Put this into the FDT when we have clock support there */
+#if defined(CONFIG_TEGRA2)
 	clock_start_periph_pll(PERIPH_ID_3D, CLOCK_ID_MEMORY, CLK_300M);
 	clock_start_periph_pll(PERIPH_ID_2D, CLOCK_ID_MEMORY, CLK_300M);
 	clock_start_periph_pll(PERIPH_ID_HOST1X, CLOCK_ID_PERIPH, CLK_144M);
 	clock_start_periph_pll(PERIPH_ID_DISP1, CLOCK_ID_CGENERAL, CLK_600M);
 	clock_start_periph_pll(PERIPH_ID_PWM, CLOCK_ID_SFROM32KHZ, CLK_32768);
+#endif
+
+#if defined(CONFIG_TEGRA3)
+	clock_start_periph_pll(PERIPH_ID_VI, CLOCK_ID_CGENERAL, CLK_228M);
+	clock_start_periph_pll(PERIPH_ID_3D, CLOCK_ID_CGENERAL, CLK_228M);
+	clock_start_periph_pll(PERIPH_ID_2D, CLOCK_ID_CGENERAL, CLK_228M);
+	clock_start_periph_pll(PERIPH_ID_HOST1X, CLOCK_ID_CGENERAL, CLK_114M);
+	clock_start_periph_pll(PERIPH_ID_3D2, CLOCK_ID_CGENERAL, CLK_228M);
+	clock_start_periph_pll(PERIPH_ID_EPP, CLOCK_ID_CGENERAL, CLK_228M);
+	clock_start_periph_pll(PERIPH_ID_VDE, CLOCK_ID_CGENERAL, CLK_228M);
+	clock_start_periph_pll(PERIPH_ID_MPE, CLOCK_ID_CGENERAL, CLK_228M);
+	clock_start_periph_pll(PERIPH_ID_DISP1, CLOCK_ID_PERIPH, CLK_408M);
+	clock_start_periph_pll(PERIPH_ID_PWM, CLOCK_ID_PERIPH, CLK_3_1875M);
+#endif
 }
 
+#if defined(CONFIG_TEGRA2)
 /*
  * The PINMUX macro is used per board to setup the pinmux configuration.
  */
@@ -105,6 +122,7 @@ struct pingroup_config pinmux_cros_1[] = {
 	PINMUX(LVS,   DISPA,      NORMAL,    NORMAL),
 	PINMUX(SLXD,  SPDIF,      NORMAL,    NORMAL),
 };
+#endif
 
 /* Initialize the Tegra LCD panel and controller */
 void init_lcd(struct fdt_lcd *config)
@@ -112,7 +130,9 @@ void init_lcd(struct fdt_lcd *config)
 	clk_init();
 
 	/* TODO: put pinmux into the FDT */
+#if defined(CONFIG_TEGRA2)
 	pinmux_config_table(pinmux_cros_1, ARRAY_SIZE(pinmux_cros_1));
+#endif
 	power_enable_partition(POWERP_3D);
 	fdt_setup_gpios(config->gpios);
 

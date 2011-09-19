@@ -34,13 +34,13 @@ void power_enable_partition(enum power_partition_id id)
 	enum power_partition_id clamp_id = id;
 
 	/* The order of these operations is important */
-	reset_set_enable(id, 1);
+	reset_set_enable(PERIPH_ID_3D, 1);
 
 	/* Turn the power gate on if it's not on already */
 	if (!(readl(&pmc->pmc_pwrgate_status) & (1 << id)))
 		writel(PWRGATE_ENABLE | id, &pmc->pmc_pwrgate_toggle);
 
-	clock_enable(id);
+	clock_enable(PERIPH_ID_3D);
 	udelay(10);
 
 	/* The SOC switches these IDs for clamping */
@@ -50,5 +50,5 @@ void power_enable_partition(enum power_partition_id id)
 		clamp_id = POWERP_PCI;
 	writel(1 << clamp_id, &pmc->pmc_remove_clamping);
 
-	reset_set_enable(id, 0);
+	reset_set_enable(PERIPH_ID_3D, 0);
 }
