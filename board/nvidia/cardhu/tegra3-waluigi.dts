@@ -54,6 +54,7 @@
 		status = "ok";
 		width = <4>;	/* width of SDIO port */
 		removable = <0>;
+		power-gpio = <&gpio 25 3>; /* power enable, gpio PD1 */
 	};
 
 	lcd {
