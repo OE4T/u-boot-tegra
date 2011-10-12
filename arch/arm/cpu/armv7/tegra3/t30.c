@@ -1241,6 +1241,9 @@ uart_post('8'); uart_post('.'); uart_post(' ');
   Reg = NV_CAR_REGR(CLK_RST_PA_BASE, CLK_SOURCE_MSELECT);
   Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, CLK_SOURCE_MSELECT,
           MSELECT_CLK_SRC, PLLP_OUT0, Reg);
+	/* Switch MSELECT clock divisor to 2, nvbug 881184 as per Joseph Lo */
+	Reg &= 0xFFFFFF00;
+	Reg |= 0x00000002;
   NV_CAR_REGW(CLK_RST_PA_BASE, CLK_SOURCE_MSELECT, Reg);
 
 #if PMU_IGNORE_PWRREQ
@@ -1253,7 +1256,7 @@ uart_post('8'); uart_post('.'); uart_post(' ');
   // Give clocks time to stabilize.
   AvpStallMs(1);
 
-  // Take requried peripherals out of reset.
+  // Take required peripherals out of reset.
   Reg = NV_CAR_REGR(CLK_RST_PA_BASE, RST_DEVICES_L);
   Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, RST_DEVICES_L, SWR_CACHE2_RST, DISABLE, Reg);
   // Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, RST_DEVICES_L, SWR_I2S0_RST, DISABLE, Reg);
@@ -1353,7 +1356,7 @@ uart_post('8'); uart_post('.'); uart_post(' ');
   // Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, RST_DEVICES_V, SWR_TSENSOR_RST, ENABLE, Reg);
   Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, RST_DEVICES_V, SWR_MSELECT_RST, DISABLE, Reg);
   // Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, RST_DEVICES_V, SWR_3D2_RST, ENABLE, Reg);
-  // Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, RST_DEVICES_V, SWR_CPULP_RST, ENABLE, Reg);
+  Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, RST_DEVICES_V, SWR_CPULP_RST, DISABLE, Reg);
   // Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, RST_DEVICES_V, SWR_CPUG_RST, ENABLE, Reg);
   NV_CAR_REGW(CLK_RST_PA_BASE, RST_DEVICES_V, Reg);
 
