@@ -68,6 +68,7 @@
 #define CONFIG_SKIP_LOWLEVEL_INIT
 
 #define CONFIG_CMDLINE_TAG		/* enable passing of ATAGs */
+#define CONFIG_INITRD_TAG		/* enable initrd ATAG */
 
 /*
  * Size of malloc() pool
