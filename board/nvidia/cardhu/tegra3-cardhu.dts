@@ -81,6 +81,7 @@
 	usb@0x7d000000 {
 		status = "ok";
 		host-mode = <1>;
+		vbus_pullup-gpio = <&gpio 233 3>;	/* PDD1, EN_3V3_PU */
 	};
 
 	usbphy: usbphy@0 {
