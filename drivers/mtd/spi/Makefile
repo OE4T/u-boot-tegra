@@ -26,7 +26,7 @@ include $(TOPDIR)/config.mk
 LIB	:= $(obj)libspi_flash.o
 
 COBJS-$(CONFIG_SPI_FLASH)	+= spi_flash.o
-COBJS-$(CONFIG_SPI_FLASH_ATMEL)	+= atmel.o
+COBJS-$(CONFIG_SPI_FLASH_ATMEL)	+= atmel_25DF.o
 COBJS-$(CONFIG_SPI_FLASH_EON)	+= eon.o
 COBJS-$(CONFIG_SPI_FLASH_MACRONIX)	+= macronix.o
 COBJS-$(CONFIG_SPI_FLASH_SPANSION)	+= spansion.o
