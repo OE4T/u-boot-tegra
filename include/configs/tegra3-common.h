@@ -142,11 +142,9 @@
 #define CONFIG_EFI_PARTITION
 #define CONFIG_CMD_EXT2
 
-#if	0			//TCW disable USB for kernel debug
 /* support USB ethernet adapters */
 #define CONFIG_USB_HOST_ETHER
 #define CONFIG_USB_ETHER_ASIX
-#endif	//0			//TCW disable USB for kernel debug
 
 /* include default commands */
 #include <config_cmd_default.h>
