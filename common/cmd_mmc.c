@@ -195,14 +195,30 @@ int do_mmcops(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			u32 n;
 			u32 blk = simple_strtoul(argv[4], NULL, 16);
 			struct mmc *mmc = find_mmc_device(dev);
+			u8 set, index;
+			u8 value = EXT_CSD_USER_PARTITION;
 
+			set = EXT_CSD_CMD_SET_NORMAL;
+			index = EXT_CSD_PARTITION_CONFIG;
 			if (!mmc)
 				return 1;
+			if (argv[6] == NULL || strcmp(argv[6], "user") == 0)
+				printf("MMC: read from  user_partition.");
+			else if (strcmp(argv[6], "boot1") == 0) {
+				printf("MMC: read from  boot_partition_1.");
+				value = EXT_CSD_BOOT_PARTITION_1;
+			} else if (strcmp(argv[6], "boot2") == 0) {
+				printf("MMC: read from  boot_partition_2.");
+				value = EXT_CSD_BOOT_PARTITION_2;
+			} else
+				printf("MMC: read from  user_partition.");
 
 			printf("\nMMC read: dev # %d, block # %d, count %d ... ",
 				dev, blk, cnt);
 
 			mmc_init(mmc);
+
+			mmc_switch(mmc, set, index, value);
 
 			n = mmc->block_dev.block_read(dev, blk, cnt, addr);
 
@@ -218,16 +234,33 @@ int do_mmcops(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			u32 cnt = simple_strtoul(argv[5], NULL, 16);
 			u32 n;
 			struct mmc *mmc = find_mmc_device(dev);
+			u8 set, index;
+			u8 value = EXT_CSD_USER_PARTITION;
+
+			set = EXT_CSD_CMD_SET_NORMAL;
+			index = EXT_CSD_PARTITION_CONFIG;
 
 			int blk = simple_strtoul(argv[4], NULL, 16);
 
 			if (!mmc)
 				return 1;
+			if (argv[6] == NULL || strcmp(argv[6], "user") == 0)
+				printf("MMC: write to  user_partition.");
+			else if (strcmp(argv[6], "boot1") == 0) {
+				printf("MMC: write to  boot_partition_1.");
+				value = EXT_CSD_BOOT_PARTITION_1;
+			} else if (strcmp(argv[6], "boot2") == 0) {
+				printf("MMC: write to  boot_partition_2.");
+				value = EXT_CSD_BOOT_PARTITION_2;
+			} else
+				printf("MMC: write to  user_partition.");
 
 			printf("\nMMC write: dev # %d, block # %d, count %d ... ",
 				dev, blk, cnt);
 
 			mmc_init(mmc);
+
+			mmc_switch(mmc, set, index, value);
 
 			n = mmc->block_dev.block_write(dev, blk, cnt, addr);
 
@@ -242,10 +275,11 @@ int do_mmcops(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 }
 
 U_BOOT_CMD(
-	mmc, 6, 1, do_mmcops,
+	mmc, 7, 1, do_mmcops,
 	"MMC sub system",
-	"read <device num> addr blk# cnt\n"
-	"mmc write <device num> addr blk# cnt\n"
+	"read <device num> addr blk# cnt [boot1 | boot2 | user]\n"
+	"mmc write <device num> addr blk# cnt [boot1 | boot2 | user]\n"
+	"    for read/write, user partition is selected by default.\n"
 	"mmc rescan <device num>\n"
 	"mmc part <device num> - lists available partition on mmc\n"
 	"mmc list - lists available devices");

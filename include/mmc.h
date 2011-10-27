@@ -128,6 +128,7 @@
  * EXT_CSD fields
  */
 
+#define EXT_CSD_PARTITION_CONFIG	179	/* R/W */
 #define EXT_CSD_BUS_WIDTH	183	/* R/W */
 #define EXT_CSD_HS_TIMING	185	/* R/W */
 #define EXT_CSD_CARD_TYPE	196	/* RO */
@@ -148,6 +149,10 @@
 #define EXT_CSD_BUS_WIDTH_1	0	/* Card is in 1 bit mode */
 #define EXT_CSD_BUS_WIDTH_4	1	/* Card is in 4 bit mode */
 #define EXT_CSD_BUS_WIDTH_8	2	/* Card is in 8 bit mode */
+
+#define EXT_CSD_USER_PARTITION		0	/* No access boot partition */
+#define EXT_CSD_BOOT_PARTITION_1	1	/* R/W boot partition 1 */
+#define EXT_CSD_BOOT_PARTITION_2	2	/* R/W boot partition 2 */
 
 #define R1_ILLEGAL_COMMAND		(1 << 22)
 #define R1_APP_CMD			(1 << 5)
@@ -288,6 +293,7 @@ struct mmc *find_mmc_device(int dev_num);
 int mmc_set_dev(int dev_num);
 void print_mmc_devices(char separator);
 int board_mmc_getcd(u8 *cd, struct mmc *mmc);
+int mmc_switch(struct mmc *mmc, u8 set, u8 index, u8 value);
 
 #ifdef CONFIG_GENERIC_MMC
 int atmel_mci_init(void *regs);
