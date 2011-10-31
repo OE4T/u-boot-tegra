@@ -76,7 +76,13 @@
 
 #define CONFIG_TEGRA_SERIAL_HIGH	CONFIG_BOARD_ID_HIGH_A04
 #define CONFIG_TEGRA_SERIAL_LOW		CONFIG_BOARD_ID_LOW_A04
-/* TODO: retrieve board id from eeprom */
+
+/* The following are used to retrieve the board id from an eeprom */
+#define CONFIG_SERIAL_EEPROM
+#define EEPROM_I2C_BUS		0
+#define EEPROM_I2C_ADDRESS	0x56
+#define EEPROM_SERIAL_OFFSET	0x04
+#define NUM_SERIAL_ID_BYTES	8
 
 #ifndef CONFIG_OF_CONTROL
 /* Things in here are defined by the device tree now. Let it grow! */

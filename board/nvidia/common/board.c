@@ -477,7 +477,50 @@ void get_board_serial(struct tag_serialnr *serialnr)
 	/* pass board id to kernel */
 	serialnr->high = CONFIG_TEGRA_SERIAL_HIGH;
 	serialnr->low = CONFIG_TEGRA_SERIAL_LOW;
-
 	/* TODO: use FDT */
-}
+
+	debug("Config file serialnr->high = %08X, ->low = %08X\n",
+		serialnr->high, serialnr->low);
+
+	/*
+	 * Check if we can read the EEPROM serial number
+	 *  and if so, use it instead.
+	 */
+
+#if !defined(CONFIG_SERIAL_EEPROM)
+	debug("No serial EEPROM onboard, using default values\n");
+	return;
+#else
+	uchar data_buffer[NUM_SERIAL_ID_BYTES];
+
+	i2c_set_bus_num(EEPROM_I2C_BUS);
+
+	if (i2c_read(EEPROM_I2C_ADDRESS, EEPROM_SERIAL_OFFSET,
+		1, data_buffer, NUM_SERIAL_ID_BYTES)) {
+		printf("%s: I2C read of bus %d chip %d addr %d failed!\n",
+			__func__, EEPROM_I2C_BUS, EEPROM_I2C_ADDRESS,
+			EEPROM_SERIAL_OFFSET);
+	} else {
+#ifdef DEBUG
+		int i;
+		printf("get_board_serial: Got ");
+		for (i = 0; i < NUM_SERIAL_ID_BYTES; i++)
+			printf("%02X:", data_buffer[i]);
+		printf("\n");
 #endif
+		serialnr->high = data_buffer[2];
+		serialnr->high |= (u32)data_buffer[3] << 8;
+		serialnr->high |= (u32)data_buffer[0] << 16;
+		serialnr->high |= (u32)data_buffer[1] << 24;
+
+		serialnr->low = data_buffer[7];
+		serialnr->low |= (u32)data_buffer[6] << 8;
+		serialnr->low |= (u32)data_buffer[5] << 16;
+		serialnr->low |= (u32)data_buffer[4] << 24;
+
+		debug("SEEPROM serialnr->high = %08X, ->low = %08X\n",
+			serialnr->high, serialnr->low);
+	}
+#endif	/* SERIAL_EEPROM */
+}
+#endif	/* SERIAL_TAG */
