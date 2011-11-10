@@ -700,7 +700,7 @@ unsigned clock_adjust_periph_pll_div(enum periph_id periph_id,
 	if (extra_div)
 		effective_rate /= *extra_div;
 	if (rate != effective_rate)
-		printf("Requested clock rate %u not honored (got %u)\n",
+		debug("Requested clock rate %u not honored (got %u)\n",
 		       rate, effective_rate);
 	return effective_rate;
 }
