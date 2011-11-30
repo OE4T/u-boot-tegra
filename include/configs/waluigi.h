@@ -46,7 +46,8 @@
 #define CONFIG_EXTRA_BOOTARGS \
 	"panel=lvds " \
 	"tegraid=30.1.2.0.0 " \
-	"debug_uartport=lsport\0" \
+	"debug_uartport=lsport " \
+	"max_cpu_cur_ma=10000\0"
 
 #include "tegra3-common.h"
 
