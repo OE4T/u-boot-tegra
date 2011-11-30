@@ -342,6 +342,7 @@ static int full_init(struct eth_device *eth)
 	}
 
 	rx_ctl = asix_read_rx_ctl(dev);
+	rx_ctl = rx_ctl;
 	debug("RX_CTL is 0x%04x after software reset\n", rx_ctl);
 	if (asix_write_rx_ctl(dev, 0x0000) < 0)
 		goto out_err;

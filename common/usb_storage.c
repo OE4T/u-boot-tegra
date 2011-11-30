@@ -479,6 +479,7 @@ static int usb_stor_CB_reset(struct us_data *us)
 				 USB_TYPE_CLASS | USB_RECIP_INTERFACE,
 				 0, us->ifnum, cmd, sizeof(cmd),
 				 USB_CNTL_TIMEOUT * 5);
+	result = result;
 
 	/* long wait for reset */
 	wait_ms(1500);

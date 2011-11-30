@@ -345,12 +345,9 @@ static void power_up_port(struct usb_ctlr *usbctlr)
 
 static void config_clock(const int params[])
 {
-	unsigned stable_time;
-
-	stable_time = clock_start_pll(CLOCK_ID_USB,
+	clock_start_pll(CLOCK_ID_USB,
 		params[PARAM_DIVM], params[PARAM_DIVN], params[PARAM_DIVP],
 		params[PARAM_CPCON], params[PARAM_LFCON]);
-	/* TODO: what should we do with stable_time? */
 }
 
 /**

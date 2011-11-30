@@ -387,6 +387,7 @@ int usb_parse_config(struct usb_device *dev, unsigned char *buffer, int cfgno)
 
 			{
 				ch = (unsigned char *)head;
+				ch = ch;
 				for (i = 0; i < head->bLength; i++)
 					USB_PRINTF("%02X ", *ch++);
 				USB_PRINTF("\n\n\n");
@@ -1223,6 +1224,7 @@ void usb_hub_port_connect_change(struct usb_device *dev, int port)
 
 	portstatus = le16_to_cpu(portsts.wPortStatus);
 	portchange = le16_to_cpu(portsts.wPortChange);
+	portchange = portchange;
 	USB_HUB_PRINTF("portstatus %x, change %x, %s\n",
 			portstatus, portchange, portspeed(portstatus));
 
@@ -1376,6 +1378,7 @@ int usb_hub_configure(struct usb_device *dev)
 	}
 
 	hubsts = (struct usb_hub_status *)buffer;
+	hubsts = hubsts;
 	USB_HUB_PRINTF("get_hub_status returned status %X, change %X\n",
 			le16_to_cpu(hubsts->wHubStatus),
 			le16_to_cpu(hubsts->wHubChange));

@@ -1,43 +1,24 @@
-/** @file
-  C Entry point for the SEC. First C code after the reset vector.
-
-  Copyright (c) 2008 - 2009, Nvidia Inc. All rights reserved.<BR>
-  
-  This program and the accompanying materials
-  are licensed and made available under the terms and conditions of the BSD License
-  which accompanies this distribution.  The full text of the license may be found at
-  http://opensource.org/licenses/bsd-license.php
-
-  THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
-  WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
-
-**/
-
-#if 0
-#include <PiPei.h>
-
-#include <artimerus.h>
-#include <arclk_rst.h>
-#include <artimerus.h>
-#include <arcsite.h>
-#include <arflow_ctlr.h>
-#include <arapb_misc.h>
-#include <arfuse.h>
-#include <arapbpm.h>
-#include <arcsite.h>
-#include <arevp.h>
-#include <ari2c.h>
-#include <arscu.h>
-#include <arapb_misc.h>
-#include <NvMacro.h>
-#include <NvRm/nvrm_drf.h>
-#include <NvRm/reg_access.h>
-
-#include "LzmaDecompress.h"
-#include "LnvBootRomStruct.h"
-#include "Library/NvTegraVersionLib.h"
-#include "Library/NvTegraMpLib.h"
-#else
+/*
+ * (C) Copyright 2008-2011 NVIDIA Corporation <www.nvidia.com>
+ *
+ * See file CREDITS for list of people who contributed to this
+ * project.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
+ * the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+ * MA 02111-1307 USA
+ */
 
 #include <common.h>
 #include "t30.h"
@@ -48,10 +29,7 @@
     };               \
 }
 
-#endif
-
 #define PMU_IGNORE_PWRREQ 1
-
 
 UINT32 NvBlAvpQueryBootCpuFrequency( void )
 {
@@ -509,13 +487,11 @@ VOID InitPllP(NvBootClocksOscFreq OscFreq)
 		| NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_DIVN, 0x198)
 #else
                    | NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_DIVP, 0x1)
-//                   | NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_DIVN, 0xD8)
                    | NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_DIVN, 0x1B0)
 #endif
                    | NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_DIVM, 0x0C);
-//              Misc = NV_DRF_NUM(CLK_RST_CONTROLLER, PLLC_MISC, PLLC_CPCON, 8);
-      Misc = NV_FLD_SET_DRF_NUM(CLK_RST_CONTROLLER, PLLP_MISC, PLLP_CPCON, 8, Misc);
-  Misc = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, PLLP_MISC, PLLP_LOCK_ENABLE, DISABLE, Misc);
+		Misc = NV_FLD_SET_DRF_NUM(CLK_RST_CONTROLLER, PLLP_MISC, PLLP_CPCON, 8, Misc);
+		Misc = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, PLLP_MISC, PLLP_LOCK_ENABLE, DISABLE, Misc);
               break;
 
           case NvBootClocksOscFreq_26:
@@ -907,16 +883,11 @@ void set_avp_clock_to_clkm(void)
 }
 #endif
 
-//VOID ClockInitT30( const NvRmChipId* ChipId)
 VOID ClockInitT30(void)
 {
   const NvBootInfoTable*  pBootInfo;      // Boot Information Table pointer
   NvBootClocksOscFreq     OscFreq;        // Oscillator frequency
   UINT32                   Reg;            // Temporary register
-//  UINT32                   OscCtrl;        // Oscillator control register
-//  UINT32                   OscStrength;    // Oscillator Drive Strength
-  UINT32                   UsecCfg;        // Usec timer configuration register
-  UINT32                   PllRefDiv;      // PLL reference divider
   NvBlCpuClusterId        CpuClusterId;   // Boot CPU cluster id
 
   // Get a pointer to the Boot Information Table.
@@ -924,56 +895,6 @@ VOID ClockInitT30(void)
 
   // Get the oscillator frequency.
   OscFreq = pBootInfo->OscFrequency;
-
-  // For most oscillator frequencies, the PLL reference divider is 1.
-  // Frequencies that require a different reference divider will set
-  // it below.
-  PllRefDiv = CLK_RST_CONTROLLER_OSC_CTRL_0_PLL_REF_DIV_DIV1;
-
-  // Set up the oscillator dependent registers.
-  // NOTE: Don't try to replace this switch statement with an array lookup.
-  //       Can't use global arrays here because the data segment isn't valid yet.
-  switch (OscFreq)
-  {
-      default:
-          // Fall Through -- this is what the boot ROM does.
-      case NvBootClocksOscFreq_13:
-          UsecCfg = NV_DRF_NUM(TIMERUS_USEC, CFG, USEC_DIVIDEND, (1-1))
-                  | NV_DRF_NUM(TIMERUS_USEC, CFG, USEC_DIVISOR, (13-1));
-          break;
-
-      case NvBootClocksOscFreq_19_2:
-          UsecCfg = NV_DRF_NUM(TIMERUS_USEC, CFG, USEC_DIVIDEND, (5-1))
-                  | NV_DRF_NUM(TIMERUS_USEC, CFG, USEC_DIVISOR, (96-1));
-          break;
-
-      case NvBootClocksOscFreq_12:
-          UsecCfg = NV_DRF_NUM(TIMERUS_USEC, CFG, USEC_DIVIDEND, (1-1))
-                  | NV_DRF_NUM(TIMERUS_USEC, CFG, USEC_DIVISOR, (12-1));
-          break;
-
-      case NvBootClocksOscFreq_26:
-          UsecCfg = NV_DRF_NUM(TIMERUS_USEC, CFG, USEC_DIVIDEND, (1-1))
-                  | NV_DRF_NUM(TIMERUS_USEC, CFG, USEC_DIVISOR, (26-1));
-          break;
-
-      case NvBootClocksOscFreq_16_8:
-          UsecCfg = NV_DRF_NUM(TIMERUS_USEC, CFG, USEC_DIVIDEND, (5-1))
-                  | NV_DRF_NUM(TIMERUS_USEC, CFG, USEC_DIVISOR, (84-1));
-          break;
-
-      case NvBootClocksOscFreq_38_4:
-          UsecCfg = NV_DRF_NUM(TIMERUS_USEC, CFG, USEC_DIVIDEND, (5-1))
-                  | NV_DRF_NUM(TIMERUS_USEC, CFG, USEC_DIVISOR, (192-1));
-          PllRefDiv = CLK_RST_CONTROLLER_OSC_CTRL_0_PLL_REF_DIV_DIV2;
-          break;
-
-      case NvBootClocksOscFreq_48:
-          UsecCfg = NV_DRF_NUM(TIMERUS_USEC, CFG, USEC_DIVIDEND, (1-1))
-                  | NV_DRF_NUM(TIMERUS_USEC, CFG, USEC_DIVISOR, (48-1));
-          PllRefDiv = CLK_RST_CONTROLLER_OSC_CTRL_0_PLL_REF_DIV_DIV4;
-          break;
-  }
 
   // Find out which CPU cluster we're booting to.
   CpuClusterId = NvBlAvpQueryBootCpuClusterId();
@@ -997,29 +918,6 @@ VOID ClockInitT30(void)
   // do it here and always reconfigure PLLP.
   //-------------------------------------------------------------------------
 
-//  if (!IsChipInitialized)
-//  {
-//      // Program the microsecond scaler.
-//      NV_TIMERUS_REGW(TIMERUS_PA_BASE, USEC_CFG, UsecCfg);
-//
-//      // Get Oscillator Drive Strength Setting
-//      OscStrength = NvBlGetOscillatorDriveStrength();
-//
-//      // Program the oscillator control register.
-//      OscCtrl = NV_DRF_NUM(CLK_RST_CONTROLLER, OSC_CTRL, OSC_FREQ, (int)OscFreq)
-//              | NV_DRF_NUM(CLK_RST_CONTROLLER, OSC_CTRL, PLL_REF_DIV, PllRefDiv)
-//              | NV_DRF_NUM(CLK_RST_CONTROLLER, OSC_CTRL, OSCFI_SPARE, 0)
-//              | NV_DRF_NUM(CLK_RST_CONTROLLER, OSC_CTRL, XODS, 0)
-//              | NV_DRF_NUM(CLK_RST_CONTROLLER, OSC_CTRL, XOFS, OscStrength)
-//              | NV_DRF_NUM(CLK_RST_CONTROLLER, OSC_CTRL, XOBP, 0)
-//              | NV_DRF_NUM(CLK_RST_CONTROLLER, OSC_CTRL, XOE, 1);
-//      NV_CAR_REGW(CLK_RST_PA_BASE, OSC_CTRL, OscCtrl);
-//  }
-
-//uart_post('9'); uart_post('.'); uart_post(' ');
-//NvBlPrintU32(OscFreq);
-//debug_pause();
-
 #if defined(CONFIG_SYS_PLLP_BASE_IS_408MHZ)
 	/* Move AVP clock to CLM temporarily. Reset to PLLP_OUT4 later */
 	set_avp_clock_to_clkm();
@@ -1027,40 +925,6 @@ VOID ClockInitT30(void)
 
   // Initialize PLL-P.
   InitPllP(OscFreq);
-
-//  if (!IsChipInitialized)
-//  {
-//      // Initialize PLL-M.
-//      InitPllM(OscFreq);
-//  }
-
-#if 0
-  // Wait for PLL-P to lock.
-  do
-  {
-      Reg = NV_CAR_REGR(CLK_RST_PA_BASE, PLLP_BASE);
-  } while (!NV_DRF_VAL(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_LOCK, Reg));
-NvBlPrintU32(Reg);
-uart_post('8'); uart_post('.'); uart_post(' ');
-#endif
-
-//  if (!IsChipInitialized)
-//  {
-//      // Wait for PLL-M to lock.
-//      do
-//      {
-//          Reg = NV_CAR_REGR(CLK_RST_PA_BASE, PLLM_BASE);
-//      } while (!NV_DRF_VAL(CLK_RST_CONTROLLER, PLLM_BASE, PLLM_LOCK, Reg));
-//  }
-
-
-//  if (!IsChipInitialized)
-//  {
-//      Reg = NV_DRF_NUM(CLK_RST_CONTROLLER, PLLM_OUT, PLLM_OUT1_RATIO, 0x2)
-//          | NV_DRF_DEF(CLK_RST_CONTROLLER, PLLM_OUT, PLLM_OUT1_CLKEN, ENABLE)
-//          | NV_DRF_DEF(CLK_RST_CONTROLLER, PLLM_OUT, PLLM_OUT1_RSTN, RESET_DISABLE);
-//      NV_CAR_REGW(CLK_RST_PA_BASE, PLLM_OUT, Reg);
-//  }
 
   //-------------------------------------------------------------------------
   // Switch system clock to PLLP_out 4 (108 MHz) MHz, AVP will now run at 108 MHz.
@@ -1092,12 +956,8 @@ uart_post('8'); uart_post('.'); uart_post(' ');
   // Initialize PLL-X.
   InitPllX(OscFreq);
 
-//uart_post('7'); uart_post('.'); uart_post(' ');
-//debug_pause();
-
   // Initialize PLL-U.
   InitPllU(OscFreq);
-//uart_post('6'); uart_post('.'); uart_post(' ');
 
   //*((volatile long *)0x60006030) = 0x00000010 ;// CLK_SYSTEM_RATE
   Reg = NV_DRF_NUM(CLK_RST_CONTROLLER, CLK_SYSTEM_RATE, HCLK_DIS, 0x0)
@@ -1110,14 +970,6 @@ uart_post('8'); uart_post('.'); uart_post(' ');
   // If the boot ROM hasn't already enabled the clocks to the memory
   // controller we have to do it here.
   //-------------------------------------------------------------------------
-
-//  if (!IsChipInitialized)
-//  {
-//      //*((volatile long *)0x6000619C) = 0x03000000 ;//  CLK_SOURCE_EMC
-//      Reg = NV_DRF_NUM(CLK_RST_CONTROLLER, CLK_SOURCE_EMC, EMC_2X_CLK_SRC, 0x0)
-//          | NV_DRF_NUM(CLK_RST_CONTROLLER, CLK_SOURCE_EMC, EMC_2X_CLK_DIVISOR, 0x0);
-//      NV_CAR_REGW(CLK_RST_PA_BASE, CLK_SOURCE_EMC, Reg);
-//  }
 
   //-------------------------------------------------------------------------
   // Enable clocks to required peripherals.
@@ -1362,63 +1214,8 @@ uart_post('8'); uart_post('.'); uart_post(' ');
 
 }
 
-#if 0
-//------------------------------------------------------------------------------
-void NvBlAvpReadChipId(NvRmChipId* id, volatile void* pMisc, volatile void* pFuse)
+VOID NvBlStartCpu_T30(UINT32 ResetVector)
 {
-    UINT32   reg;
-
-    // Read the chip id and parse it.
-    reg = NV_MISC_REGR( pMisc, GP_HIDREV );
-    id->Id = (UINT16)NV_DRF_VAL( APB_MISC_GP, HIDREV, CHIPID, reg );
-    id->Major = (UINT8)NV_DRF_VAL( APB_MISC_GP, HIDREV, MAJORREV, reg );
-    id->Minor = (UINT8)NV_DRF_VAL( APB_MISC_GP, HIDREV, MINORREV, reg );
-    id->Family = NvRmChipFamily_HandheldSoc;
-
-    // Read the revision id and parse it.
-    reg = NV_MISC_REGR( pMisc, GP_EMU_REVID );
-    id->Netlist = (UINT16)NV_DRF_VAL( APB_MISC_GP, EMU_REVID, NETLIST, reg );
-    id->Patch = (UINT16)NV_DRF_VAL( APB_MISC_GP, EMU_REVID, PATCH, reg );
-
-    // Read the SKU from the fuses.
-    reg = NV_FUSE_REGR(pFuse, SKU_INFO);
-    id->SKU = (UINT16)reg;
-
-}
-
-void AvpGetChipId(NvRmChipId* id)
-{
-    NvBlAvpReadChipId(id, (volatile void*)MISC_PA_BASE, (volatile void*)FUSE_PA_BASE);
-}
-#endif
-
-#if 0
-//BOOLEAN AvpInitAP20(BOOLEAN IsRunningFromSdram)
-BOOLEAN NvBlAvpInit_T30(BOOLEAN IsRunningFromSdram)
-{
-#if 0
-  NvRmChipId          ChipId;
-
-  // Get the chip id.
-  AvpGetChipId(&ChipId);
-
-  // Enable the boot clocks.
-  ClockInitT30(&ChipId);
-#else
-  // Enable the boot clocks.
-  ClockInitT30();
-#endif
-  return TRUE;
-}
-#endif
-
-VOID
-//AvpStartCpuAp20 (UINT32 ResetVector)
-NvBlStartCpu_T30 (UINT32 ResetVector)
-{
-//PostCc('A');
-//debug_pause();
-
   // Enable VDD_CPU
   AvpEnableCpuPowerRail();
 
@@ -1433,8 +1230,6 @@ NvBlStartCpu_T30 (UINT32 ResetVector)
 
   // Enable CoreSight.
   AvpClockEnableCorsight(TRUE);
-
-//PostCc('C');
 
   // Set the entry point for CPU execution from reset, if it's a non-zero value.
   if (ResetVector)
@@ -1453,77 +1248,10 @@ NvBlStartCpu_T30 (UINT32 ResetVector)
 
   // Unhalt the CPU.
   AvpHaltCpu(FALSE);
-
-  /* post code 'Dd' */
-//  PostCc('G');
-//debug_pause();
-
 }
 
 void start_cpu_t30(u32 reset_vector)
 {
 	ClockInitT30();
-
 	NvBlStartCpu_T30(reset_vector);
 }
-
-
-#if 0 // jz
-volatile UINT32 s_bFirstBoot = 1;
-
-VOID bootloader()
-{
-    volatile UINT32 *jtagReg = (UINT32*)0x70000024;
-
-    // enable JTAG
-    *jtagReg = 192;
-
-    if( s_bFirstBoot )
-    {
-        /* need to set this before cold-booting, otherwise we'll end up in
-         * an infinite loop.
-         */
-        s_bFirstBoot = 0;
-        ColdBoot();
-    }
-
-    return;
-}
-
-UINT32 GetChipRev()
-{
-  return DevReadField (APB_MISC, GP_HIDREV, CHIPID);
-}
-
-UINT32 GetMinorRev()
-{
-  return DevReadField (APB_MISC, GP_HIDREV, MINORREV);
-}
-
-UINT32 GetMajorRev()
-{
-  return DevReadField (APB_MISC, GP_HIDREV, MAJORREV);
-}
-
-VOID enableScu()
-{
-  UINT32 reg;
-
-  reg = *((const volatile UINT32 *)(0x50040000 + 0x0));//NV_SCU_REGR(CONTROL);
-  if (NV_DRF_VAL(SCU, CONTROL, SCU_ENABLE, reg) == 1)
-  {
-      /* SCU already enabled, return */
-      return;
-  }
-
-  /* Invalidate all ways for all processors */
-  *((volatile UINT32 *)((0x50040000 + 0xc))) = ((0xffff));//NV_SCU_REGW(INVALID_ALL, 0xffff);
-
-  /* Enable SCU - bit 0 */
-  reg = *((const volatile UINT32 *)(0x50040000 + 0x0));//NV_SCU_REGR(CONTROL);
-  reg |= 0x1;
-  *((volatile UINT32 *)((0x50040000 + 0x0))) = ((reg));//NV_SCU_REGW(CONTROL, reg);
-
-  return;
-}
-#endif
