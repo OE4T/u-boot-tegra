@@ -22,6 +22,7 @@
 #include <common.h>
 #include <lcd.h>
 #include <fdt_decode.h>
+#include <malloc.h>
 #include <asm/clocks.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/pinmux.h>
@@ -205,7 +206,7 @@ void lcd_ctrl_init(void *lcdbase)
 {
 	struct fdt_lcd config;
 	int line_length;
-	char fbmem[32], buf[128];
+	char fbmem[32], *buf;
 
 	/* get panel details */
 	if (fdt_decode_lcd(gd->blob, &config)) {
@@ -231,6 +232,7 @@ void lcd_ctrl_init(void *lcdbase)
 
 	/* Store FB start as a kernel arg in extra_bootargs */
 	sprintf ((char *)fbmem, " tegra_fbmem=3072K@0x%08X", (u32)lcd_base);
+	buf = malloc(strlen(getenv("extra_bootargs")) + sizeof(fbmem) + 1);
 	strcpy(buf, getenv("extra_bootargs"));
 	strcat(buf, fbmem);
 	setenv ("extra_bootargs", (char *)buf);
