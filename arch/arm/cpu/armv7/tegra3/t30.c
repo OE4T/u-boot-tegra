@@ -576,7 +576,7 @@ VOID InitPllP(NvBootClocksOscFreq OscFreq)
 		RESET_DISABLE);
 
 	NV_CAR_REGW(CLK_RST_PA_BASE, PLLP_OUTA, OutA);
-	NV_CAR_REGW(CLK_RST_PA_BASE, PLLP_OUTA, OutB);
+	NV_CAR_REGW(CLK_RST_PA_BASE, PLLP_OUTB, OutB);
 #endif
 
   // lock enable
