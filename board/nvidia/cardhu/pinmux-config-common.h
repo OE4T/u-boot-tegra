@@ -365,7 +365,6 @@ static struct pingroup_config unused_pins_lowpower[] = {
 	DEFAULT_PINMUX(GMI_ADV_N,       NAND,           NORMAL,     TRISTATE,     OUTPUT),
 	DEFAULT_PINMUX(GMI_CLK,         NAND,           NORMAL,     TRISTATE,     OUTPUT),
 	DEFAULT_PINMUX(GMI_CS3_N,       NAND,           NORMAL,     NORMAL,       OUTPUT),
-	DEFAULT_PINMUX(GMI_CS6_N,       SATA,           NORMAL,     NORMAL,       OUTPUT),
 	DEFAULT_PINMUX(GMI_CS7_N,       NAND,           UP,    NORMAL,       INPUT),
 	DEFAULT_PINMUX(GMI_AD0,         NAND,           NORMAL,     TRISTATE,     OUTPUT),
 	DEFAULT_PINMUX(GMI_AD1,         NAND,           NORMAL,     TRISTATE,     OUTPUT),
