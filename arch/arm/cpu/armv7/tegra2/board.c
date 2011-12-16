@@ -59,13 +59,12 @@ int dram_init(void)
 	unsigned long rs;
 
 	/* We do not initialise DRAM here. We just query the size */
-	gd->bd->bi_dram[0].start = PHYS_SDRAM_1;
-	gd->bd->bi_dram[0].size = gd->ram_size = query_sdram_size();
+	gd->ram_size = query_sdram_size();
 
 	/* Now check it dynamically */
 	rs = get_ram_size(CONFIG_SYS_SDRAM_BASE, gd->ram_size);
 	if (rs)
-		gd->bd->bi_dram[0].size = gd->ram_size = rs;
+		gd->ram_size = rs;
 	return 0;
 }
 

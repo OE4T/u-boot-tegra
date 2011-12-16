@@ -64,24 +64,18 @@ int dram_init(void)
 {
 	unsigned long rs;
 
-	/* TBD don't use IRAM for this, find another RAM address */
-	if (!gd->bd)
-		gd->bd = (bd_t *)0x40002000;
-
 	debug("dram_init entry\n");
 	debug("\tgd = %lX\n", (ulong)gd);
 	debug("\tgd->bd = %lX\n", (ulong)gd->bd);
 
 	/* We do not initialise DRAM here. We just query the size */
-	gd->bd->bi_dram[0].start = PHYS_SDRAM_1;
-	gd->bd->bi_dram[0].size = gd->ram_size = query_sdram_size();
-	debug("\tsdram size = %lX\n", gd->bd->bi_dram[0].size);
+	gd->ram_size = query_sdram_size();
 
 	/* Now check it dynamically */
 	rs = get_ram_size((void *)CONFIG_SYS_SDRAM_BASE, gd->ram_size);
 	debug("\tdynamic dramsize (rs) = %lx\n", rs);
 	if (rs)
-		gd->bd->bi_dram[0].size = gd->ram_size = rs;
+		gd->ram_size = rs;
 	debug("dram_init exit\n");
 	return 0;
 }
