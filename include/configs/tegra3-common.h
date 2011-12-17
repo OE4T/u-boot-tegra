@@ -310,8 +310,6 @@
  */
 #define CONFIG_NR_DRAM_BANKS	1
 #define PHYS_SDRAM_1		NV_PA_SDRAM_BASE
-#define PHYS_SDRAM_1_SIZE	SZ_1GB
-
 
 /*
  * NOTE: changed to E08000 from 108000, so you need to use a modified

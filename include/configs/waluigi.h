@@ -28,7 +28,14 @@
 #include <asm/sizes.h>
 
 /* High-level configuration options */
-#define TEGRA3_SYSMEM		"mem=1023M@2048M vmalloc=128M"
+/*
+ * Waluigi has 2GB. Make sure the following two definitions are consistent.
+ */
+/* notify kernel sdram size thru command line */
+#define TEGRA3_SYSMEM		"mem=2047M@2048M vmalloc=128M"  /* (2GB-1MB) */
+/* specify sdram size thru odm data */
+#define CONFIG_SYS_BOARD_ODMDATA	0x800D8105	/* 2GB, UARTD, etc */
+
 #define V_PROMPT		"Tegra3 # "
 
 #define CONFIG_TEGRA2_LP0
@@ -84,9 +91,6 @@
 #define CONFIG_STD_DEVICES_SETTINGS	"stdin=serial,tegra-kbc\0" \
 					"stdout=serial,lcd\0" \
 					"stderr=serial,lcd\0"
-
-/* TBD: Waluigi is supposed to have 2GB, but it hangs w/odmdata = 0x800xxxxx ??? */
-#define CONFIG_SYS_BOARD_ODMDATA	0x400D8105	/* 1GB, UARTD, etc */
 
 #define CONFIG_ENV_SECT_SIZE    CONFIG_ENV_SIZE
 #define CONFIG_ENV_OFFSET       (SZ_4M - CONFIG_ENV_SECT_SIZE)

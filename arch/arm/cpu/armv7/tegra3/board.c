@@ -49,12 +49,10 @@ unsigned int query_sdram_size(void)
 		return 0x10000000;	/* 256 MB */
 	case 2:
 		return 0x20000000;	/* 512 MB */
-	case 3:
-		return 0x30000000;	/* 768 MB */
 	case 4:
 		return 0x40000000;	/* 1GB */
 	case 8:
-		return 0x80000000;	/* 2GB */
+		return 0x7ff00000;	/* 2GB - 1MB */
 	default:
 		return 0x40000000;	/* 1GB */
 	}
@@ -70,12 +68,26 @@ int dram_init(void)
 
 	/* We do not initialise DRAM here. We just query the size */
 	gd->ram_size = query_sdram_size();
+	debug("\tdramsize = %lx\n", gd->ram_size);
 
+	/*
+	 * Since function get_ram_size() can only check with memory size
+	 * given by a 32bit word with one bit set, for examples:
+	 *	0x10000000	256MB
+	 *	0x20000000	512MB
+	 *	0x40000000	1GB
+	 *	0x80000000	2GB
+	 * For tegra3, its max size is (2GB-1MB), ie, 0x7ff00000.
+	 * When multiple bits are set to 1, this function will return
+	 * with incorrect size. so, we may just by-pass this function.
+	 */
 	/* Now check it dynamically */
-	rs = get_ram_size((void *)CONFIG_SYS_SDRAM_BASE, gd->ram_size);
-	debug("\tdynamic dramsize (rs) = %lx\n", rs);
-	if (rs)
-		gd->ram_size = rs;
+	if (gd->ram_size != 0x7ff00000) {
+		rs = get_ram_size((void *)CONFIG_SYS_SDRAM_BASE, gd->ram_size);
+		debug("\tdynamic dramsize (rs) = %lx\n", rs);
+		if (rs)
+			gd->ram_size = rs;
+	}
 	debug("dram_init exit\n");
 	return 0;
 }
