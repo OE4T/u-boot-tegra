@@ -252,6 +252,10 @@
 		"mmc rescan ${mmcdev}; " \
 		"ext2load mmc ${mmcdev}:3 ${loadaddr} /boot/${bootfile}; " \
 		"bootm ${loadaddr}\0" \
+	"mmc0_boot=setenv mmcdev 0; " \
+		"run mmc_boot\0" \
+	"mmc1_boot=setenv mmcdev 1; " \
+		"run mmc_boot\0" \
 	\
 	"usb_setup=setenv bootdev_bootargs root=/dev/sda3 rw rootwait; " \
 		"run regen_all\0" \
@@ -260,12 +264,14 @@
 		"bootm ${loadaddr}\0" \
 
 #define CONFIG_BOOTCOMMAND \
-	"run mmc_boot ; " \
 	"usb start; "\
 	"if test ${ethact} != \"\"; then "\
 		"run dhcp_boot ; " \
 	"fi ; " \
-	"run usb_boot ; "
+	"run usb_boot ; " \
+	\
+	"run mmc1_boot ; " \
+	"run mmc0_boot ; "
 
 /* default location for kernel */
 #define CONFIG_LOADADDR		0x80408000
