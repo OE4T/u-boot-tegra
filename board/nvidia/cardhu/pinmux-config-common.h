@@ -113,7 +113,7 @@ static struct pingroup_config tegra3_pinmux_common[] = {
 	I2C_PINMUX(PWR_I2C_SDA,		I2CPWR,		NORMAL,	NORMAL,	INPUT,	DISABLE,	ENABLE),
 
 	DEFAULT_PINMUX(ULPI_DATA0,      UARTA,           NORMAL,    NORMAL,     OUTPUT),
-	DEFAULT_PINMUX(ULPI_DATA1,      UARTA,           NORMAL,    NORMAL,     INPUT),
+	DEFAULT_PINMUX(ULPI_DATA1,      UARTA,           UP,        NORMAL,     INPUT),
 	DEFAULT_PINMUX(ULPI_DATA2,      UARTA,           NORMAL,    NORMAL,     INPUT),
 	DEFAULT_PINMUX(ULPI_DATA3,      RSVD1,           NORMAL,    NORMAL,     INPUT),
 	DEFAULT_PINMUX(ULPI_DATA4,      UARTA,           NORMAL,    NORMAL,     INPUT),
