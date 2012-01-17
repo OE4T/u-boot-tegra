@@ -182,6 +182,7 @@ struct fdt_kbc {
 	u8 plain_keycode[FDT_KBC_KEY_COUNT];
 	u8 shift_keycode[FDT_KBC_KEY_COUNT];
 	u8 fn_keycode[FDT_KBC_KEY_COUNT];
+	u8 ctrl_keycode[FDT_KBC_KEY_COUNT];
 };
 
 /**

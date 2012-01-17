@@ -7,12 +7,12 @@
 #include <common.h>
 #include <tegra-kbc.h>
 
-static int plain_keycode[] = CONFIG_TEGRA2_KBC_PLAIN_KEYCODES;
-static int shift_keycode[] = CONFIG_TEGRA2_KBC_SHIFT_KEYCODES;
-static int function_keycode[] = CONFIG_TEGRA2_KBC_FUNCTION_KEYCODES;
+#ifndef CONFIG_OF_CONTROL
 
 struct tegra_keyboard_config board_keyboard_config = {
-	.plain_keycode    = plain_keycode,
-	.shift_keycode    = shift_keycode,
-	.function_keycode = function_keycode
+	.plain_keycode = CONFIG_TEGRA2_KBC_PLAIN_KEYCODES,
+	.shift_keycode = CONFIG_TEGRA2_KBC_SHIFT_KEYCODES,
+	.fn_keycode = CONFIG_TEGRA2_KBC_FUNCTION_KEYCODES,
 };
+
+#endif

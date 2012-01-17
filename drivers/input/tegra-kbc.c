@@ -22,30 +22,30 @@
  */
 
 #include <common.h>
-#include <malloc.h>
 #include <stdio_dev.h>
 #include <asm/io.h>
 #include <asm/arch/clock.h>
-#include <asm/arch/pinmux.h>
 #include <tegra-kbc.h>
+#include <fdt_decode.h>
+#if defined(CONFIG_TEGRA2)
+#include <asm/arch/pinmux.h>
+#endif
+
+DECLARE_GLOBAL_DATA_PTR;
 
 #define DEVNAME "tegra-kbc"
 
-#define KBC_MAX_GPIO	24
-#define KBC_MAX_KPENT	8
-#define KBC_MAX_ROW	16
-#define KBC_MAX_COL	8
-
-#define KBC_MAX_KEY	(KBC_MAX_ROW * KBC_MAX_COL)
-
-#define TEGRA2_KBC_BASE	0x7000E200
+enum {
+	KBC_MAX_GPIO	= 24,
+	KBC_MAX_KPENT	= 8,
+};
 
 /* KBC row scan time and delay for beginning the row scan. */
 #define KBC_ROW_SCAN_TIME	16
 #define KBC_ROW_SCAN_DLY	5
 
 /*  uses a 32KHz clock so a cycle = 1/32Khz */
-#define KBC_CYCLE_USEC	32
+#define KBC_CYCLE_IN_USEC	DIV_ROUND_UP(1000, 32)
 
 #define KBC_FIFO_TH_CNT_SHIFT(cnt)	(cnt << 14)
 #define KBC_DEBOUNCE_CNT_SHIFT(cnt)	(cnt << 4)
@@ -58,20 +58,59 @@
 #define KBC_RPT_RATE	4
 
 /* kbc globals */
-unsigned int kbc_repoll_time;
-int kbc_last_keypress;
-int *kbc_plain_keycode;
-int *kbc_fn_keycode;
-int *kbc_shift_keycode;
+static unsigned int kbc_repoll_time;
+static unsigned int kbc_init_dly;
+static unsigned long kbc_start_time;
+
+/*
+ * Use a simple FIFO to convert some keys into escape sequences and to handle
+ * testc vs getc.  The FIFO length must be a power of two.  Currently, four
+ * characters is the smallest power of two that is large enough to contain all
+ * generated escape sequences.
+ */
+#define KBC_FIFO_LENGTH	(1 << 2)
+
+static int kbc_fifo[KBC_FIFO_LENGTH];
+static int kbc_fifo_read;
+static int kbc_fifo_write;
+
+/* These are key maps for each modifier: each has KBC_KEY_COUNT entries */
+u8 *kbc_plain_keycode;
+u8 *kbc_fn_keycode;
+u8 *kbc_shift_keycode;
+u8 *kbc_ctrl_keycode;
+
+#ifdef CONFIG_OF_CONTROL
+struct fdt_kbc config;	/* Our keyboard config */
+#if (FDT_KBC_KEY_COUNT) != (KBC_KEY_COUNT)
+#error definition mismatch
+#endif
+#endif
 
 static int tegra_kbc_keycode(int r, int c, int modifier)
 {
-	if (modifier == KEY_FN)
-		return kbc_fn_keycode[(r * KBC_MAX_COL) + c];
-	else if (modifier == KEY_SHIFT)
-		return kbc_shift_keycode[(r * KBC_MAX_COL) + c];
-	else
-		return kbc_plain_keycode[(r * KBC_MAX_COL) + c];
+	int entry = r * KBC_MAX_COL + c;
+
+	debug("tegra_kbc_keycode: r = %d, c = %d, modifier = %d\n",
+		r, c, modifier);
+
+	if (modifier == KEY_FN) {
+		debug("Function key seen %02X\n", modifier);
+		return kbc_fn_keycode[entry];
+	}
+
+	/* Put ctrl keys ahead of shift */
+	else if ((modifier == KEY_LEFT_CTRL || modifier == KEY_RIGHT_CTRL)
+			&& kbc_ctrl_keycode) {
+		debug("Ctrl key seen! entry = %d\n", entry);
+		return kbc_ctrl_keycode[entry];
+	} else if (modifier == KEY_SHIFT) {
+		debug("Shift key seen! entry = %d\n", entry);
+		return kbc_shift_keycode[entry];
+	} else {
+		debug("Plain key seen! entry = %d\n", entry);
+		return kbc_plain_keycode[entry];
+	}
 }
 
 /* determines if current keypress configuration can cause key ghosting */
@@ -79,6 +118,7 @@ static int is_ghost_key_config(int *rows_val, int *cols_val, int valid)
 {
 	int i, j, key_in_same_col = 0, key_in_same_row = 0;
 
+	debug("is_ghost_key_config: valid = %d\n", valid);
 	/*
 	 * Matrix keyboard designs are prone to keyboard ghosting.
 	 * Ghosting occurs if there are 3 keys such that -
@@ -106,7 +146,7 @@ static int is_ghost_key_config(int *rows_val, int *cols_val, int valid)
 /* reads the keyboard fifo for current keypresses. */
 static int tegra_kbc_find_keys(int *fifo)
 {
-	struct kbc_tegra *kbc = (struct kbc_tegra *)TEGRA2_KBC_BASE;
+	struct kbc_tegra *kbc = (struct kbc_tegra *)NV_PA_KBC_BASE;
 	int rows_val[KBC_MAX_KPENT], cols_val[KBC_MAX_KPENT];
 	u32 kp_ent_val[(KBC_MAX_KPENT + 3) / 4];
 	u32 *kp_ents = kp_ent_val;
@@ -114,6 +154,7 @@ static int tegra_kbc_find_keys(int *fifo)
 	int i, j, k, valid = 0;
 	int modifier = 0;
 
+	debug("tegra_kbc_find_keys\n");
 	for (i = 0; i < ARRAY_SIZE(kp_ent_val); i++)
 		kp_ent_val[i] = readl(&kbc->kp_ent[i]);
 
@@ -130,7 +171,8 @@ static int tegra_kbc_find_keys(int *fifo)
 	}
 	for (i = 0; i < valid; i++) {
 		k = tegra_kbc_keycode(rows_val[i], cols_val[i], 0);
-		if ((k == KEY_FN) || (k == KEY_SHIFT)) {
+
+		if (KEY_IS_MODIFIER(k)) {
 			modifier = k;
 			break;
 		}
@@ -161,42 +203,48 @@ static int tegra_kbc_get_single_char(u32 fifo_cnt)
 	static int prev_key;
 	char key = 0;
 
-	if (fifo_cnt) {
-		cnt = tegra_kbc_find_keys(fifo);
-		/* If this is a ghost key combination report no change. */
-		key = prev_key;
-		if (cnt <= KBC_MAX_KPENT) {
-			int prev_key_in_fifo = 0;
-			/*
-			 * If multiple keys are pressed such that it results in
-			 * 2 or more unmodified keys, we will determine the
-			 * newest key and report that to the upper layer.
-			 */
-			for (i = 0; i < cnt; i++) {
-				for (j = 0; j < prev_cnt; j++) {
-					if (fifo[i] == prev_fifo[j])
-						break;
-				}
-				/* Found a new key. */
-				if (j == prev_cnt) {
-					key = fifo[i];
-					break;
-				}
-				if (prev_key == fifo[i])
-					prev_key_in_fifo = 1;
-			}
-			/*
-			 * Keys were released and FIFO does not contain the
-			 * previous reported key. So report a null key.
-			 */
-			if (i == cnt && !prev_key_in_fifo)
-				key = 0;
+	debug("tegra_kbc_get_single_char: fifo_cnt = %ul\n", fifo_cnt);
 
-			for (i = 0; i < cnt; i++)
-				prev_fifo[i] = fifo[i];
-			prev_cnt = cnt;
-			prev_key = key;
-		}
+	if (fifo_cnt) {
+		do {
+			cnt = tegra_kbc_find_keys(fifo);
+			/* If this is a ghost key combo report no change. */
+			key = prev_key;
+			if (cnt <= KBC_MAX_KPENT) {
+				int prev_key_in_fifo = 0;
+				/*
+				 * If multiple keys are pressed such that it
+				 * results in * 2 or more unmodified keys, we
+				 * will determine the newest key and report
+				 * that to the upper layer.
+				 */
+				for (i = 0; i < cnt; i++) {
+					for (j = 0; j < prev_cnt; j++) {
+						if (fifo[i] == prev_fifo[j])
+							break;
+					}
+					/* Found a new key. */
+					if (j == prev_cnt) {
+						key = fifo[i];
+						break;
+					}
+					if (prev_key == fifo[i])
+						prev_key_in_fifo = 1;
+				}
+				/*
+				 * Keys were released and FIFO does not contain
+				 * the previous reported key. So report a null
+				 * key.
+				 */
+				if (i == cnt && !prev_key_in_fifo)
+					key = 0;
+
+				for (i = 0; i < cnt; i++)
+					prev_fifo[i] = fifo[i];
+				prev_cnt = cnt;
+				prev_key = key;
+			}
+		} while (!key && --fifo_cnt);
 	} else {
 		prev_cnt = 0;
 		prev_key = 0;
@@ -209,10 +257,11 @@ static int tegra_kbc_get_single_char(u32 fifo_cnt)
 /* manages keyboard hardware registers on keypresses and returns a key.*/
 static unsigned char tegra_kbc_get_char(void)
 {
-	struct kbc_tegra *kbc = (struct kbc_tegra *)TEGRA2_KBC_BASE;
+	struct kbc_tegra *kbc = (struct kbc_tegra *)NV_PA_KBC_BASE;
 	u32 val, ctl;
 	char key = 0;
 
+	debug("tegra_kbc_get_char\n");
 	/*
 	 * Until all keys are released, defer further processing to
 	 * the polling loop.
@@ -228,13 +277,8 @@ static unsigned char tegra_kbc_get_char(void)
 	val = readl(&kbc->interrupt);
 	writel(val, &kbc->interrupt);
 
-	if (!(val & KBC_INT_FIFO_CNT_INT_STATUS)) {
-		ctl |= KBC_CONTROL_FIFO_CNT_INT_EN;
-		writel(ctl, &kbc->control);
-		return 0;
-	}
-
-	key = tegra_kbc_get_single_char((val >> 4) & 0xf);
+	if (val & KBC_INT_FIFO_CNT_INT_STATUS)
+		key = tegra_kbc_get_single_char((val >> 4) & 0xf);
 
 	ctl |= KBC_CONTROL_FIFO_CNT_INT_EN;
 	writel(ctl, &kbc->control);
@@ -248,6 +292,8 @@ static int kbd_fetch_char(int test)
 	unsigned char key;
 	static unsigned char prev_key;
 	static unsigned int rpt_dly = KBC_RPT_DLY;
+
+	debug("kbd_fetch_char: test = %d\n", test);
 
 	do {
 		key = tegra_kbc_get_char();
@@ -274,35 +320,159 @@ static int kbd_fetch_char(int test)
 	return key;
 }
 
+/*
+ * Return true if there are no characters in the FIFO.
+ */
+static int kbd_fifo_empty(void)
+{
+	debug("kbd_fifo_empty\n");
+
+	return kbc_fifo_read == kbc_fifo_write;
+}
+
+/*
+ * Insert a character into the FIFO.  Calling this function when the FIFO is
+ * full will overwrite the oldest character in the FIFO.
+ */
+static void kbd_fifo_insert(int key)
+{
+	int index = kbc_fifo_write & (KBC_FIFO_LENGTH - 1);
+
+	debug("kbd_fifo_insert: key = %d\n", key);
+
+	kbc_fifo[index] = key;
+
+	kbc_fifo_write++;
+}
+
+/*
+ * Remove a character from the FIFO, it is an error to call this function when
+ * the FIFO is empty.
+ */
+static int kbd_fifo_remove(void)
+{
+	int index = kbc_fifo_read & (KBC_FIFO_LENGTH - 1);
+	int key   = kbc_fifo[index];
+
+	debug("kbd_fifo_remove\n");
+
+	assert(!kbd_fifo_empty());
+
+	kbc_fifo_read++;
+
+	return key;
+}
+
+/*
+ * Given a keycode, convert it to the sequence of characters that U-Boot expects
+ * to recieve from its input devices and insert the characters into the FIFO.
+ * If the keycode is 0, ignore it.  Currently this function will only ever add
+ * at most three characters to the FIFO, so it is always safe to call when the
+ * FIFO is empty.
+ */
+static void kbd_fifo_refill(int key)
+{
+	debug("kbd_fifo_refill: key = %d\n", key);
+
+	switch (key) {
+
+	/*
+	 * We need to deal with a zero keycode value here because the
+	 * testc call can call us with zero if no key is pressed.
+	 */
+	case 0x00:
+		break;
+
+	/*
+	 * Generate escape sequences for arrow keys.  Additional escape
+	 * sequences can be added to the switch statements, but it may
+	 * be better in the future to use the top bit of the keycode to
+	 * indicate a key that generates an escape sequence.  Then the
+	 * outer switch could turn into an "if (key & 0x80)".
+	 */
+	case 0x1C:
+	case 0x1D:
+	case 0x1E:
+	case 0x1F:
+		kbd_fifo_insert(0x1B); /* Escape */
+		kbd_fifo_insert('[');
+
+		switch (key) {
+
+		case 0x1C:
+			kbd_fifo_insert('D'); break;
+		case 0x1D:
+			kbd_fifo_insert('C'); break;
+		case 0x1E:
+			kbd_fifo_insert('A'); break;
+		case 0x1F:
+			kbd_fifo_insert('B'); break;
+		}
+		break;
+
+	/*
+	 * All other keycodes can be treated as characters as is and
+	 * are inserted into the FIFO directly.
+	 */
+	default:
+		kbd_fifo_insert(key);
+		break;
+	}
+}
+
+static void kbd_wait_for_fifo_init(void)
+{
+	unsigned long elapsed_time;
+	long delay;
+	static unsigned int kbc_initialized;
+
+	debug("kbd_wait_for_fifo_init\n");
+
+	if (kbc_initialized)
+		return;
+	/*
+	 * In order to detect keys pressed on boot, wait for the hardware to
+	 * complete scanning the keys. This includes time to transition from
+	 * Wkup mode to Continous polling mode and the repoll time. We can
+	 * deduct the time thats already elapsed.
+	 */
+	elapsed_time = timer_get_us() - kbc_start_time;
+	delay = kbc_init_dly + kbc_repoll_time - elapsed_time;
+	if (delay > 0)
+		udelay(delay);
+
+	kbc_initialized = 1;
+}
+
 static int kbd_testc(void)
 {
-	unsigned char key = kbd_fetch_char(1);
+	debug("kbd_testc\n");
 
-	if (key)
-		kbc_last_keypress = key;
+	kbd_wait_for_fifo_init();
 
-	return (key != 0);
+	if (kbd_fifo_empty())
+		kbd_fifo_refill(kbd_fetch_char(1));
+
+	return !kbd_fifo_empty();
 }
 
 static int kbd_getc(void)
 {
-	unsigned char key;
+	debug("kbd_getc\n");
 
-	if (kbc_last_keypress) {
-		key = kbc_last_keypress;
-		kbc_last_keypress = 0;
-	} else {
-		key = kbd_fetch_char(0);
-	}
+	if (kbd_fifo_empty())
+		kbd_fifo_refill(kbd_fetch_char(0));
 
-	return key;
+	return kbd_fifo_remove();
 }
 
 /* configures keyboard GPIO registers to use the rows and columns */
 static void config_kbc(void)
 {
-	struct kbc_tegra *kbc = (struct kbc_tegra *)TEGRA2_KBC_BASE;
+	struct kbc_tegra *kbc = (struct kbc_tegra *)NV_PA_KBC_BASE;
 	int i;
+
+	debug("config_kbc\n");
 
 	for (i = 0; i < KBC_MAX_GPIO; i++) {
 		u32 row_cfg, col_cfg;
@@ -331,9 +501,11 @@ static void config_kbc(void)
 
 static int tegra_kbc_open(void)
 {
-	struct kbc_tegra *kbc = (struct kbc_tegra *)TEGRA2_KBC_BASE;
+	struct kbc_tegra *kbc = (struct kbc_tegra *)NV_PA_KBC_BASE;
 	unsigned int scan_time_rows, debounce_cnt, rpt_cnt;
 	u32 val = 0;
+
+	debug("tegra_kbc_open\n");
 
 	config_kbc();
 
@@ -343,11 +515,11 @@ static int tegra_kbc_open(void)
 	 * the rows. There is an additional delay before the row scanning
 	 * starts. The repoll delay is computed in microseconds.
 	 */
-	rpt_cnt = 5 * (1000 / KBC_CYCLE_USEC);
+	rpt_cnt = 5 * DIV_ROUND_UP(1000, KBC_CYCLE_IN_USEC);
 	debounce_cnt = 2;
 	scan_time_rows = (KBC_ROW_SCAN_TIME + debounce_cnt) * KBC_MAX_ROW;
 	kbc_repoll_time = KBC_ROW_SCAN_DLY + scan_time_rows + rpt_cnt;
-	kbc_repoll_time = (kbc_repoll_time * KBC_CYCLE_USEC) + 999;
+	kbc_repoll_time = kbc_repoll_time * KBC_CYCLE_IN_USEC;
 
 	writel(rpt_cnt, &kbc->rpt_dly);
 
@@ -358,25 +530,13 @@ static int tegra_kbc_open(void)
 
 	writel(val, &kbc->control);
 
-	/*
-	 * Atomically clear out any remaining entries in the key FIFO
-	 * and enable keyboard interrupts.
-	 */
-	while (1) {
-		val = readl(&kbc->interrupt);
-		val >>= 4;
-		if (val) {
-			readl(kbc->kp_ent[0]);
-			readl(kbc->kp_ent[1]);
-		} else {
-			break;
-		}
-	}
-	writel(0x7, &kbc->interrupt);
+	kbc_init_dly = readl(&kbc->init_dly) * KBC_CYCLE_IN_USEC;
+	kbc_start_time = timer_get_us();
 
 	return 0;
 }
 
+#if defined(CONFIG_TEGRA2)
 void config_kbc_pinmux(void)
 {
 	enum pmux_pingrp pingrp[] = {PINGRP_KBCA, PINGRP_KBCB, PINGRP_KBCC,
@@ -389,6 +549,7 @@ void config_kbc_pinmux(void)
 		pinmux_set_pullupdown(pingrp[i], PMUX_PULL_UP);
 	}
 }
+#endif
 
 int drv_keyboard_init(void)
 {
@@ -396,7 +557,36 @@ int drv_keyboard_init(void)
 	struct stdio_dev kbddev;
 	char *stdinname;
 
+	debug("drv_keyboard_init\n");
+
+#ifdef CONFIG_OF_CONTROL
+	int	node, upto = 0;
+
+	node = fdt_decode_next_alias(gd->blob, "kbc",
+				  COMPAT_NVIDIA_TEGRA250_KBC, &upto);
+	if (node < 0) {
+		debug("node = %d, returning node\n", node);
+		return node;
+	}
+
+	if (fdt_decode_kbc(gd->blob, node, &config)) {
+		debug("fdt_decode_kbc failed, returning -1\n");
+		return -1;
+	}
+
+	kbc_plain_keycode = config.plain_keycode;
+	kbc_shift_keycode = config.shift_keycode;
+	kbc_fn_keycode    = config.fn_keycode;
+	kbc_ctrl_keycode  = config.ctrl_keycode;
+#else
+	kbc_plain_keycode = board_keyboard_config.plain_keycode;
+	kbc_shift_keycode = board_keyboard_config.shift_keycode;
+	kbc_fn_keycode    = board_keyboard_config.fn_keycode;
+#endif
+#if defined(CONFIG_TEGRA2)
 	config_kbc_pinmux();
+#endif
+	debug("drv_keyboard_init - enabling clock\n");
 
 	/*
 	 * All of the Tegra board use the same clock configuration for now.
@@ -404,10 +594,6 @@ int drv_keyboard_init(void)
 	 * changes.
 	 */
 	clock_enable(PERIPH_ID_KBC);
-
-	kbc_plain_keycode = board_keyboard_config.plain_keycode;
-	kbc_shift_keycode = board_keyboard_config.shift_keycode;
-	kbc_fn_keycode    = board_keyboard_config.function_keycode;
 
 	stdinname = getenv("stdin");
 	memset(&kbddev, 0, sizeof(kbddev));

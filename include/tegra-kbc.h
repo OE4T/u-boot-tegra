@@ -9,12 +9,28 @@
 
 #include <common.h>
 
-enum KEYS { KEY_FN = 222, KEY_SHIFT = 223};
+enum KEYS {
+	KEY_FIRST_MODIFIER = 220,
+	KEY_RIGHT_CTRL = KEY_FIRST_MODIFIER,
+	KEY_LEFT_CTRL,
+	KEY_FN,
+	KEY_SHIFT,
+};
+
+#define KEY_IS_MODIFIER(key) ((key) >= KEY_FIRST_MODIFIER)
+
+enum {
+	KBC_MAX_ROW	= 16,
+	KBC_MAX_COL	= 8,
+	KBC_KEY_COUNT	= KBC_MAX_ROW * KBC_MAX_COL,
+};
 
 struct tegra_keyboard_config {
-	int *plain_keycode; /* keycode when Shift or FN are not pressed */
-	int *shift_keycode; /* keycode when Shift modifier key is pressed */
-	int *function_keycode; /* keycode when Fn modifier key is pressed */
+	/* keycode tables, one for each row/col position */
+	u8 plain_keycode[KBC_KEY_COUNT]; /* when no Shift or Fn */
+	u8 shift_keycode[KBC_KEY_COUNT]; /* Shift modifier key is pressed */
+	u8 fn_keycode[KBC_KEY_COUNT]; /* Fn modifier key is pressed */
+	u8 ctrl_keycode[KBC_KEY_COUNT]; /* Ctrl modifier key is pressed */
 };
 
 struct kbc_tegra {
