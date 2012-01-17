@@ -155,7 +155,7 @@
  * ---------------------------------------------------------------------------
  * PLLU_ENABLE_DLY_COUNT   02 (0x02)       03 (03)         02 (02)     04 (04)
  * PLLU_STABLE_COUNT       51 (33)         75 (4B)         47 (2F)    102 (66)
- * PLL_ACTIVE_DLY_COUNT    05 (05)         06 (06)         04 (04)     09 (09)
+ * PLL_ACTIVE_DLY_COUNT    05 (05)         06 (06)         08 (08)     17 (11)
  * XTAL_FREQ_COUNT        127 (7F)        187 (BB)        118 (76)    254 (FE)
  *
  * 3. Debounce values IdDig, Avalid, Bvalid, VbusValid, VbusWakeUp, and
@@ -192,13 +192,13 @@
 	usbparams@2 {
 		compatible = "nvidia,tegra250-usbparams";
 		osc-frequency = <12000000>;
-		params = <0x3c0 0x0c 0x00 0xc 0  0x02 0x2f 0x04 0x76  0x7530 5>;
+		params = <0x3c0 0x0c 0x00 0xc 0  0x02 0x2f 0x08 0x76  0x7530 5>;
 	};
 
 	usbparams@3 {
 		compatible = "nvidia,tegra250-usbparams";
 		osc-frequency = <26000000>;
-		params = <0x3c0 0x1a 0x00 0xc 0  0x04 0x66 0x09 0xfe  0xfde8 9>;
+		params = <0x3c0 0x1a 0x00 0xc 0  0x04 0x66 0x11 0xfe  0xfde8 9>;
 	};
 
 	usb@0x7d008000 {

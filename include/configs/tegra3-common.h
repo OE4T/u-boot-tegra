@@ -112,15 +112,14 @@
 #define CONFIG_SYS_BAUDRATE_TABLE	{4800, 9600, 19200, 38400, 57600,\
 					115200}
 
-#if	0			//TCW disable USB for kernel debug
 /*
  * USB Host.
  */
 #define CONFIG_USB_EHCI
 #define CONFIG_USB_EHCI_TEGRA
 
-/* Tegra2 requires USB buffers to be aligned to a word boundary */
-#define CONFIG_USB_EHCI_DATA_ALIGN	4
+/* Tegra requires USB buffers to be aligned to a 32-byte boundary */
+#define CONFIG_USB_EHCI_DATA_ALIGN	32
 
 /*
  * This parameter affects a TXFILLTUNING field that controls how much data is
@@ -136,7 +135,6 @@
 #define CONFIG_USB_STOR_NO_RETRY
 
 #define CONFIG_CMD_USB		/* USB Host support		*/
-#endif	//0			//TCW disable USB for kernel debug
 
 /* partition types and file systems we want */
 #define CONFIG_DOS_PARTITION

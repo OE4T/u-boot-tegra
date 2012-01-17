@@ -15,8 +15,8 @@
 
 	aliases {
 		console = "/serial@70006300";
-                usb0 = "/usb@0x7d008000";
-                usb1 = "/usb@0x7d000000";
+                usb0 = "/usb@0x7d000000";
+                usb1 = "/usb@0x7d008000";
 
 		sdmmc0 = "/sdhci@78000600";
 		sdmmc1 = "/sdhci@78000000";
@@ -78,7 +78,7 @@
 			<&gpio 22 3>;	/* enable vdd pnl PC6 */
 	};
 
-	usb@0x7d000000 {
+	usb@0x7d008000 {
 		status = "ok";
 		host-mode = <1>;
 	};
@@ -88,9 +88,13 @@
 		status = "ok";
 	};
 
-	usb@0x7d008000 {
+	usb@0x7d000000 {
 		status = "ok";
 		utmi = <&usbphy>;
 		host-mode = <0>;
+
+		/* Third value bit 0=1 output, 0 input; bit 1=1 high, 0 low */
+		vbus-gpio = <&gpio 238 0>;
+		vbus_pullup-gpio = <&gpio 233 3>;
 	};
 };

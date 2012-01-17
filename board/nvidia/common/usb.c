@@ -56,7 +56,7 @@ static struct usb_ctlr *host_dev_ctlr;
  *
  * 1. PLLU configuration information (reference clock is osc/clk_m and
  * PLLU-FOs are fixed at 12MHz/60MHz/480MHz).
- *
+ * (T2x)
  *  Reference frequency     13.0MHz      19.2MHz      12.0MHz      26.0MHz
  *  ----------------------------------------------------------------------
  *      DIVN                960 (0x3c0)  200 (0c8)    960 (3c0h)   960 (3c0)
@@ -65,14 +65,30 @@ static struct usb_ctlr *host_dev_ctlr;
  * CPCON                    1100b        0011b        1100b        1100b
  * LFCON0                   0            0            0            0
  *
- * 2. PLL CONFIGURATION & PARAMETERS for different clock generators:
+ * (T3x)
+ * Reference frequency MHZ 12.0  13.0  16.8  19.2  26.0  38.4  48.0
+ * ----------------------------------------------------------------------
+ *      DIVN              960   960   400   200   960   200   960
+ *      DIVM               12    13     7     4    26     4    12
  *
+ * 2. PLL CONFIGURATION & PARAMETERS for different clock generators:
+ * (T2x)
  * Reference frequency     13.0MHz         19.2MHz         12.0MHz     26.0MHz
  * ---------------------------------------------------------------------------
+ * Index                    0               1               2           3
  * PLLU_ENABLE_DLY_COUNT   02 (0x02)       03 (03)         02 (02)     04 (04)
  * PLLU_STABLE_COUNT       51 (33)         75 (4B)         47 (2F)    102 (66)
  * PLL_ACTIVE_DLY_COUNT    05 (05)         06 (06)         04 (04)     09 (09)
  * XTAL_FREQ_COUNT        127 (7F)        187 (BB)        118 (76)    254 (FE)
+ *
+ * (T3x)
+ * Reference frequency MHZ 12.0  13.0  16.8  19.2  26.0  38.4  48.0
+ * ---------------------------------------------------------------------------
+ * Index                    8     0     1     4    12     5     9
+ * PLLU_ENABLE_DLY_COUNT   02     2     3     3     4     5     6
+ * PLLU_STABLE_COUNT       47    51    66    75   102   150   188
+ * PLL_ACTIVE_DLY_COUNT    08     9    11    12    17    24    31
+ * XTAL_FREQ_COUNT        118   127   165   188   254   375   469
  *
  * 3. Debounce values IdDig, Avalid, Bvalid, VbusValid, VbusWakeUp, and
  * SessEnd. Each of these signals have their own debouncer and for each of
@@ -91,14 +107,15 @@ static struct usb_ctlr *host_dev_ctlr;
  *
  * 4. The 20 microsecond delay after bias cell operation.
  */
+#if !defined(CONFIG_TEGRA3)
 static const int usb_pll[CLOCK_OSC_FREQ_COUNT][PARAM_COUNT] = {
-	/* DivN, DivM, DivP, CPCON, LFCON, Delays             Debounce, Bias */
+	/* DivN, DivM, DivP, CPCON, LFCON,EN_DLY,STB,ACT, XTAL,Debounce,Bias */
 	{ 0x3C0, 0x0D, 0x00, 0xC,   0,  0x02, 0x33, 0x05, 0x7F, 0x7EF4, 5 },
 	{ 0x0C8, 0x04, 0x00, 0x3,   0,  0x03, 0x4B, 0x06, 0xBB, 0xBB80, 7 },
 	{ 0x3C0, 0x0C, 0x00, 0xC,   0,  0x02, 0x2F, 0x04, 0x76, 0x7530, 5 },
 	{ 0x3C0, 0x1A, 0x00, 0xC,   0,  0x04, 0x66, 0x09, 0xFE, 0xFDE8, 9 }
 };
-
+#endif
 /* UTMIP Idle Wait Delay */
 static const u8 utmip_idle_wait_delay = 17;
 
@@ -141,7 +158,7 @@ void usbf_reset_controller(enum periph_id id, struct usb_ctlr *usbctlr)
 {
 	/* Reset the USB controller with 2us delay */
 	reset_periph(id, 2);
-
+#if !defined(CONFIG_TEGRA3)
 	/*
 	 * Set USB1_NO_LEGACY_MODE to 1, Registers are accessible under
 	 * base address
@@ -149,7 +166,7 @@ void usbf_reset_controller(enum periph_id id, struct usb_ctlr *usbctlr)
 	if (id == PERIPH_ID_USBD)
 		bf_writel(USB1_NO_LEGACY_MODE, NO_LEGACY_MODE,
 			&usbctlr->usb1_legacy_ctrl);
-
+#endif
 	/* Put UTMIP1/3 in reset */
 	bf_writel(UTMIP_RESET, 1, &usbctlr->susp_ctrl);
 
@@ -169,7 +186,10 @@ static void init_usb_controller(enum periph_id id, struct usb_ctlr *usbctlr,
 {
 	u32 val;
 	int loop_count;
-
+#if defined(CONFIG_TEGRA3)
+	struct clk_rst_ctlr *clkrst =
+			(struct clk_rst_ctlr *)NV_PA_CLK_RST_BASE;
+#endif
 	clock_enable(id);
 
 	/* Reset the usb controller */
@@ -180,7 +200,7 @@ static void init_usb_controller(enum periph_id id, struct usb_ctlr *usbctlr,
 
 	/* Follow the crystal clock disable by >100ns delay */
 	udelay(1);
-
+#if !defined(CONFIG_TEGRA3)
 	/*
 	 * To Use the A Session Valid for cable detection logic, VBUS_WAKEUP
 	 * mux must be switched to actually use a_sess_vld threshold.
@@ -205,7 +225,41 @@ static void init_usb_controller(enum periph_id id, struct usb_ctlr *usbctlr,
 		     params[PARAM_ENABLE_DELAY_COUNT]);
 	bf_update(UTMIP_XTAL_FREQ_COUNT, val, params[PARAM_XTAL_FREQ_COUNT]);
 	writel(val, &usbctlr->utmip_pll_cfg1);
+#else
+	/*
+	 * PLL Delay CONFIGURATION settings. The following parameters control
+	 * the bring up of the plls.
+	 */
+	val = readl(&clkrst->crc_pll_cfg2);
+	bf_update(UTMIP_PLLU_STABLE_COUNT, val, params[PARAM_STABLE_COUNT]);
+	bf_update(UTMIP_PLL_ACTIVE_DLY_COUNT, val,
+		     params[PARAM_ACTIVE_DELAY_COUNT]);
+	writel(val, &clkrst->crc_pll_cfg2);
 
+	/* Set PLL enable delay count and crystal frequency count */
+	val = readl(&clkrst->crc_pll_cfg1);
+	bf_update(UTMIP_PLLU_ENABLE_DLY_COUNT, val,
+		     params[PARAM_ENABLE_DELAY_COUNT]);
+	bf_update(UTMIP_XTAL_FREQ_COUNT, val, params[PARAM_XTAL_FREQ_COUNT]);
+	writel(val, &clkrst->crc_pll_cfg1);
+
+	/* Disable Power Down state for PLL */
+	bf_writel(UTMIP_FORCE_PLLU_POWERDOWN, 0, &clkrst->crc_pll_cfg1);
+	bf_writel(UTMIP_FORCE_PLL_ENABLE_POWERDOWN, 0, &clkrst->crc_pll_cfg1);
+	bf_writel(UTMIP_FORCE_PLL_ACTIVE_POWERDOWN, 0, &clkrst->crc_pll_cfg1);
+
+	/* Recommended PHY settings for EYE diagram */
+	bf_writel(UTMIP_XCVR_SETUP, 0x4, &usbctlr->utmip_xcvr_cfg0);
+	bf_writel(UTMIP_XCVR_SETUP_MSB, 0x3, &usbctlr->utmip_xcvr_cfg0);
+	bf_writel(UTMIP_XCVR_HSSLEW_MSB, 0x8, &usbctlr->utmip_xcvr_cfg0);
+	bf_writel(UTMIP_XCVR_TERM_RANGE_ADJ, 0x7, &usbctlr->utmip_xcvr_cfg1);
+	bf_writel(UTMIP_HSDISCON_LEVEL_MSB, 0x1, &usbctlr->utmip_bias_cfg0);
+	bf_writel(UTMIP_HSDISCON_LEVEL, 0x1, &usbctlr->utmip_bias_cfg0);
+	bf_writel(UTMIP_HSSQUELCH_LEVEL, 0x2, &usbctlr->utmip_bias_cfg0);
+
+	/* Miscellaneous setting mentioned in Programming Guide */
+	bf_writel(UTMIP_SUSPEND_EXIT_ON_EDGE, 0, &usbctlr->utmip_misc_cfg0);
+#endif
 	/* Setting the tracking length time */
 	bf_writel(UTMIP_BIAS_PDTRK_COUNT, params[PARAM_BIAS_TIME],
 			&usbctlr->utmip_bias_cfg1);
@@ -245,12 +299,19 @@ static void init_usb_controller(enum periph_id id, struct usb_ctlr *usbctlr,
 	bf_writel(UTMIP_HS_SYNC_START_DLY, utmip_hs_sync_start_delay,
 			&usbctlr->utmip_hsrx_cfg1);
 
-	/* Preceed the crystal clock disable by >100ns delay. */
+	/* Proceed the crystal clock disable by >100ns delay. */
 	udelay(1);
 
 	/* Resuscitate crystal clock by setting UTMIP_PHY_XTAL_CLOCKEN */
 	bf_writel(UTMIP_PHY_XTAL_CLOCKEN, 1, &usbctlr->utmip_misc_cfg1);
-
+#if defined(CONFIG_TEGRA3)
+	if (id == PERIPH_ID_USBD)
+		bf_writel(UTMIP_FORCE_PD_SAMP_A_POWERDOWN, 0,
+			&clkrst->crc_pll_cfg2);
+	if (id == PERIPH_ID_USB3)
+		bf_writel(UTMIP_FORCE_PD_SAMP_C_POWERDOWN, 0,
+			&clkrst->crc_pll_cfg2);
+#endif
 	/* Finished the per-controller init. */
 
 	/* De-assert UTMIP_RESET to bring out of reset. */
@@ -314,9 +375,11 @@ static int add_port(enum periph_id id, struct usb_ctlr *usbctlr,
 		/* Disable ICUSB FS/LS transceiver */
 		bf_writel(IC_ENB1, 0, &usbctlr->icusb_ctrl);
 
+#if !defined(CONFIG_TEGRA3)
 		/* Select UTMI parallel interface */
 		bf_writel(PTS, PTS_UTMI, &usbctlr->port_sc1);
 		bf_writel(STS, 0, &usbctlr->port_sc1);
+#endif
 		power_up_port(usbctlr);
 	}
 	port[port_count++].reg = usbctlr;
@@ -361,6 +424,14 @@ int tegrausb_start_port(unsigned portnum, u32 *hccr, u32 *hcor)
 	tegrausb_stop_port();
 
 	usbctlr = port[portnum].reg;
+#if defined(CONFIG_TEGRA3)
+	/* Set Controller Mode as Host mode after Controller Reset was done */
+	bf_writel(CM, CM_HOST_MODE, &usbctlr->usb_mode);
+
+	/* Select UTMI parallel interface after setting host mode */
+	bf_writel(PTS, PTS_UTMI, &usbctlr->hostpc1_devlc);
+	bf_writel(STS, STS_PARALLEL_IF, &usbctlr->hostpc1_devlc);
+#endif
 	*hccr = (u32)&usbctlr->cap_length;
 	*hcor = (u32)&usbctlr->usb_cmd;
 	port_current = portnum;
@@ -394,7 +465,9 @@ int board_usb_init(const void *blob)
 	int clk_done = 0;
 	int node, upto = 0;
 	unsigned osc_freq = clock_get_rate(CLOCK_ID_OSC);
-
+#if defined(CONFIG_TEGRA3)
+	struct usb_ctlr *usb1ctlr;
+#endif
 	do {
 		node = fdt_decode_next_alias(blob, "usb",
 				COMPAT_NVIDIA_TEGRA250_USB, &upto);
@@ -419,6 +492,17 @@ int board_usb_init(const void *blob)
 		if (add_port(config.periph_id, config.reg, config.params,
 			    config.utmi))
 			return -1;
+#if defined(CONFIG_TEGRA3)
+		fdt_setup_gpio(&config.vbus_gpio);
+		fdt_setup_gpio(&config.vbus_pullup_gpio);
+
+		usb1ctlr = (struct usb_ctlr *)NV_PA_USB1_BASE;
+		/*
+		 * BIAS Pad Power Down is common among all 3 USB
+		 * controllers and can be controlled from USB1 only.
+		 */
+		bf_writel(UTMIP_BIASPD, 0, &usb1ctlr->utmip_bias_cfg0);
+#endif
 	} while (node);
 #else
 	enum clock_osc_freq freq;

@@ -49,48 +49,64 @@ struct usb_ctlr {
 	/* 0x120 */
 	uint dci_version;
 	uint dcc_params;
-	uint reserved4[6];
+	uint reserved4[2];
 
-	/* 0x140 */
+	/* 0x130 */
 	uint usb_cmd;
 	uint usb_sts;
 	uint usb_intr;
 	uint frindex;
 
-	/* 0x150 */
+	/* 0x140 */
 	uint reserved5;
 	uint periodic_list_base;
 	uint async_list_addr;
-	uint async_tt_sts;
+	uint reserved5_1;
 
-	/* 0x160 */
+	/* 0x150 */
 	uint burst_size;
 	uint tx_fill_tuning;
 	uint reserved6;   //; is this port_sc1 on some controllers?
 	uint icusb_ctrl;
 
-	/* 0x170 */
+	/* 0x160 */
 	uint ulpi_viewport;
 	uint reserved7;
 	uint endpt_nak;
 	uint endpt_nak_enable;
 
-	/* 0x180 */
+	/* 0x170 */
 	uint reserved;
 	uint port_sc1;
 	uint reserved8[6];
 
-	/* 0x1a0 */
-	uint reserved9;
-	uint otgsc;
-	uint usb_mode;
-	uint endpt_setup_stat;
+	/* 0x190 */
+	uint reserved9[8];
 
 	/* 0x1b0 */
-	uint reserved10[20];
+	uint reserved10;
+	uint hostpc1_devlc;
+	uint reserved10_1[2];
+
+	/* 0x1c0 */
+	uint reserved10_2[4];
+
+	/* 0x1d0 */
+	uint reserved10_3[4];
+
+	/* 0x1e0 */
+	uint reserved10_4[4];
+
+	/* 0x1f0 */
+	uint reserved10_5;
+	uint otgsc;
+	uint usb_mode;
+	uint reserved10_6;
 
 	/* 0x200 */
-	uint reserved11[0x80];
+	uint reserved11[2];
+	uint endpt_setup_stat;
+	uint reserved11_1[0x7D];
 
 	/* 0x400 */
 	uint susp_ctrl;
@@ -99,8 +115,7 @@ struct usb_ctlr {
 	uint phy_alt_vbus_sys;
 
 	/* 0x410 */
-	uint usb1_legacy_ctrl;
-	uint reserved12[3];
+	uint reserved12[4];
 
 	/* 0x420 */
 	uint reserved13[56];
@@ -109,8 +124,7 @@ struct usb_ctlr {
 	uint reserved14[64 * 3];
 
 	/* 0x800 */
-	uint utmip_pll_cfg0;
-	uint utmip_pll_cfg1;
+	uint reserved15[2];
 	uint utmip_xcvr_cfg0;
 	uint utmip_bias_cfg0;
 
@@ -144,23 +158,50 @@ struct usb_ctlr {
 #define VBUS_SENSE_CTL_AB_SESS_VLD		2
 #define VBUS_SENSE_CTL_A_SESS_VLD		3
 
+/* USB2D_HOSTPC1_DEVLC_0 */
+#define PTS_RANGE				31:29
+#define PTS_UTMI	0
+#define PTS_RESERVED	1
+#define PTS_ULP		2
+#define PTS_ICUSB_SER	3
+#define PTS_HSIC	4
+
+#define STS_RANGE				28:28
+#define STS_PARALLEL_IF	0
+#define STS_SERIAL_IF	1
+
+/* USB2D_USBMODE_0 */
+#define CM_RANGE				1:0
+#define CM_DEVICE_MODE				2
+#define CM_HOST_MODE				3
+
 /* USBx_IF_USB_SUSP_CTRL_0 */
 #define UTMIP_PHY_ENB_RANGE			12:12
 #define UTMIP_RESET_RANGE			11:11
 #define USB_PHY_CLK_VALID_RANGE			7:7
 
+/* USBx_UTMIP_MISC_CFG0 */
+#define UTMIP_SUSPEND_EXIT_ON_EDGE_RANGE	22:22
+
 /* USBx_UTMIP_MISC_CFG1 */
-#define UTMIP_PLLU_STABLE_COUNT_RANGE		17:6
-#define UTMIP_PLL_ACTIVE_DLY_COUNT_RANGE	22:18
 #define UTMIP_PHY_XTAL_CLOCKEN_RANGE		30:30
 
 /* USBx_UTMIP_PLL_CFG1_0 */
-#define UTMIP_PLLU_ENABLE_DLY_COUNT_RANGE	30:27
 #define UTMIP_XTAL_FREQ_COUNT_RANGE		11:0
+
+/* USBx_UTMIP_BIAS_CFG0_0 */
+#define UTMIP_HSDISCON_LEVEL_MSB_RANGE		24:24
+#define UTMIP_OTGPD_RANGE			11:11
+#define UTMIP_BIASPD_RANGE			10:10
+#define UTMIP_HSDISCON_LEVEL_RANGE		3:2
+#define UTMIP_HSSQUELCH_LEVEL_RANGE		1:0
 
 /* USBx_UTMIP_BIAS_CFG1_0 */
 #define UTMIP_BIAS_PDTRK_COUNT_RANGE		7:3
+#define UTMIP_FORCE_PDTRK_POWERUP_RANGE		1:1
+#define UTMIP_FORCE_PDTRK_POWERDOWN_RANGE	0:0
 
+/* USBx_UTMIP_DEBOUNCE_CFG0_0 */
 #define UTMIP_DEBOUNCE_CFG0_RANGE		15:0
 
 /* USBx_UTMIP_TX_CFG0_0 */
@@ -168,9 +209,6 @@ struct usb_ctlr {
 
 /* USBx_UTMIP_BAT_CHRG_CFG0_0 */
 #define UTMIP_PD_CHRG_RANGE			0:0
-
-/* USBx_UTMIP_XCVR_CFG0_0 */
-#define UTMIP_XCVR_LSBIAS_SE_RANGE		21:21
 
 /* USBx_UTMIP_SPARE_CFG0_0 */
 #define FUSE_SETUP_SEL_RANGE			3:3
@@ -185,24 +223,20 @@ struct usb_ctlr {
 /* USBx_CONTROLLER_2_USB2D_ICUSB_CTRL_0 */
 #define IC_ENB1_RANGE				3:3
 
-/* SB2_CONTROLLER_2_USB2D_PORTSC1_0 */
-#define PTS_RANGE				31:30
-#define PTS_UTMI	0
-#define PTS_RESERVED	1
-#define PTS_ULP		2
-#define PTS_ICUSB_SER	3
-
-#define STS_RANGE				29:29
-
 /* USBx_UTMIP_XCVR_CFG0_0 */
+#define UTMIP_XCVR_HSSLEW_MSB_RANGE		31:25
+#define UTMIP_XCVR_SETUP_MSB_RANGE		24:22
+#define UTMIP_XCVR_LSBIAS_SE_RANGE		21:21
 #define UTMIP_FORCE_PD_POWERDOWN_RANGE		14:14
 #define UTMIP_FORCE_PD2_POWERDOWN_RANGE		16:16
 #define UTMIP_FORCE_PDZI_POWERDOWN_RANGE	18:18
+#define UTMIP_XCVR_SETUP_RANGE			3:0
 
 /* USBx_UTMIP_XCVR_CFG1_0 */
-#define UTMIP_FORCE_PDDISC_POWERDOWN_RANGE	0:0
-#define UTMIP_FORCE_PDCHRP_POWERDOWN_RANGE	2:2
+#define UTMIP_XCVR_TERM_RANGE_ADJ_RANGE		21:18
 #define UTMIP_FORCE_PDDR_POWERDOWN_RANGE	4:4
+#define UTMIP_FORCE_PDCHRP_POWERDOWN_RANGE	2:2
+#define UTMIP_FORCE_PDDISC_POWERDOWN_RANGE	0:0
 
 /* USB3_IF_USB_PHY_VBUS_SENSORS_0 */
 #define VBUS_VLD_STS_RANGE			26:26
