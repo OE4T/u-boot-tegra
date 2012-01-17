@@ -222,10 +222,7 @@
 	"extra_bootargs=" \
 		"usbcore.old_scheme_first=1 " \
 		"core_edp_mv=1300 " \
-		"panel=lvds " \
-		"tegraid=30.1.2.0.0 " \
-		"debug_uartport=lsport " \
-		"pmuboard=0x0c08:0x0a01:0x04:0x41:0x08\0" \
+		CONFIG_EXTRA_BOOTARGS \
 	"platform_extras=" TEGRA3_SYSMEM"\0" \
 	"videospec=tegrafb\0" \
 	"lp0_args=" TEGRA_LP0_VEC "\0" \
