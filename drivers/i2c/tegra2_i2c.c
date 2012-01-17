@@ -388,7 +388,7 @@ void i2c_init_board(void)
 		PERIPH_ID_I2C2,
 		PERIPH_ID_I2C3,
 #if defined(CONFIG_TEGRA3)
-/* TODO:	PERIPH_ID_I2C4, */
+		PERIPH_ID_I2C4,
 #endif
 	};
 
@@ -405,7 +405,7 @@ void i2c_init_board(void)
 		(u32 *)NV_PA_I2C1_BASE,
 		(u32 *)NV_PA_I2C2_BASE,
 		(u32 *)NV_PA_I2C3_BASE,
-/* TODO:	(u32 *)NV_PA_I2C4_BASE, */
+		(u32 *)NV_PA_I2C4_BASE,
 #endif
 	};
 
