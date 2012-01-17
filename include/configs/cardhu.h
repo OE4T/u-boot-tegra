@@ -57,6 +57,18 @@
 
 #define CONFIG_DEFAULT_DEVICE_TREE "tegra3-cardhu"
 
+#define CONFIG_SERIAL_TAG	/* enable passing serial# (board id) */
+/* cardhu a01/a02 board */
+#define CONFIG_BOARD_ID_HIGH_A01	0x0c5b0a01
+#define CONFIG_BOARD_ID_LOW_A01		0x02450500
+/* cardhu a04 board */
+#define CONFIG_BOARD_ID_HIGH_A04	0x0c5b0a02
+#define CONFIG_BOARD_ID_LOW_A04		0x04450500
+
+#define CONFIG_TEGRA_SERIAL_HIGH	CONFIG_BOARD_ID_HIGH_A04
+#define CONFIG_TEGRA_SERIAL_LOW		CONFIG_BOARD_ID_LOW_A04
+/* TODO: retrieve board id from eeprom */
+
 #ifndef CONFIG_OF_CONTROL
 /* Things in here are defined by the device tree now. Let it grow! */
 

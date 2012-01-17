@@ -57,6 +57,10 @@
 
 #define CONFIG_DEFAULT_DEVICE_TREE "tegra3-waluigi"
 
+#define CONFIG_SERIAL_TAG		/* enable passing serial# (board id) */
+#define CONFIG_TEGRA_SERIAL_HIGH	0x0c5b0a00
+#define CONFIG_TEGRA_SERIAL_LOW		0x02430300
+
 #ifndef CONFIG_OF_CONTROL
 /* Things in here are defined by the device tree now. Let it grow! */
 

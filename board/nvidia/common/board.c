@@ -470,3 +470,14 @@ ulong get_arch_number(void)
 	return 0;
 }
 #endif
+
+#ifdef CONFIG_SERIAL_TAG
+void get_board_serial(struct tag_serialnr *serialnr)
+{
+	/* pass board id to kernel */
+	serialnr->high = CONFIG_TEGRA_SERIAL_HIGH;
+	serialnr->low = CONFIG_TEGRA_SERIAL_LOW;
+
+	/* TODO: use FDT */
+}
+#endif
