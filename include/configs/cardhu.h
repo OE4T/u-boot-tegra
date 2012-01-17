@@ -31,9 +31,7 @@
 #define TEGRA3_SYSMEM		"mem=1023M@2048M vmalloc=128M"
 #define V_PROMPT		"Tegra3 # "
 
-#if 0			//tcw - disable LP0 support for bringup
 #define CONFIG_TEGRA2_LP0
-#endif
 
 #define CONFIG_TEGRA3_CARDHU
 #define CONFIG_SYS_SKIP_ARM_RELOCATION

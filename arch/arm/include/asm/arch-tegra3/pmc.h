@@ -119,6 +119,15 @@ struct pmc_ctlr {
 	uint pmc_sys_33v_en;		/* _SYS_33V_EN_0, offset 154 */
 	uint pmc_bo_mirror_access;	/* _BOUNDOUT_MIRROR_ACCESS_0, off158 */
 	uint pmc_gate;			/* _GATE_0, offset 15C */
+	uint pmc_todo[51];			/* TODO: 160 ~ 228 */
+	uint pmc_scratch43;
+	uint pmc_scratch44;
+	uint pmc_scratch45;
+	uint pmc_scratch46;
+	uint pmc_scratch47;
+	uint pmc_scratch48;
+	uint pmc_scratch49;
+	uint pmc_scratch50;
 };
 
 #define PWRGATE_ENABLE	0x100
@@ -130,5 +139,7 @@ struct pmc_ctlr {
 #define START_CP	(1 << 8)
 
 #define CPUPWRREQ_OE	(1 << 16)
+
+#define PLLM_OVERRIDE_ENABLE	(1 << 11)
 
 #endif	/* PMC_H */

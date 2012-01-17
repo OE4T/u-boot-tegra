@@ -369,11 +369,6 @@ void enable_scu(void)
 void init_pmc_scratch(void)
 {
 	struct pmc_ctlr *const pmc = (struct pmc_ctlr *)NV_PA_PMC_BASE;
-	int i;
-
-	/* SCRATCH0 is initialized by the boot ROM and shouldn't be cleared */
-	for (i = 0; i < 23; i++)
-		writel(0, &pmc->pmc_scratch1+i);
 
 	/* ODMDATA is for kernel use to determine RAM size, LP config, etc. */
 	writel(CONFIG_SYS_BOARD_ODMDATA, &pmc->pmc_scratch20);

@@ -30,6 +30,7 @@
 #define NV_PA_TMRUS_BASE	0x60005010
 #define NV_PA_CLK_RST_BASE	0x60006000
 #define NV_PA_FLOW_BASE		0x60007000
+#define NV_PA_AHB_BASE		0x6000C000
 #define NV_PA_GPIO_BASE		0x6000D000
 #define NV_PA_EVP_BASE		0x6000F000
 #define NV_PA_APB_MISC_BASE	0x70000000
@@ -83,6 +84,6 @@ struct timerus {
 #define TEGRA_SOC_COUNT		(2)
 
 /* Address at which WB code runs, it must not overlap Bootrom's IRAM usage */
-#define AP20_WB_RUN_ADDRESS	0x40020000
+#define T30_WB_RUN_ADDRESS	0x40020000
 
 #endif	/* TEGRA3_H */
