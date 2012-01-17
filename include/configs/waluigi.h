@@ -46,8 +46,7 @@
 #define CONFIG_EXTRA_BOOTARGS \
 	"panel=lvds " \
 	"tegraid=30.1.2.0.0 " \
-	"debug_uartport=lsport " \
-	"pmuboard=0x0c08:0x0a01:0x04:0x41:0x08\0" \
+	"debug_uartport=lsport\0" \
 
 #include "tegra3-common.h"
 
