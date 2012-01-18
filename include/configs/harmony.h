@@ -73,6 +73,19 @@
 #define CONFIG_MACH_TYPE		MACH_TYPE_HARMONY
 #define CONFIG_SYS_BOARD_ODMDATA	0x300d8011 /* lp1, 1GB */
 
+/* SD/MMC */
+#define CONFIG_MMC
+#define CONFIG_GENERIC_MMC
+#define CONFIG_TEGRA2_MMC
+#define CONFIG_CMD_MMC
+
+#define CONFIG_DOS_PARTITION
+#define CONFIG_EFI_PARTITION
+#define CONFIG_CMD_EXT2
+#define CONFIG_CMD_FAT
+
+#define TEGRA2_MMC_DEFAULT_DEVICE       "0"
+
 /* Environment not stored */
 #define CONFIG_ENV_IS_NOWHERE
 
