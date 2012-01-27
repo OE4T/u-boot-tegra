@@ -190,6 +190,11 @@
  */
 #define CONFIG_ROOTPATH		"/export/nfsroot-${user}-${board}-${serial#}"
 #define CONFIG_TFTPPATH		"/tftpboot/uImage-${user}-${board}-${serial#}"
+#ifdef CONFIG_L4T
+#define TEGRA_DEFAULT_ROOT_PART	"1"
+#else /* CONFIG_L4T */
+#define TEGRA_DEFAULT_ROOT_PART	"3"
+#endif /* CONFIG_L4T */
 
 /* turn on command-line edit/hist/auto */
 #define CONFIG_CMDLINE_EDITING
@@ -224,6 +229,7 @@
 	"videospec=tegrafb\0" \
 	"lp0_args=" TEGRA_LP0_VEC "\0" \
 	"mmcdev=" TEGRA_MMC_DEFAULT_DEVICE "\0" \
+	"pn=" TEGRA_DEFAULT_ROOT_PART "\0" \
 	"dev_extras=\0" \
 	\
 	"regen_all="\
@@ -246,21 +252,21 @@
 		"bootm ${loadaddr}\0" \
 	\
 	"mmc_setup=setenv bootdev_bootargs " \
-		"root=/dev/mmcblk${mmcdev}p3 rw rootwait; " \
+		"root=/dev/mmcblk${mmcdev}p${pn} rw rootwait; " \
 		"run regen_all\0" \
 	"mmc_boot=run mmc_setup; " \
 		"mmc rescan ${mmcdev}; " \
-		"ext2load mmc ${mmcdev}:3 ${loadaddr} /boot/${bootfile}; " \
+		"ext2load mmc ${mmcdev}:${pn} ${loadaddr} /boot/${bootfile}; " \
 		"bootm ${loadaddr}\0" \
 	"mmc0_boot=setenv mmcdev 0; " \
 		"run mmc_boot\0" \
-	"mmc1_boot=setenv mmcdev 1; " \
+	"mmc1_boot=setenv mmcdev ${pn}; " \
 		"run mmc_boot\0" \
 	\
-	"usb_setup=setenv bootdev_bootargs root=/dev/sda3 rw rootwait; " \
+	"usb_setup=setenv bootdev_bootargs root=/dev/sda${pn} rw rootwait; " \
 		"run regen_all\0" \
 	"usb_boot=run usb_setup; " \
-		"ext2load usb 0:3 ${loadaddr} /boot/${bootfile};" \
+		"ext2load usb 0:${pn} ${loadaddr} /boot/${bootfile};" \
 		"bootm ${loadaddr}\0" \
 
 #define CONFIG_BOOTCOMMAND \
