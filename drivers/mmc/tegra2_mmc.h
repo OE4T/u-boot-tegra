@@ -65,6 +65,7 @@ struct tegra2_mmc {
 };
 
 int tegra2_mmc_init(const void *blob);
+void pad_init_mmc(struct tegra2_mmc *reg);
 
 #endif	/* __ASSEMBLY__ */
 #endif	/* __TEGRA2_MMC_H_ */

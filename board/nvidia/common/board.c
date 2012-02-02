@@ -46,6 +46,10 @@
 #include <asm/arch/pmu.h>
 #include <mmc.h>
 #endif
+#if defined(CONFIG_TEGRA3)
+#include <asm/arch/sdmmc.h>
+#include <asm/arch/gp_padctrl.h>
+#endif
 #ifdef CONFIG_OF_CONTROL
 #include <libfdt.h>
 #endif
@@ -260,14 +264,13 @@ static void board_sdmmc_voltage_init(void)
  */
 static void power_det_init(void)
 {
-/* t30 bringup */
 #if !defined(CONFIG_TEGRA3)
 	struct pmc_ctlr *const pmc = (struct pmc_ctlr *)NV_PA_PMC_BASE;
 
 	/* turn off power detects */
 	writel(0, &pmc->pmc_pwr_det_latch);
 	writel(0, &pmc->pmc_pwr_det);
-#endif	/* T30 bringup */
+#endif	/* Tegra3*/
 }
 
 /*
@@ -387,6 +390,53 @@ int arch_cpu_init(void)
 	return 0;
 }
 #endif
+
+void pad_init_mmc(struct tegra2_mmc *reg)
+{
+#if defined(CONFIG_TEGRA3)
+	struct apb_misc_gp_ctlr *const gpc =
+		(struct apb_misc_gp_ctlr *)NV_PA_APB_MISC_GP_BASE;
+	struct sdmmc_ctlr *const sdmmc = (struct sdmmc_ctlr *)reg;
+	u32 val, offset = (unsigned int)reg;
+	u32 padcfg, padmask;
+
+	debug("%s: sdmmc address = %08x\n", __func__, (unsigned int)sdmmc);
+
+	/* Set the pad drive strength for SDMMC1 or 3 only */
+	if (offset != NV_PA_SDMMC1_BASE && offset != NV_PA_SDMMC3_BASE) {
+		debug("%s: settings are only valid for SDMMC1/SDMMC3!\n",
+			__func__);
+		return;
+	}
+
+	/* Set pads as per T30 TRM, section 24.6.1.2 */
+	padcfg = (GP_SDIOCFG_DRVUP_SLWF | GP_SDIOCFG_DRVDN_SLWR | \
+		GP_SDIOCFG_DRVUP | GP_SDIOCFG_DRVDN);
+	padmask = 0x00000FFF;
+
+	if (offset == NV_PA_SDMMC1_BASE) {
+		val = readl(&gpc->sdio1cfg);
+		val &= padmask;
+		val |= padcfg;
+		writel(val, &gpc->sdio1cfg);
+	} else {				/* SDMMC3 */
+		val = readl(&gpc->sdio3cfg);
+		val &= padmask;
+		val |= padcfg;
+		writel(val, &gpc->sdio3cfg);
+	}
+
+	val = readl(&sdmmc->sdmmc_sdmemcomp_pad_ctrl);
+	val &= 0xFFFFFFF0;
+	val |= MEMCOMP_PADCTRL_VREF;
+	writel(val, &sdmmc->sdmmc_sdmemcomp_pad_ctrl);
+
+	val = readl(&sdmmc->sdmmc_auto_cal_config);
+	val &= 0xFFFF0000;
+	val |= AUTO_CAL_PU_OFFSET | AUTO_CAL_PD_OFFSET | AUTO_CAL_ENABLED;
+	writel(val, &sdmmc->sdmmc_auto_cal_config);
+#endif
+}
 
 #ifdef CONFIG_TEGRA2_MMC
 /* this is a weak define that we are overriding */

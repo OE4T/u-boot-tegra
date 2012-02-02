@@ -668,6 +668,8 @@ static int init_port(unsigned dev_index, enum periph_id mmc_id,
 
 	mmc->block_dev.removable = removable;
 
+	pad_init_mmc(reg);
+
 	return 0;
 }
 
