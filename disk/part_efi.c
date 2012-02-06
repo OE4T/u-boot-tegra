@@ -127,8 +127,13 @@ void print_part_efi(block_dev_desc_t * dev_desc)
 	/* This function validates AND fills in the GPT header and PTE */
 	if (is_gpt_valid(dev_desc, GPT_PRIMARY_PARTITION_TABLE_LBA,
 			 gpt_head, pgpt_pte) != 1) {
-		printf("%s: *** ERROR: Invalid GPT ***\n", __FUNCTION__);
-		goto failure;
+		/* Check secondary GPT in the last 512 byte block. */
+		unsigned long long lastlba = dev_desc->lba - 1;
+		if (is_gpt_valid(dev_desc, lastlba, gpt_head, pgpt_pte) != 1) {
+			printf("%s: *** ERROR: Invalid GPT ***\n",
+			       __FUNCTION__);
+			goto failure;
+		}
 	}
 
 	debug("%s: gpt-entry at 0x%08X\n", __FUNCTION__, (unsigned int)*pgpt_pte);
@@ -180,9 +185,14 @@ int get_partition_info_efi(block_dev_desc_t * dev_desc, int part,
 	/* This function validates AND fills in the GPT header and PTE */
 	if (is_gpt_valid(dev_desc, GPT_PRIMARY_PARTITION_TABLE_LBA,
 			 gpt_head, pgpt_pte) != 1) {
-		printf("%s: *** ERROR: Invalid GPT ***\n", __FUNCTION__);
-		err = -1;
-		goto failure;
+		/* Check secondary GPT in the last 512 byte block. */
+		unsigned long long lastlba = dev_desc->lba - 1;
+		if (is_gpt_valid(dev_desc, lastlba, gpt_head, pgpt_pte) != 1) {
+			printf("%s: *** ERROR: Invalid GPT ***\n",
+			       __FUNCTION__);
+			err = -1;
+			goto failure;
+		}
 	}
 
 	/* The ulong casting limits the maximum disk size to 2 TB */
@@ -214,6 +224,9 @@ int test_part_efi(block_dev_desc_t * dev_desc)
 {
 	legacy_mbr *legacymbr = memalign(CACHE_LINE_SIZE, sizeof(legacy_mbr));
 	int err = 0;
+	lbaint_t altlba;
+	gpt_header *gpt_head;
+	gpt_entry **pgpt_pte;
 
 	if (legacymbr == NULL) {
 		printf("%s: legacy_mbr allocation failed\n", __FUNCTION__);
@@ -224,11 +237,33 @@ int test_part_efi(block_dev_desc_t * dev_desc)
 	if ((dev_desc->block_read(dev_desc->dev, 0, 1, (ulong *)legacymbr) != 1)
 		|| (is_pmbr_valid(legacymbr) != 1)) {
 		err = -1;
-		goto failure;
 	}
 
-failure:
 	free(legacymbr);
+
+	/*
+	 * If MBR/Primary GPT is not valid, check alternative GPT in
+	 * the last 512 byte block of the device.
+	 */
+	if (!err)
+		return err;
+
+	altlba = dev_desc->lba - 1;
+	gpt_head = memalign(CACHE_LINE_SIZE, sizeof(gpt_header));
+	if (gpt_head  == NULL) {
+		printf("%s: gpt_head allocation failed\n", __FUNCTION__);
+		return -1;
+	}
+	pgpt_pte = (void *)&pgpt_pte_ptr;
+	err = 0;
+	if (is_gpt_valid(dev_desc, altlba, gpt_head, pgpt_pte) != 1) {
+		err = -1;
+	}
+
+	if (!err)
+		free(*pgpt_pte);
+	*pgpt_pte = NULL;
+	free(gpt_head);
 
 	return err;
 }
