@@ -408,6 +408,13 @@ static gpt_entry *alloc_read_gpt_entries(block_dev_desc_t * dev_desc,
 		le32_to_int(pgpt_head->num_partition_entries),
 		le32_to_int(pgpt_head->sizeof_partition_entry), count);
 
+	/*
+	 * count must be round up by GPT_BLOCK_SIZE or else
+	 * the partition table will get truncated.
+	 */
+	count = (count + GPT_BLOCK_SIZE - 1) / GPT_BLOCK_SIZE;
+	count *= GPT_BLOCK_SIZE;
+
 	/* Allocate memory for PTE, remember to FREE */
 	if (count != 0) {
 		pte = memalign(CACHE_LINE_SIZE, count);
