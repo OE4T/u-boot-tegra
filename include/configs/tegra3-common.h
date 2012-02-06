@@ -192,8 +192,10 @@
 #define CONFIG_TFTPPATH		"/tftpboot/uImage-${user}-${board}-${serial#}"
 #ifdef CONFIG_L4T
 #define TEGRA_DEFAULT_ROOT_PART	"1"
+#define TEGRA_DEFAULT_FORCE_GPT "gpt"
 #else /* CONFIG_L4T */
 #define TEGRA_DEFAULT_ROOT_PART	"3"
+#define TEGRA_DEFAULT_FORCE_GPT ""
 #endif /* CONFIG_L4T */
 
 /* turn on command-line edit/hist/auto */
@@ -230,6 +232,7 @@
 	"lp0_args=" TEGRA_LP0_VEC "\0" \
 	"mmcdev=" TEGRA_MMC_DEFAULT_DEVICE "\0" \
 	"pn=" TEGRA_DEFAULT_ROOT_PART "\0" \
+	"forcegpt=" TEGRA_DEFAULT_FORCE_GPT "\0" \
 	"dev_extras=\0" \
 	\
 	"regen_all="\
@@ -252,7 +255,7 @@
 		"bootm ${loadaddr}\0" \
 	\
 	"mmc_setup=setenv bootdev_bootargs " \
-		"root=/dev/mmcblk${mmcdev}p${pn} rw rootwait; " \
+		"root=/dev/mmcblk${mmcdev}p${pn} rw rootwait ${forcegpt}; " \
 		"run regen_all\0" \
 	"mmc_boot=run mmc_setup; " \
 		"mmc rescan ${mmcdev}; " \
