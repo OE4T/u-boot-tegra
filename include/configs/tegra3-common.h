@@ -54,6 +54,7 @@
 #define CONFIG_ARCH_CPU_INIT		/* Fire up the A9 core */
 #define CONFIG_ALIGN_LCD_TO_SECTION	/* Align LCD to 1MB boundary */
 #define CONFIG_BOARD_EARLY_INIT_F
+#define CONFIG_MISC_INIT_R		/* misc init */
 
 #include <asm/arch/tegra.h>		/* get chip and board defs */
 

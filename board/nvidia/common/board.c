@@ -31,6 +31,7 @@
 
 #include <asm/arch/clk_rst.h>
 #include <asm/arch/clock.h>
+#include <asm/arch/gp_padctrl.h>
 #include <asm/arch/pinmux.h>
 #include <asm/arch/uart.h>
 #include <asm/arch/usb.h>
@@ -575,3 +576,43 @@ void get_board_serial(struct tag_serialnr *serialnr)
 #endif	/* SERIAL_EEPROM */
 }
 #endif	/* SERIAL_TAG */
+
+u32 get_minor_rev(void)
+{
+	u32 minor_rev;
+	struct apb_misc_gp_ctlr *gp =
+		(struct apb_misc_gp_ctlr *)NV_PA_APB_MISC_GP_BASE;
+
+	minor_rev = readl(&gp->hidrev);
+	minor_rev >>= 16;			/* MINORREV = bits 19:16 */
+	minor_rev &= 0x0F;
+
+	debug("Tegra chip minor rev = %X\n", minor_rev);
+	return minor_rev;
+}
+
+#ifdef	CONFIG_MISC_INIT_R
+int misc_init_r(void)
+{
+#if defined(CONFIG_TEGRA3)
+	char buf[255], *s;
+
+	/*
+	 * We need to differentiate between T30 and T33 by passing
+	 * 'max_cpu_cur_ma=10000' to the kernel if we're on a T33,
+	 * as per NVBug 932291.  T30 = 0x02, T33 = 0x03.
+	 */
+	s = getenv("extra_bootargs");
+	debug("old kernel cmd line is %s\n", s);
+
+	if (get_minor_rev() == 0x03) {
+		if (s) {
+			sprintf(buf, "%s %s", s, "max_cpu_cur_ma=10000");
+			setenv("extra_bootargs", buf);
+			debug("new kernel cmd line is %s\n", buf);
+		}
+	}
+#endif
+	return 0;
+}
+#endif

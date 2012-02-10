@@ -32,5 +32,7 @@ int tegra2_mmc_init(const void *blob);
 void lcd_early_init(const void *blob);
 int tegra_get_chip_type(void);
 int pmu_set_nominal(void);
+u32 get_minor_rev(void);
+int misc_init_r(void);
 
 #endif	/* BOARD_H */
