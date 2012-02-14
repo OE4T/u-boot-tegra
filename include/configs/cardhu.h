@@ -110,7 +110,11 @@
 #define CONFIG_SYS_BOARD_ODMDATA	0x40080105	/* 1GB, UARTA, etc */
 
 #define CONFIG_ENV_SECT_SIZE    CONFIG_ENV_SIZE
+#ifdef CONFIG_L4T
+#define CONFIG_ENV_OFFSET       (SZ_8M + SZ_4M)
+#else /* CONFIG_L4T */
 #define CONFIG_ENV_OFFSET       (SZ_4M - CONFIG_ENV_SECT_SIZE)
+#endif /* CONFIG_L4T */
 
 #define TEGRA_MMC_DEFAULT_DEVICE	"1"	/* TCW SD-card for now */
 
@@ -127,8 +131,10 @@
 #define CONFIG_SF_DEFAULT_MODE		SPI_MODE_0
 #define CONFIG_CMD_SPI
 #define CONFIG_CMD_SF
+#ifndef CONFIG_L4T
 /* Environment in SPI */
 #define CONFIG_ENV_IS_IN_SPI_FLASH
+#endif	/* !CONFIG_L4T */
 
 /* I2C */
 #define CONFIG_TEGRA2_I2C
@@ -143,6 +149,11 @@
 #define CONFIG_GENERIC_MMC
 #define CONFIG_TEGRA2_MMC
 #define CONFIG_CMD_MMC
+#ifdef CONFIG_L4T
+/* Environment in MMC partition */
+#define CONFIG_ENV_IS_IN_MMC
+#define CONFIG_SYS_MMC_ENV_DEV	0
+#endif /* CONFIG_L4T */
 
 #define CONFIG_DOS_PARTITION
 #define CONFIG_EFI_PARTITION
