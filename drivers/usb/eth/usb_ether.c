@@ -109,14 +109,16 @@ int usb_host_eth_scan(int mode)
 	int i, old_async;
 	struct usb_device *dev;
 
-
 	if (mode == 1)
 		printf("       scanning bus for ethernet devices... ");
 
 	old_async = usb_disable_asynch(1); /* asynch transfer not allowed */
 
+	/* Unregister a previously detected USB network device */
 	for (i = 0; i < USB_MAX_ETH_DEV; i++)
-		memset(&usb_eth[i], 0, sizeof(usb_eth[i]));
+		eth_unregister(&usb_eth[i].eth_dev);
+
+	memset(usb_eth, 0, sizeof(usb_eth));
 
 	for (i = 0; prob_dev[i].probe; i++) {
 		if (prob_dev[i].before_probe)
