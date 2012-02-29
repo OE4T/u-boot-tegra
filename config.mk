@@ -112,7 +112,9 @@ STRIP	= $(CROSS_COMPILE)strip
 OBJCOPY = $(CROSS_COMPILE)objcopy
 OBJDUMP = $(CROSS_COMPILE)objdump
 RANLIB	= $(CROSS_COMPILE)RANLIB
+ifeq ($(DTC),)
 DTC	= dtc
+endif
 
 #########################################################################
 
