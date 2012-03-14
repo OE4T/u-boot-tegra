@@ -389,3 +389,33 @@ static ulong get_sp(void)
 	asm("mov %0, sp" : "=r"(ret) : );
 	return ret;
 }
+
+#ifdef CONFIG_CMD_BOOTZ
+
+struct zimage_header {
+	uint32_t	code[9];
+	uint32_t	zi_magic;
+	uint32_t	zi_start;
+	uint32_t	zi_end;
+};
+
+#define	LINUX_ARM_ZIMAGE_MAGIC	0x016f2818
+
+int bootz_setup(void *image, void **start, void **end)
+{
+	struct zimage_header *zi = (struct zimage_header *)image;
+
+	if (zi->zi_magic != LINUX_ARM_ZIMAGE_MAGIC) {
+		puts("Bad Linux ARM zImage magic!\n");
+		return 1;
+	}
+
+	*start = (void *)zi->zi_start;
+	*end = (void *)zi->zi_end;
+
+	debug("Kernel image @ 0x%08x [ 0x%08x - 0x%08x ]\n",
+		(uint32_t)image, (uint32_t)*start, (uint32_t)*end);
+
+	return 0;
+}
+#endif	/* CONFIG_CMD_BOOTZ */
