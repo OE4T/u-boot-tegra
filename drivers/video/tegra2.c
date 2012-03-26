@@ -29,6 +29,7 @@
 #include <asm/arch/power.h>
 #include <asm/arch/pwfm.h>
 #include <asm/arch/display.h>
+#include <asm/arch/tegra.h>
 #include <asm/system.h>
 #include <asm/io.h>
 
@@ -195,6 +196,9 @@ static void update_panel_size(struct fdt_lcd *config)
 	panel_info.vl_col = config->width;
 	panel_info.vl_row = config->height;
 	panel_info.vl_bpix = config->log2_bpp;
+#if defined(CONFIG_TEGRA3)
+	panel_info.vl_align = TEGRA_LINEAR_PITCH_ALIGNMENT;
+#endif
 }
 
 /*

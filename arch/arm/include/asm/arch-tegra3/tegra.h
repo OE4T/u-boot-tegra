@@ -87,4 +87,7 @@ struct timerus {
 /* Address at which WB code runs, it must not overlap Bootrom's IRAM usage */
 #define T30_WB_RUN_ADDRESS	0x40020000
 
+#define round_up(x, y) ((x + (y-1)) & (~(y-1)))
+#define TEGRA_LINEAR_PITCH_ALIGNMENT	16
+
 #endif	/* TEGRA3_H */
