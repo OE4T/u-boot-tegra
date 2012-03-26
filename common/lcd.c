@@ -339,6 +339,14 @@ static void test_pattern (void)
 int lcd_get_size(int *line_length)
 {
 	*line_length = (panel_info.vl_col * NBITS (panel_info.vl_bpix)) / 8;
+#if defined(CONFIG_TEGRA3)
+	debug("%s: initial line_length = %d\n", __func__, *line_length);
+
+	if (panel_info.vl_align)
+		*line_length = round_up(*line_length, panel_info.vl_align);
+
+	debug("%s: new line_length = %d\n", __func__, *line_length);
+#endif
 	return *line_length * panel_info.vl_row;
 }
 
