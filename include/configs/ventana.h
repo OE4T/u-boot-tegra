@@ -30,10 +30,31 @@
 #define CONFIG_TEGRA2_LP0
 
 /* High-level configuration options */
-#define TEGRA2_SYSMEM		"mem=384M@0M nvmem=128M@384M mem=512M@512M"
-#define V_PROMPT		"Tegra2 # "
+#define TEGRA2_SYSMEM		"mem=1024M@0M vmalloc=128M"
+#define V_PROMPT		"Tegra2 (Ventana) # "
+
+#define CONFIG_EXTRA_BOOTARGS \
+	"usbcore.old_scheme_first=1 " \
+	"tegraid=20.1.2.0.0 " \
+	"no_console_suspend=1 " \
+	"debug_uartport=lsport,3\0" \
 
 #include "tegra2-common.h"
+
+#define CONFIG_SERIAL_TAG	/* enable passing serial# (board id) */
+/* ventana a03 board */
+#define CONFIG_BOARD_ID_HIGH_A03	0x024b0a00
+#define CONFIG_BOARD_ID_LOW_A03 	0x03420500
+
+#define CONFIG_TEGRA_SERIAL_HIGH	CONFIG_BOARD_ID_HIGH_A03
+#define CONFIG_TEGRA_SERIAL_LOW 	CONFIG_BOARD_ID_LOW_A03
+
+/* The following are used to retrieve the board id from an eeprom */
+#define CONFIG_SERIAL_EEPROM
+#define EEPROM_I2C_BUS		0
+#define EEPROM_I2C_ADDRESS	0x50
+#define EEPROM_SERIAL_OFFSET	0x04
+#define NUM_SERIAL_ID_BYTES	8
 
 #ifndef CONFIG_OF_CONTROL
 /* Things in here are defined by the device tree now. Let it grow! */
@@ -58,6 +79,11 @@
 #define CONFIG_STD_DEVICES_SETTINGS	"stdin=serial,tegra-kbc\0" \
 					"stdout=serial,lcd\0" \
 					"stderr=serial,lcd\0"
+
+#ifdef CONFIG_L4T
+#define CONFIG_ENV_SECT_SIZE    CONFIG_ENV_SIZE
+#define CONFIG_ENV_OFFSET       (SZ_8M + SZ_2M)
+#endif /* CONFIG_L4T */
 
 #define CONFIG_SYS_BOARD_ODMDATA	0x300d8011 /* lp1, 1GB */
 
@@ -86,6 +112,11 @@
 #define CONFIG_GENERIC_MMC
 #define CONFIG_TEGRA2_MMC
 #define CONFIG_CMD_MMC
+#ifdef CONFIG_L4T
+/* Environment in MMC partition */
+#define CONFIG_ENV_IS_IN_MMC
+#define CONFIG_SYS_MMC_ENV_DEV		0
+#endif /* CONFIG_L4T */
 
 #define CONFIG_DOS_PARTITION
 #define CONFIG_EFI_PARTITION
@@ -94,8 +125,10 @@
 
 #define TEGRA2_MMC_DEFAULT_DEVICE	"0"
 
+#ifndef CONFIG_L4T
 /* Environment not stored */
 #define CONFIG_ENV_IS_NOWHERE
+#endif /* CONFIG_L4T */
 
 /*
  *  LCDC configuration

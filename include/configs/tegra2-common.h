@@ -68,6 +68,7 @@
 #define CONFIG_SKIP_LOWLEVEL_INIT
 
 #define CONFIG_CMDLINE_TAG		/* enable passing of ATAGs */
+#define CONFIG_INITRD_TAG		/* enable initrd ATAG */
 
 /*
  * Size of malloc() pool
@@ -187,11 +188,18 @@
  */
 #define CONFIG_ROOTPATH		"/export/nfsroot-${user}-${board}-${serial#}"
 #define CONFIG_TFTPPATH		"/tftpboot/uImage-${user}-${board}-${serial#}"
+#ifdef CONFIG_L4T
+#define TEGRA_DEFAULT_ROOT_PART	"1"
+#define TEGRA_DEFAULT_FORCE_GPT "gpt"
+#else /* CONFIG_L4T */
+#define TEGRA_DEFAULT_ROOT_PART	"3"
+#define TEGRA_DEFAULT_FORCE_GPT ""
+#endif /* CONFIG_L4T */
 
 /* turn on command-line edit/hist/auto */
 #define CONFIG_CMDLINE_EDITING
 #define CONFIG_COMMAND_HISTORY
-#define CONFIG_AUTOCOMPLETE
+#define CONFIG_AUTO_COMPLETE
 
 #define CONFIG_SYS_NO_FLASH
 
@@ -204,6 +212,10 @@
 #define TEGRA_LP0_VEC
 #endif
 
+#ifndef CONFIG_EXTRA_BOOTARGS
+#define CONFIG_EXTRA_BOOTARGS "\0"
+#endif
+
 /* Environment information */
 #define CONFIG_EXTRA_ENV_SETTINGS_COMMON \
 	CONFIG_STD_DEVICES_SETTINGS \
@@ -213,11 +225,13 @@
 	"serial#=1\0" \
 	"tftpserverip=172.22.72.144\0" \
 	"nfsserverip=172.22.72.144\0" \
-	"extra_bootargs=\0" \
+	"extra_bootargs=" CONFIG_EXTRA_BOOTARGS \
 	"platform_extras=" TEGRA2_SYSMEM"\0" \
 	"videospec=tegrafb\0" \
 	"lp0_args=" TEGRA_LP0_VEC "\0" \
 	"mmcdev=" TEGRA2_MMC_DEFAULT_DEVICE "\0" \
+	"pn=" TEGRA_DEFAULT_ROOT_PART "\0" \
+	"forcegpt=" TEGRA_DEFAULT_FORCE_GPT "\0" \
 	"dev_extras=\0" \
 	\
 	"regen_all="\
@@ -240,29 +254,29 @@
 		"bootm ${loadaddr}\0" \
 	\
 	"mmc_setup=setenv bootdev_bootargs " \
-		"root=/dev/mmcblk${mmcdev}p3 rw rootwait; " \
+		"root=/dev/mmcblk${mmcdev}p${pn} rw rootwait ${forcegpt}; " \
 		"run regen_all\0" \
 	"mmc_boot=run mmc_setup; " \
 		"mmc rescan ${mmcdev}; " \
-		"ext2load mmc ${mmcdev}:3 ${loadaddr} /boot/${bootfile}; " \
+		"ext2load mmc ${mmcdev}:${pn} ${loadaddr} /boot/${bootfile}; " \
 		"bootm ${loadaddr}\0" \
 	\
-	"usb_setup=setenv bootdev_bootargs root=/dev/sda3 rw rootwait; " \
+	"usb_setup=setenv bootdev_bootargs root=/dev/sda${pn} rw rootwait; " \
 		"run regen_all\0" \
 	"usb_boot=run usb_setup; " \
-		"ext2load usb 0:3 ${loadaddr} /boot/${bootfile};" \
+		"ext2load usb 0:${pn} ${loadaddr} /boot/${bootfile};" \
 		"bootm ${loadaddr}\0" \
 
 #define CONFIG_BOOTCOMMAND \
-  "usb start; "\
-  "if test ${ethact} != \"\"; then "\
-    "run dhcp_boot ; " \
-  "fi ; " \
-  "run usb_boot ; " \
-  "run mmc_boot ; "
+	"usb start; "\
+	"if test ${ethact} != \"\"; then "\
+		"run dhcp_boot ; " \
+	"fi ; " \
+	"run usb_boot ; " \
+	"run mmc_boot ; "
 
 #define CONFIG_LOADADDR		0x408000	/* def. location for kernel */
-#define CONFIG_BOOTDELAY	0		/* -1 to disable auto boot */
+#define CONFIG_BOOTDELAY	3		/* -1 to disable auto boot */
 #define CONFIG_ZERO_BOOTDELAY_CHECK
 
 /*
@@ -306,7 +320,7 @@
 #define PHYS_SDRAM_1		TEGRA2_SDRC_CS0
 #define PHYS_SDRAM_1_SIZE	0x20000000	/* 512M */
 
-#define CONFIG_SYS_TEXT_BASE	0x00E08000
+#define CONFIG_SYS_TEXT_BASE	0x00108000
 #define CONFIG_SYS_SDRAM_BASE	PHYS_SDRAM_1
 
 #define CONFIG_SYS_INIT_RAM_ADDR	CONFIG_STACKBASE
