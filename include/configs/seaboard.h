@@ -71,8 +71,6 @@
 					"stdout=serial,lcd\0" \
 					"stderr=serial,lcd\0"
 
-#define CONFIG_SYS_BOARD_ODMDATA	0x300d8011 /* lp1, 1GB */
-
 /* GPIO */
 #define CONFIG_TEGRA2_GPIO
 #define CONFIG_CMD_TEGRA2_GPIO_INFO

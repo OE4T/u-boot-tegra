@@ -33,8 +33,6 @@
  */
 /* notify kernel sdram size thru command line */
 #define TEGRA3_SYSMEM		"mem=2047M@2048M vmalloc=128M"  /* (2GB-1MB) */
-/* specify sdram size thru odm data */
-#define CONFIG_SYS_BOARD_ODMDATA	0x800D8105	/* 2GB, UARTD, etc */
 
 #define V_PROMPT		"Tegra3 # "
 

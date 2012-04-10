@@ -87,4 +87,8 @@ struct timerus {
 /* Address at which WB code runs, it must not overlap Bootrom's IRAM usage */
 #define T30_WB_RUN_ADDRESS	0x40020000
 
+#define NVBOOTINFOTABLE_BCTSIZE	0x38	/* BCT size in BIT in IRAM */
+#define NVBOOTINFOTABLE_BCTPTR	0x3C	/* BCT pointer in BIT in IRAM */
+#define BCT_ODMDATA_OFFSET	6116	/* 12 bytes from end of BCT */
+
 #endif	/* TEGRA3_H */
