@@ -1,5 +1,5 @@
 #
-#  (C) Copyright 2010,2011
+#  (C) Copyright 2010,2011,2012
 #  NVIDIA Corporation <www.nvidia.com>
 #
 #
@@ -24,7 +24,7 @@
 
 include $(TOPDIR)/config.mk
 
-$(shell mkdir -p $(obj)../common)
+$(shell mkdir -p $(obj)../seaboard)
 
 LIB	= $(obj)lib$(BOARD).o
 
