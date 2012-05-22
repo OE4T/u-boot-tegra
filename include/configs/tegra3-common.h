@@ -106,6 +106,7 @@
 #define CONFIG_CONS_INDEX	1
 #endif /* CONFIG_OF_CONTROL ^^^^^ not defined */
 
+#define CONFIG_ENV_VARS_UBOOT_CONFIG
 #define CONFIG_ENV_SIZE         SZ_4K
 
 /* allow to overwrite serial and ethaddr */
