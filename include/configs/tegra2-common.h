@@ -341,4 +341,6 @@
  */
 #define CONFIG_SYS_BOOTMAPSZ	(1 << 25)
 
+#define CONFIG_CMD_BOOTZ
+
 #endif /* __TEGRA2_COMMON_H */

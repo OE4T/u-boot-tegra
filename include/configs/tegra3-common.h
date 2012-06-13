@@ -354,4 +354,6 @@
  */
 #define CONFIG_SYS_BOOTMAPSZ	SZ_32M
 
+#define CONFIG_CMD_BOOTZ
+
 #endif /* __TEGRA3_COMMON_H */
