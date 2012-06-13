@@ -272,6 +272,8 @@
 	"usb_boot=run usb_setup; " \
 		"ext2load usb 0:${pn} ${loadaddr} /boot/${bootfile};" \
 		"bootm ${loadaddr}\0" \
+	"fdt_load=0x81000000\0" \
+	"fdt_high=81100000\0" \
 
 #define CONFIG_BOOTCOMMAND \
 	"usb start; "\
