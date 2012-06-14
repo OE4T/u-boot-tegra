@@ -123,7 +123,11 @@ int do_mmcinfo (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	mmc = find_mmc_device(dev_num);
 
 	if (mmc) {
-		mmc_init(mmc);
+		int sts;
+
+		sts = mmc_init(mmc);
+		if (sts != 0)
+			return sts;
 
 		print_mmcinfo(mmc);
 	}
@@ -141,6 +145,7 @@ U_BOOT_CMD(
 
 int do_mmcops(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
+	int sts;
 	int rc = 0;
 
 	switch (argc) {
@@ -152,9 +157,7 @@ int do_mmcops(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			if (!mmc)
 				return 1;
 
-			mmc_init(mmc);
-
-			return 0;
+			return mmc_init(mmc);
 		} else if (strncmp(argv[1], "part", 4) == 0) {
 			int dev = simple_strtoul(argv[2], NULL, 10);
 			block_dev_desc_t *mmc_dev;
@@ -164,7 +167,10 @@ int do_mmcops(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 				puts("no mmc devices available\n");
 				return 1;
 			}
-			mmc_init(mmc);
+			sts = mmc_init(mmc);
+			if (sts != 0)
+				return sts;
+
 			mmc_dev = mmc_get_dev(dev);
 			if (mmc_dev != NULL &&
 			    mmc_dev->type != DEV_TYPE_UNKNOWN) {
@@ -216,7 +222,9 @@ int do_mmcops(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			printf("\nMMC read: dev # %d, block # %d, count %d ... ",
 				dev, blk, cnt);
 
-			mmc_init(mmc);
+			sts = mmc_init(mmc);
+			if (sts != 0)
+				return sts;
 
 			mmc_switch(mmc, set, index, value);
 
@@ -258,7 +266,9 @@ int do_mmcops(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			printf("\nMMC write: dev # %d, block # %d, count %d ... ",
 				dev, blk, cnt);
 
-			mmc_init(mmc);
+			sts = mmc_init(mmc);
+			if (sts != 0)
+				return sts;
 
 			mmc_switch(mmc, set, index, value);
 
