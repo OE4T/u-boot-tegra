@@ -138,10 +138,19 @@ inline int read_env(struct mmc *mmc, unsigned long size,
 	return (n == blk_cnt) ? 0 : -1;
 }
 
+static u32 __def_find_mmc_env_offset(struct mmc *mmc)
+{
+	/* return default env offset. */
+	return CONFIG_ENV_OFFSET;
+}
+u32 find_mmc_env_offset(struct mmc *mmc)
+		__attribute__((weak, alias("__def_find_mmc_env_offset")));
+
 void env_relocate_spec(void)
 {
 #if !defined(ENV_IS_EMBEDDED)
-       char buf[CONFIG_ENV_SIZE];
+	char buf[CONFIG_ENV_SIZE];
+	unsigned long offset;
 
 	struct mmc *mmc = find_mmc_device(CONFIG_SYS_MMC_ENV_DEV);
 
@@ -150,7 +159,8 @@ void env_relocate_spec(void)
 		return;
 	}
 
-	if (read_env(mmc, CONFIG_ENV_SIZE, CONFIG_ENV_OFFSET, buf)) {
+	offset = find_mmc_env_offset(mmc);
+	if (read_env(mmc, CONFIG_ENV_SIZE, offset, buf)) {
 		use_default();
 		return;
 	}

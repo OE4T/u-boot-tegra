@@ -741,3 +741,54 @@ int tegra2_mmc_init(const void *blob)
 #endif
 	return 0;
 }
+
+#ifdef CONFIG_FIND_MMC_ENV_OFFSET
+
+#define BOOT_SIZE_MULT		226
+
+/*
+ * CONFIG_ENV_OFFSET has been calculated from ".cfg" eMMC partition config
+ * file using virtual, linearized addressing across all eMMC regions, which
+ * is expected by nvflash. Due to the lack of region control mechanism in
+ * nvflash/.cfg flashing utility, to obtain the actual env offset from the
+ * start of the user region, the size of the boot regions must be subtracted.
+ *
+ * The eMMC device is specified to have 0 or 2 boot regions and they must
+ * have same size ranging 0 to 2MiB, and the boot region size can be queried
+ * from the device through BOOT_SIZE_MULT field of response for EXT_CSD
+ * command sequence.
+ */
+u32 find_mmc_env_offset(struct mmc *mmc)
+{
+	u32 ret = CONFIG_ENV_OFFSET;
+	char *ext_csd = memalign(CACHE_LINE_SIZE, 512);
+
+	if (ext_csd) {
+		int err;
+		struct mmc_cmd cmd;
+		struct mmc_data data;
+
+		/* Get the Card Status Register */
+		cmd.cmdidx = MMC_CMD_SEND_EXT_CSD;
+		cmd.resp_type = MMC_RSP_R1;
+		cmd.cmdarg = 0;
+		cmd.flags = 0;
+
+		data.dest = ext_csd;
+		data.blocks = 1;
+		data.blocksize = 512;
+		data.flags = MMC_DATA_READ;
+
+		/*
+		 * If EXT_CSD cmd fails, then just return CONFIG_ENV_OFFSET,
+		 * because the eMMC is not supporting boot regions (no boot
+		 * regions).
+		 */
+		err = mmc_send_cmd(mmc, &cmd, &data);
+		if (!err)
+			ret -= ((int)ext_csd[BOOT_SIZE_MULT] * SZ_128K * 2);
+		free(ext_csd);
+	}
+	return ret;
+}
+#endif /* CONFIG_FIND_MMC_ENV_OFFSET */
