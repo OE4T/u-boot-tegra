@@ -70,7 +70,6 @@
 
 /* Put USB1 in host mode */
 #define CONFIG_TEGRA2_USB1_HOST
-#define CONFIG_MACH_TYPE	MACH_TYPE_VENTANA
 
 #endif /* CONFIG_OF_CONTROL not defined ^^^^^^^ */
 
@@ -82,7 +81,8 @@
 
 #ifdef CONFIG_L4T
 #define CONFIG_ENV_SECT_SIZE    CONFIG_ENV_SIZE
-#define CONFIG_ENV_OFFSET       (SZ_8M + SZ_2M)
+#define CONFIG_ENV_OFFSET	(SZ_16M - SZ_2M)
+#define CONFIG_FIND_MMC_ENV_OFFSET
 #endif /* CONFIG_L4T */
 
 #define CONFIG_SYS_BOARD_ODMDATA	0x300d8011 /* lp1, 1GB */
