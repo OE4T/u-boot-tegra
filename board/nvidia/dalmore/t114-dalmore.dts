@@ -1,0 +1,99 @@
+/dts-v1/;
+
+/memreserve/ 0x1c000000 0x04000000;
+/include/ "tegra11x.dtsi"
+/include/ "chromeos.dtsi"
+/include/ "flashmap-twostop-1mb.dtsi"
+
+/ {
+	model = "NVIDIA Dalmore";
+	compatible = "nvidia,dalmore", "nvidia,tegra11x";
+
+	config {
+		silent_console = <0>;
+		odmdata = <0x300d8011>;
+		hwid = "ARM DALMORE TEST 6666";
+	};
+
+	aliases {
+		console = "/serial@70006000";
+                usb0 = "/usb@0x7d008000";
+                usb1 = "/usb@0x7d000000";
+
+		sdmmc0 = "/sdhci@78000600";
+		sdmmc1 = "/sdhci@78000000";
+	};
+
+	chosen {
+		bootargs = "";
+	};
+
+	memory {
+		device_type = "memory";
+		reg = <0x80000000 0xc0000000>;
+	};
+
+	serial@70006000 {
+		status = "ok";
+		/*
+		 * TBD - use CONFIG_SYS_PLLP_BASE_IS_408MHZ somehow here.
+		 * Currently I put this back to 216MHz in fdt_decode.c
+		 */
+		clock-frequency = <408000000>;
+	};
+
+	sdhci@78000000 {
+		status = "ok";
+		width = <4>;	/* width of SDIO port */
+		removable = <1>;
+		/* Parameter 3 bit 0:1=output, 0=input; bit 1:1=high, 0=low */
+		cd-gpio = <&gpio 69 0>; /* card detect, gpio PI5 */
+		wp-gpio = <&gpio 155 0>; /* write protect, gpio PT3 */
+		power-gpio = <&gpio 31 3>; /* power enable, gpio PD7 */
+	};
+
+	sdhci@78000600 {
+		status = "ok";
+		width = <4>;	/* width of SDIO port */
+		removable = <0>;
+	};
+
+	lcd {
+		compatible = "nvidia,tegra2-lcd";
+		width = <1366>;
+		height = <768>;
+		bits_per_pixel = <16>;
+		pwfm = <&pwfm0>;
+		display = <&display1>;
+		frame-buffer = <0x1C022000>;
+
+		pixel_clock = <68000000>;
+
+		/* Timing: ref_to_sync, sync_width. back_porch, front_porch */
+		horiz_timing = <0 30 52 64>;
+		vert_timing = <12 5 20 25>;
+
+		/* Parameter 3 bit 0:1=output, 0=input; bit 1:1=high, 0=low */
+		gpios = <&gpio 56 3>,	/* PH0, LCD1_BL_PWM */
+			<&gpio 58 3>,	/* PH2, LCD1_BL_EN */
+			<&gpio 90 3>,	/* PL2, LVDS1_SHTDN */
+			<&gpio 92 3>;	/* PL4, EN_VDD_PNL1 */
+	};
+
+	usb@0x7d000000 {
+		status = "ok";
+		host-mode = <1>;
+		vbus_pullup-gpio = <&gpio 233 3>;	/* PDD1, EN_3V3_PU */
+	};
+
+	usbphy: usbphy@0 {
+		compatible = "smsc,usb3315";
+		status = "ok";
+	};
+
+	usb@0x7d008000 {
+		status = "ok";
+		utmi = <&usbphy>;
+		host-mode = <0>;
+	};
+};
