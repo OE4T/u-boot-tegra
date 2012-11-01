@@ -89,10 +89,16 @@ static inline void dram_bank_mmu_setup(int bank)
 	for (i = bd->bi_dram[bank].start >> 20;
 	     i < (bd->bi_dram[bank].start + bd->bi_dram[bank].size) >> 20;
 	     i++) {
+
+// TODO: fix cache setting, jz
+#ifdef CONFIG_TEGRA11X_DALMORE
+		set_section_dcache(i, DCACHE_WRITETHROUGH);
+#else
 #if defined(CONFIG_SYS_ARM_CACHE_WRITETHROUGH)
 		set_section_dcache(i, DCACHE_WRITETHROUGH);
 #else
 		set_section_dcache(i, DCACHE_WRITEBACK);
+#endif
 #endif
 	}
 }

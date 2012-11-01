@@ -49,7 +49,6 @@
 #include <nand.h>
 #include <onenand_uboot.h>
 #include <mmc.h>
-#define DEBUG
 #ifdef CONFIG_BITBANGMII
 #include <miiphy.h>
 #endif

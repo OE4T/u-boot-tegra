@@ -31,14 +31,10 @@
 #define V_PROMPT	"Dalmore #"
 
 #define CONFIG_TEGRA2_LP0
-#define CONFIG_SYS_SKIP_ARM_RELOCATION
 
 #define CONFIG_TEGRA11X_DALMORE
-#if t11x_port
-/*tcw - fix this, s/b 408MHz on Dalmore?*/
-#else
 #define CONFIG_SYS_PLLP_BASE_IS_408MHZ
-#endif
+
 #define z_pause()	\
 {			\
 	while (1)	\
@@ -59,18 +55,13 @@
 #define CONFIG_DEFAULT_DEVICE_TREE "t114-dalmore"
 
 #define CONFIG_SERIAL_TAG	/* enable passing serial# (board id) */
-#define CONFIG_BOARD_ID_LOW_VERBIER_A02		0x02420700
-#if t11x_port
-#define TEGRA3_BOOT_TRACE
-#define TEGRA3_BOOT_TRACE_MORE
+//#define TEGRA3_BOOT_TRACE
+//#define TEGRA3_BOOT_TRACE_MORE
 
-#define CONFIG_TEGRA_SERIAL_HIGH	0xffffffff
-#define CONFIG_TEGRA_SERIAL_LOW		0xffffffff
+#define CONFIG_TEGRA_SERIAL_HIGH	0x064b03e8
+#define CONFIG_TEGRA_SERIAL_LOW		0x02450300
 #define EEPROM_I2C_BUS		0
-#else
-#define CONFIG_TEGRA_SERIAL_HIGH	CONFIG_BOARD_ID_HIGH_A04
-#define CONFIG_TEGRA_SERIAL_LOW		CONFIG_BOARD_ID_LOW_A04
-#endif
+
 /* The following are used to retrieve the board id from an eeprom */
 #define CONFIG_SERIAL_EEPROM
 #define EEPROM_I2C_BUS		0

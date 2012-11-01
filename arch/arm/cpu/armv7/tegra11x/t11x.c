@@ -1816,11 +1816,10 @@ void start_cpu_t11x(u32 reset_vector)
 		MCR(p15, 1, tmp, c9, c0, 2);
 	}
 #endif
-//	ClockInitT11x();
-uart_post(0x0d);uart_post(0x0a);
-	NvBlStartCpu_T11x(reset_vector);
   uart_post('c'); uart_post('i'); uart_post('t'); uart_post('x');
 	ClockInitT11x();
+uart_post(0x0d);uart_post(0x0a);
+	NvBlStartCpu_T11x(reset_vector);
 }
 
 #if	0
