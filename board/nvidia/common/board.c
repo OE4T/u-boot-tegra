@@ -512,6 +512,7 @@ static struct arch_name_map name_map[] = {
 	{"NVIDIA Seaboard", MACH_TYPE_SEABOARD},
 	{"NVIDIA Ventana", MACH_TYPE_VENTANA},
 	{"NVIDIA Curacao", MACH_TYPE_CURACAO},
+	{"NVIDIA Dalmore", MACH_TYPE_DALMORE},
 	{"Google Waluigi", MACH_TYPE_WALUIGI},
 	{"<not defined>", MACH_TYPE_SEABOARD} /* this is the default */
 };

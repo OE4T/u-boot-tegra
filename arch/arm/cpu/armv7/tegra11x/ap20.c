@@ -405,6 +405,90 @@ void init_pmc_scratch(void)
 #endif
 }
 
+/* following are bit positions in SCTLR */
+#define TEX_BIT0  6
+#define CACHE_EN  3
+#define BUFFER_EN 2
+#define TRE_EN    28
+
+void config_cache(void)
+{
+    const NvU32 zero = 0;
+    NvU32 cache_size_id;
+    NvU32 cache_level_id;
+    NvU32 num_levels;
+    NvU32 reg;
+    NvU32 prrr = 0xff0a89a8, nmrr = 0xc0e044e0;
+
+    /*
+     * memory mapping table
+     * TEX[0]  C  B  n  TRn  IRn ORn  type
+     * 0       0  0  0  00   00  00   strongly ordered
+     * 0       0  1  1  10   00  00   normal memory, non-cacheable, bufferable
+     * 0       1  0  2  10   10  10   normal memory, WTNW, WTNW
+     * 0       1  1  3  10   11  11   normal memory, WBRA, WBRA
+     * 1       0  0  4  01   00  00   device
+     * 1       0  1  5  10   01  00   normal memory, WBWA, Non-cacheable
+     * 1       1  0  6       00  00   reserved
+     * 1       1  1  7  10   01  11   normal memory, WBWA, WBRA
+     */
+
+    /*
+     * we use 111 for normal cacheable memory,       WriteBack
+     * we use 001 for writecombine                   WriteCombined
+     * we use 100 for device memory,                 device
+     * we use 000 for "uncached"                     Uncached/Unbuffered
+     * we use 101 for inner WBWA, outer non-cached   InnerWriteBack
+     */
+    MRC(p15, 0, reg, c1, c0, 0);
+    reg |= (1<<TRE_EN);
+    MCR(p15, 0, reg, c1, c0, 0);   /* enable TRE */
+    MCR(p15, 0, prrr, c10, c2, 0); /* memory types */
+    MCR(p15, 0, nmrr, c10, c2, 1); /* memory attributes */
+
+    /* Get the number of architectural cache levels */
+    MRC(p15, 1, cache_level_id, c0, c0, 1); /* CLIDR */
+    num_levels = ((cache_level_id >> 24) & 7);
+
+    /* Get the cache attributes at level 0 (data cache). */
+    MCR(p15, 2, zero, c0, c0, 0);           /* CCSELR: LSB is D/I selector */
+    MCR(p15, 0, zero, c7, c5, 4);           /* ISB */
+    MRC(p15, 1, cache_size_id, c0, c0, 0);  /* CCSIDR */
+
+    /* Invalidate instruction cache */
+    MCR(p15, 0, zero, c7, c5, 0);
+
+    /* Invalidate the TLBs */
+    MCR(p15, 0, zero, c8, c5, 0);
+    MCR(p15, 0, zero, c8, c6, 0);
+    MCR(p15, 0, zero, c7, c10, 4);
+
+    /* enable instruction cache */
+    MRC(p15, 0, reg, c1, c0, 0);
+    reg |= M_CP15_C1_C0_0_I;
+    MCR(p15, 0, reg, c1, c0, 0);
+
+    /* Enable SMP mode */
+    MRC(p15, 0, reg, c1, c0, 1);
+    reg |= 0x40;
+    if (num_levels == 1)
+    {
+        /* Also enable maintenance operation broadcast on systems with
+           only a single level of architectural cache. */
+        reg |= 1;
+    }
+    MCR(p15, 0, reg, c1, c0, 1);
+
+    /* Systems with an architectural L2 cache must not use the PL310. */
+    if (num_levels > 1)
+    {
+	MRC(p15, 1, reg, c9, c0, 2);
+	reg &= ~7;
+	reg |= 2;
+	MCR(p15, 1, reg, c9, c0, 2);
+    }
+}
+
 void tegra2_start(void)
 {
 	struct pmux_tri_ctlr *pmt = (struct pmux_tri_ctlr *)NV_PA_APB_MISC_BASE;
@@ -451,11 +535,6 @@ void tegra2_start(void)
 #if !defined(t11x_port)
 	enable_scu();
 #endif
-	/* enable SMP mode and FW for CPU0, by writing to Auxiliary Ctl reg */
-	asm volatile(
-		"mrc	p15, 0, r0, c1, c0, 1\n"
-		"orr	r0, r0, #0x41\n"
-		"mcr	p15, 0, r0, c1, c0, 1\n");
-
-	/* FIXME: should have ap20's L2 disabled too? */
+	/* init cache */
+	config_cache();
 }
