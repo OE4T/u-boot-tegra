@@ -1471,9 +1471,7 @@ uart_post(0x0d);uart_post(0x0a);
   // Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, CLK_OUT_ENB_H, CLK_ENB_HDMI, ENABLE, Reg);
   // Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, CLK_OUT_ENB_H, CLK_ENB_MIPI, ENABLE, Reg);
   // Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, CLK_OUT_ENB_H, CLK_ENB_DSI, ENABLE, Reg);
-#if PMU_IGNORE_PWRREQ
   Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, CLK_OUT_ENB_H, CLK_ENB_I2C5, ENABLE, Reg);
-#endif
   // Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, CLK_OUT_ENB_H, CLK_ENB_SBC3, ENABLE, Reg);
   // Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, CLK_OUT_ENB_H, CLK_ENB_XIO, ENABLE, Reg);
   // Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, CLK_OUT_ENB_H, CLK_ENB_SBC2, ENABLE, Reg);
@@ -1582,6 +1580,7 @@ uart_post(0x0d);uart_post(0x0a);
   // Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, CLK_OUT_ENB_W, CLK_ENB_PCIERX1, ENABLE, Reg);
   // Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, CLK_OUT_ENB_W, CLK_ENB_PCIERX0, ENABLE, Reg);
   // Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, CLK_OUT_ENB_W, CLK_ENB_HDA2HDMICODEC, ENABLE, Reg);
+  Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, CLK_OUT_ENB_W, CLK_ENB_DVFS, ENABLE, Reg);
   NV_CAR_REGW(CLK_RST_PA_BASE, CLK_OUT_ENB_W, Reg);
 
   // Switch MSELECT clock to PLLP
@@ -1602,12 +1601,10 @@ uart_post(0x0d);uart_post(0x0a);
 //TCW
 
   uart_post('P'); uart_post('M'); uart_post('U'); uart_post('I');uart_post('G');
-#if PMU_IGNORE_PWRREQ
   Reg = NV_CAR_REGR(CLK_RST_PA_BASE, CLK_SOURCE_I2C5);
   Reg = NV_FLD_SET_DRF_NUM(CLK_RST_CONTROLLER, CLK_SOURCE_I2C5,
           I2C5_CLK_DIVISOR, 0x10, Reg);
   NV_CAR_REGW(CLK_RST_PA_BASE, CLK_SOURCE_I2C5, Reg);
-#endif
 
   // Give clocks time to stabilize.
   uart_post('1'); uart_post('m'); uart_post('s'); uart_post('e');uart_post('c');
@@ -1663,9 +1660,7 @@ uart_post(0x0d);uart_post(0x0a);
   // Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, RST_DEVICES_H, SWR_HDMI_RST, DISABLE, Reg);
   // Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, RST_DEVICES_H, SWR_HSI_RST, DISABLE, Reg);
   // Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, RST_DEVICES_H, SWR_DSI_RST, DISABLE, Reg);
-#if PMU_IGNORE_PWRREQ
   Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, RST_DEVICES_H, SWR_I2C5_RST, DISABLE, Reg);
-#endif
   // Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, RST_DEVICES_H, SWR_SBC3_RST, DISABLE, Reg);
   // Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, RST_DEVICES_H, SWR_XIO_RST, DISABLE, Reg);
   // Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, RST_DEVICES_H, SWR_SBC2_RST, DISABLE, Reg);
@@ -1745,6 +1740,7 @@ uart_post(0x0d);uart_post(0x0a);
   // Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, RST_DEVICES_W, SWR_CEC_RST, ENABLE, Reg);
   // Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, RST_DEVICES_W, SWR_SATACOLD_RST, ENABLE, Reg);
   // Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, RST_DEVICES_W, SWR_HDA2HDMICODEC_RST, ENABLE, Reg);
+  Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, RST_DEVICES_W, SWR_DVFS_RST, DISABLE, Reg);
   NV_CAR_REGW(CLK_RST_PA_BASE, RST_DEVICES_W, Reg);
 
   uart_post('D'); uart_post('o'); uart_post('n'); uart_post('e');uart_post('!');
@@ -3512,6 +3508,7 @@ static void NvBlAvpI2cStatusPoll(void)
 
         timeout += I2C_POLL_STEP_MSEC;
     }
+
 #undef  I2C_POLL_STEP_MSEC
 #undef  I2C_POLL_TIMEOUT_MSEC
 }
@@ -3557,6 +3554,10 @@ void NvBlAvpEnableCpuPowerRail(void)
 #define PLUTO_TPS65913_I2C_ADDR     0xB0
 #define PLUTO_CPUPWRREQ_EN          1
 
+	/* set pinmux for PWR_I2C SCL and SDA */
+	NV_WRITE32(PINMUX_BASE + PINMUX_AUX_PWR_I2C_SCL_0, 0x60);
+	NV_WRITE32(PINMUX_BASE + PINMUX_AUX_PWR_I2C_SDA_0, 0x60);
+
         if (BoardId == DALMORE_E1613_BOARDID) {
 	uart_post('E'); uart_post('1'); uart_post('6'); uart_post('1'); uart_post('1');
             NvBlAvpI2cWrite(DALMORE_TPS51632_I2C_ADDR, 0x5400);
@@ -3574,6 +3575,18 @@ void NvBlAvpEnableCpuPowerRail(void)
             NvBlAvpI2cWrite(PLUTO_TPS65913_I2C_ADDR, 0x0524);
 #endif
         }
+
+	/*
+	 * Hack for enabling necessary rails for display, Need to be removed
+	 * once PWR I2C driver is fixed for CPU side.
+	 */
+	if (BoardId == DALMORE_E1611_BOARDID) {
+		NvBlAvpI2cWrite(0xB0,  0x0154);	/* LDO3_CTRL */
+		NvBlAvpI2cWrite(0xB0,  0x0755);	/* LDO3_VOLTAGE */
+						/* ENABLED_MIPI_RAIL */
+		NvBlAvpI2cWrite(0x90, 0x030F);	/* VOUT1 (FET1):VDD_LCD_BL_0 */
+		NvBlAvpI2cWrite(0x90, 0x0312);	/* VOUT4 (FET4) : AVDD_LCD */
+	}
 
     if (BoardId == DALMORE_E1613_BOARDID || BoardId == PLUTO_E1580_BOARDID)
     {
@@ -3611,12 +3624,13 @@ void NvBlAvpEnableCpuPowerRail(void)
     Reg = NV_FLD_SET_DRF_DEF(APBDEV_PMC, CNTRL, CPUPWRREQ_OE, ENABLE, Reg);
     NV_PMC_REGW(PMC_PA_BASE, CNTRL, Reg);
 
-  /** The optimal (minimum) value of CLK_RST_CONTROLLER_CPU_SOFTRST_CTRL2_0_CAR2PMC_CPU_ACK_WIDTH
-    * is 16 * (car_sclk_freq)/ (cpu_clk_freq) which is 0x10. This reduces cpu power ungating
-    * latency
-    **/
+   /*
+    * Set CLK_RST_CONTROLLER_CPU_SOFTRST_CTRL2_0_CAR2PMC_CPU_ACK_WIDTH to 0x960
+    * to improve power gating/ungating reliablity. This is about 8us when
+    * system clock runs at 300MHz.
+    */
     Reg = NV_CAR_REGR(CLK_RST_PA_BASE,CPU_SOFTRST_CTRL2);
-    Reg = NV_FLD_SET_DRF_NUM(CLK_RST_CONTROLLER, CPU_SOFTRST_CTRL2, CAR2PMC_CPU_ACK_WIDTH, 0x10, Reg);
+    Reg = NV_FLD_SET_DRF_NUM(CLK_RST_CONTROLLER, CPU_SOFTRST_CTRL2, CAR2PMC_CPU_ACK_WIDTH, 0x960, Reg);
     Reg = NV_CAR_REGW(CLK_RST_PA_BASE,CPU_SOFTRST_CTRL2, Reg);
 }
 
