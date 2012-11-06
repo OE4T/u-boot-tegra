@@ -42,10 +42,23 @@ NvBool s_UseLPAE =0xa5;
 #define PMU_IGNORE_PWRREQ 1
 static NvBlCpuClusterId AvpQueryFlowControllerClusterId(void);
 
-UINT32 NvBlAvpQueryBootCpuFrequency( void )
+static NvU32 NvBlAvpQueryBootCpuFrequency(void)
 {
+    NvU32   frequency;
 
-    return 1000000;
+    {
+            // !!!FIXME!!! ADD SKU VARIANT FREQUENCIES
+            if (AvpQueryFlowControllerClusterId() == NvBlCpuClusterId_Fast)
+            {
+                frequency = 700;
+            }
+            else
+            {
+                frequency = 350;
+            }
+    }
+
+    return frequency;
 }
 
 VOID NvBlAvpStallUs(UINT32 MicroSec)
@@ -257,27 +270,32 @@ uart_post(0x0d);uart_post(0x0a);
   {
   uart_post('-'); uart_post('e'); uart_post('n'); uart_post('a'); uart_post('b');
 
-          // Wait for PLL-X to lock. T114 Dalmore hangs here!!! 6:30pm Tues
-//tcw          do
-//          {
-//  uart_post('-'); uart_post('P'); uart_post('L'); uart_post('L'); uart_post('x');
-//              Reg = NV_CAR_REGR(CLK_RST_PA_BASE, PLLX_BASE);
-//tcw          } while (!NV_DRF_VAL(CLK_RST_CONTROLLER, PLLX_BASE, PLLX_LOCK, Reg));
-  NvBlAvpStallUs(320);  //tcw !!!FIXME!!! Stall instead of waiting on lock
-
+          // Wait for PLL-X to lock.
+          do
+          {
+  uart_post('-'); uart_post('P'); uart_post('L'); uart_post('L'); uart_post('x');
+              Reg = NV_CAR_REGR(CLK_RST_PA_BASE, PLLX_BASE);
+          } while (!NV_DRF_VAL(CLK_RST_CONTROLLER, PLLX_BASE, PLLX_LOCK, Reg));
   uart_post('+'); uart_post('L'); uart_post('o'); uart_post('c'); uart_post('k');
 
       // *((volatile long *)0x60006020) = 0x20008888 ;// CCLK_BURST_POLICY
   uart_post('-'); uart_post('B'); uart_post('R'); uart_post('S'); uart_post('T');
+	/*
+	 * WARNING: documentation error
+	 *
+	 * kernel does expect clock source of PLLX_OUT0_LJ being for cpu,
+	 * ie value of 0x8. However, PLLX_OUT0_LJ is defined as 0x0e in file
+	 * t11x/arclk_rst.h. Instead, PLLX_OUT0 is defined as 0x08.
+	 */
       Reg = NV_DRF_NUM(CLK_RST_CONTROLLER, CCLK_BURST_POLICY, CPU_STATE, 0x2)
           | NV_DRF_NUM(CLK_RST_CONTROLLER, CCLK_BURST_POLICY, COP_AUTO_CWAKEUP_FROM_FIQ, 0x0)
           | NV_DRF_NUM(CLK_RST_CONTROLLER, CCLK_BURST_POLICY, CPU_AUTO_CWAKEUP_FROM_FIQ, 0x0)
           | NV_DRF_NUM(CLK_RST_CONTROLLER, CCLK_BURST_POLICY, COP_AUTO_CWAKEUP_FROM_IRQ, 0x0)
           | NV_DRF_NUM(CLK_RST_CONTROLLER, CCLK_BURST_POLICY, CPU_AUTO_CWAKEUP_FROM_IRQ, 0x0)
-          | NV_DRF_DEF(CLK_RST_CONTROLLER, CCLK_BURST_POLICY, CWAKEUP_FIQ_SOURCE, PLLX_OUT0_LJ)
-          | NV_DRF_DEF(CLK_RST_CONTROLLER, CCLK_BURST_POLICY, CWAKEUP_IRQ_SOURCE, PLLX_OUT0_LJ)
-          | NV_DRF_DEF(CLK_RST_CONTROLLER, CCLK_BURST_POLICY, CWAKEUP_RUN_SOURCE, PLLX_OUT0_LJ)
-          | NV_DRF_DEF(CLK_RST_CONTROLLER, CCLK_BURST_POLICY, CWAKEUP_IDLE_SOURCE, PLLX_OUT0_LJ);
+          | NV_DRF_DEF(CLK_RST_CONTROLLER, CCLK_BURST_POLICY, CWAKEUP_FIQ_SOURCE, PLLX_OUT0)
+          | NV_DRF_DEF(CLK_RST_CONTROLLER, CCLK_BURST_POLICY, CWAKEUP_IRQ_SOURCE, PLLX_OUT0)
+          | NV_DRF_DEF(CLK_RST_CONTROLLER, CCLK_BURST_POLICY, CWAKEUP_RUN_SOURCE, PLLX_OUT0)
+          | NV_DRF_DEF(CLK_RST_CONTROLLER, CCLK_BURST_POLICY, CWAKEUP_IDLE_SOURCE, PLLX_OUT0);
       NV_CAR_REGW(CLK_RST_PA_BASE, CCLK_BURST_POLICY, Reg);
   }
 
@@ -854,12 +872,6 @@ uart_post(0x0d);uart_post(0x0a);
   uart_post('R'); uart_post('I'); uart_post('K'); uart_post('h');uart_post('z');
     RateInKhz = NvBlAvpQueryBootCpuFrequency() * 1000;
 
-    if (s_FpgaEmulation)
-    {
-        OscFreqKhz = 13000; // 13 Mhz for FPGA
-        RateInKhz = 600000; // 600 Mhz
-    }
-
     /* Clip vco_min to exact multiple of OscFreq to avoid
        crossover by rounding */
     VcoMin = ((VcoMin + OscFreqKhz- 1) / OscFreqKhz)*OscFreqKhz;
@@ -879,19 +891,17 @@ uart_post(0x0d);uart_post(0x0a);
         | NV_DRF_NUM(CLK_RST_CONTROLLER, PLLX_BASE, PLLX_DIVM, Divm);
     NV_CAR_REGW(CLK_RST_PA_BASE, PLLX_BASE, Base);
 
-#if !NVBL_PLL_BYPASS
   uart_post('b'); uart_post('y'); uart_post('p'); uart_post('a');uart_post('s');
         Base = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, PLLX_BASE, PLLX_BYPASS, DISABLE, Base);
         NV_CAR_REGW(CLK_RST_PA_BASE, PLLX_BASE, Base);
-#if NVBL_USE_PLL_LOCK_BITS
         {
   uart_post('M'); uart_post('i'); uart_post('s'); uart_post('c');uart_post('X');
             NvU32 Misc = NV_CAR_REGR(CLK_RST_PA_BASE, PLLX_MISC);
             Misc = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, PLLX_MISC, PLLX_LOCK_ENABLE, ENABLE, Misc);
+            Misc &= 0xFFFC0000;  	/* clear bit 17:0 */
             NV_CAR_REGW(CLK_RST_PA_BASE, PLLX_MISC, Misc);
         }
-#endif
-#endif
+
     // Disable IDDQ
   uart_post('I'); uart_post('D'); uart_post('D'); uart_post('Q');uart_post('X');
     Val = NV_CAR_REGR(CLK_RST_PA_BASE, PLLX_MISC_3);

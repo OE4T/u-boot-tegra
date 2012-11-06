@@ -42,9 +42,14 @@
 }
 
 #define CONFIG_EXTRA_BOOTARGS \
-	"panel=lvds " \
-	"tegraid=30.1.2.0.0 " \
-	"debug_uartport=lsport\0" \
+	"tegraid=35.1.1.0.0 " \
+	"mem=2013M@2048M vpr=32M@4063M " \
+	"otf_key=0 commchip_id=0 " \
+	"console=tty1 " \
+	"tegra_fbmem=0@0x0 " \
+	"displayboard=0x8026:0x1a44:0x26:0x80:0x01 " \
+	"audio_codec=rt5640 board_info=64b:3e8:2:44:5 " \
+	"debug_uartport=lsport,3\0" \
 
 #include "tegra11x-common.h"
 

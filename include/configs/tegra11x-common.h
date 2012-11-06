@@ -208,7 +208,7 @@
 #define CONFIG_SYS_NO_FLASH
 
 #ifdef CONFIG_TEGRA2_LP0
-#define TEGRA_LP0_ADDR			0x9C406000
+#define TEGRA_LP0_ADDR			0xbdffd000
 #define TEGRA_LP0_SIZE			SZ_8K
 #define TEGRA_LP0_VEC \
 	"lp0_vec=" QUOTE(TEGRA_LP0_SIZE) "@" QUOTE(TEGRA_LP0_ADDR) " "
@@ -228,7 +228,8 @@
 	"netretry="CONFIG_NET_RETRY_CONTROL"\0" \
 	"extra_bootargs=" \
 		"usbcore.old_scheme_first=1 " \
-		"core_edp_mv=1300 " \
+		"core_edp_mv=0 " \
+		"no_console_suspend=1 " \
 		CONFIG_EXTRA_BOOTARGS \
 	"videospec=tegrafb\0" \
 	"lp0_args=" TEGRA_LP0_VEC "\0" \
@@ -261,10 +262,16 @@
 		"mmc rescan ${mmcdev}; " \
 		"ext2load mmc ${mmcdev}:3 ${loadaddr} /boot/${bootfile}; " \
 		"bootm ${loadaddr}\0" \
+	"mmc0_bringup=mmc rescan 0; " \
+		"mmc read 0 ${loadaddr} 0xa000 0x4000 user; " \
+		"bootm ${loadaddr}\0" \
 	"mmc0_boot=setenv mmcdev 0; " \
 		"run mmc_boot\0" \
 	"mmc1_boot=setenv mmcdev 1; " \
 		"run mmc_boot\0" \
+	"mmc0_boot_bringup=setenv mmcdev 1; " \
+		"run mmc_setup; " \
+		"run mmc0_bringup\0" \
 	\
 	"usb_setup=setenv bootdev_bootargs root=/dev/sda3 rw rootwait; " \
 		"run regen_all\0" \
