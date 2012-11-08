@@ -908,14 +908,21 @@ static int clock_set_rate(enum clock_id clkid, u32 n, u32 m, u32 p, u32 cpcon)
 	bf_update(PLL_BYPASS, base_reg, 0);
 	writel(base_reg, &pll->pll_base);
 
+	/*
+	 * TODO: add next two steps for setting pll
+	 */
+	/* Enable Lock */
+
+	/* Check lock status (bit 27 in base reg) */
 	return 0;
 }
 
 void common_pll_init(void)
 {
 	/*
-	 * PLLP output frequency set to 216Mh
-	 * PLLC output frequency set to 228Mhz
+	 * PLLP output frequency set to 216Mh or 408Mh
+	 * PLLC output frequency set to 600Mh
+	 * PLLD output frequecy set to 925Mh
 	 */
 	switch (clock_get_rate(CLOCK_ID_OSC)) {
 	case 12000000: /* OSC is 12Mhz */
@@ -924,18 +931,37 @@ void common_pll_init(void)
 #else
 		clock_set_rate(CLOCK_ID_PERIPH, 432, 12, 1, 8);
 #endif
-		clock_set_rate(CLOCK_ID_CGENERAL, 456, 12, 1, 8);
+
+		clock_set_rate(CLOCK_ID_CGENERAL, 600, 12, 0, 8);
+		clock_set_rate(CLOCK_ID_DISPLAY, 925, 12, 0, 12);
 		break;
 	case 13000000: /* OSC is 13Mhz */
 #if defined(CONFIG_SYS_PLLP_BASE_IS_408MHZ)
-		clock_set_rate(CLOCK_ID_PERIPH, 408, 12, 0, 8);
+		clock_set_rate(CLOCK_ID_PERIPH, 408, 13, 0, 8);
 #else
-		clock_set_rate(CLOCK_ID_PERIPH, 432, 13, 2, 8);
+		clock_set_rate(CLOCK_ID_PERIPH, 432, 13, 1, 8);
 #endif
-		clock_set_rate(CLOCK_ID_CGENERAL, 456, 12, 1, 8);
+		clock_set_rate(CLOCK_ID_CGENERAL, 600, 13, 0, 8);
+		clock_set_rate(CLOCK_ID_DISPLAY, 925, 13, 0, 12);
 		break;
-	/* TBD - handle other OSC freqs (13, 26, etc.) */
+	/* TBD - handle other OSC freqs (19.2, 26, etc.) */
 	}
+
+	/*
+	 * Set PLLC_MISC2 and MISC
+	 *
+	 * TODO: replace direct setting with functions
+	 */
+	writel(0x00561600, 0x60006088);	/* PLLC_MISC2: dynramp_stepA/B */
+	writel(0x01000800, 0x6000608c);	/* PLLC_MISC: LOCK_ENABLE */
+	udelay(2);
+
+	/*
+	 * Set PLLD_MISC
+	 */
+	writel(0x40000c10, 0x600060dc);	/* PLLD: LOCK_ENABLE */
+					/* CPCON: 12, LFCON: 1 */
+	udelay(2);
 }
 
 void clock_init(void)

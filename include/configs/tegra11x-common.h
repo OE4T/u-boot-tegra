@@ -229,6 +229,7 @@
 	"extra_bootargs=" \
 		"usbcore.old_scheme_first=1 " \
 		"core_edp_mv=0 " \
+		"cros_legacy " \
 		"no_console_suspend=1 " \
 		CONFIG_EXTRA_BOOTARGS \
 	"videospec=tegrafb\0" \
@@ -262,7 +263,8 @@
 		"mmc rescan ${mmcdev}; " \
 		"ext2load mmc ${mmcdev}:3 ${loadaddr} /boot/${bootfile}; " \
 		"bootm ${loadaddr}\0" \
-	"mmc0_bringup=mmc rescan 0; " \
+	"mmc0_bringup=run mmc_setup; " \
+		"mmc rescan 0; " \
 		"mmc read 0 ${loadaddr} 0xa000 0x4000 user; " \
 		"bootm ${loadaddr}\0" \
 	"mmc0_boot=setenv mmcdev 0; " \
@@ -270,7 +272,6 @@
 	"mmc1_boot=setenv mmcdev 1; " \
 		"run mmc_boot\0" \
 	"mmc0_boot_bringup=setenv mmcdev 1; " \
-		"run mmc_setup; " \
 		"run mmc0_bringup\0" \
 	\
 	"usb_setup=setenv bootdev_bootargs root=/dev/sda3 rw rootwait; " \
@@ -280,6 +281,8 @@
 		"bootm ${loadaddr}\0" \
 
 #define CONFIG_BOOTCOMMAND \
+	"run mmc0_boot_bringup ; " \
+	\
 	"usb start; "\
 	"if test ${ethact} != \"\"; then "\
 		"run dhcp_boot ; " \
