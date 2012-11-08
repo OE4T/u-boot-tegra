@@ -3313,9 +3313,9 @@ extern unsigned int __machine_arch_type;
 #define MACH_TYPE_DINGO                3337
 #define MACH_TYPE_GOFLEXHOME           3338
 #define MACH_TYPE_CARDHU               3436
-#define MACH_TYPE_WALUIGI              3591
 #define MACH_TYPE_CURACAO              3454
-#define MACH_TYPE_DALMORE              4304	//tcw hack
+#define MACH_TYPE_WALUIGI              3591
+#define MACH_TYPE_DALMORE              4304
 
 #ifdef CONFIG_ARCH_EBSA110
 # ifdef machine_arch_type

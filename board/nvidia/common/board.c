@@ -300,7 +300,7 @@ static void pin_mux_mmc(void)
 	#include "../cardhu/pinmux-config-common.h"
 #endif
 #if defined(CONFIG_TEGRA11X)
-	#include "../curacao/pinmux-config-common.h"
+	#include "../dalmore/pinmux-config-common.h"
 #endif
 
 /*
@@ -613,7 +613,6 @@ static struct arch_name_map name_map[] = {
 	{"Google Kaen", MACH_TYPE_KAEN},
 	{"NVIDIA Seaboard", MACH_TYPE_SEABOARD},
 	{"NVIDIA Ventana", MACH_TYPE_VENTANA},
-	{"NVIDIA Curacao", MACH_TYPE_CURACAO},
 	{"NVIDIA Dalmore", MACH_TYPE_DALMORE},
 	{"Google Waluigi", MACH_TYPE_WALUIGI},
 	{"<not defined>", MACH_TYPE_SEABOARD} /* this is the default */

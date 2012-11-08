@@ -187,7 +187,7 @@ static NvU8 aos_UartReadByteT30(volatile void* pUart)
 #define MmioRead32	NV_READ32
 
 /* t114 */
-#if defined(CONFIG_TEGRA11X_CURACAO) || defined(CONFIG_TEGRA11X_DALMORE)
+#if defined(CONFIG_TEGRA11X_DALMORE)
 #define UartBaseAddress	UART4_BASE
 #endif
 
@@ -259,7 +259,7 @@ void t30_Uart_Init_h(void)
 {
     volatile void* pUart;
 /* t114 */
-#if defined(CONFIG_TEGRA11X_CURACAO) || defined(CONFIG_TEGRA11X_DALMORE)
+#if defined(CONFIG_TEGRA11X_DALMORE)
     pUart = (void*)s_UartBaseAddress[3];
 #endif
 
@@ -541,7 +541,7 @@ void t30_UartWriteByte(NvU8 ch)
 	volatile void* pUart;
 
 /* t114 */
-#if defined(CONFIG_TEGRA11X_CURACAO) || defined(CONFIG_TEGRA11X_DALMORE)
+#if defined(CONFIG_TEGRA11X_DALMORE)
 	pUart = (void*)s_UartBaseAddress[3];
 #endif
 	aos_UartWriteByteT30(pUart, ch);
@@ -552,7 +552,7 @@ NvU8 t30_UartReadByte(void)
 	volatile void* pUart;
 
 /* t114 */
-#if defined(CONFIG_TEGRA11X_CURACAO) || defined(CONFIG_TEGRA11X_DALMORE)
+#if defined(CONFIG_TEGRA11X_DALMORE)
 	pUart = (void*)s_UartBaseAddress[3];
 #endif
 
@@ -563,14 +563,12 @@ void NvBlUartInit_t11x(void)
 {
 #if defined(TEGRA3_BOOT_TRACE)
 
-#if defined(CONFIG_TEGRA11X_CURACAO) || defined(CONFIG_TEGRA11X_DALMORE)
+#if defined(CONFIG_TEGRA11X_DALMORE)
 	t30_UartD_Init();
 #endif
-
 	t30_Uart_Init();
 
 	aos_CpuStallUsT30(20000);	// 20 ms
-
 #endif
 }
 
