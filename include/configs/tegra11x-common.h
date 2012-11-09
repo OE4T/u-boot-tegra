@@ -112,8 +112,6 @@
 #define CONFIG_BAUDRATE			115200
 #define CONFIG_SYS_BAUDRATE_TABLE	{4800, 9600, 19200, 38400, 57600,\
 					115200}
-#if t11x_port
-#else
 /*
  * USB Host.
  */
@@ -146,7 +144,7 @@
 /* support USB ethernet adapters */
 #define CONFIG_USB_HOST_ETHER
 #define CONFIG_USB_ETHER_ASIX
-#endif
+
 /* include default commands */
 #include <config_cmd_default.h>
 
@@ -281,8 +279,6 @@
 		"bootm ${loadaddr}\0" \
 
 #define CONFIG_BOOTCOMMAND \
-	"run mmc0_boot_bringup ; " \
-	\
 	"usb start; "\
 	"if test ${ethact} != \"\"; then "\
 		"run dhcp_boot ; " \
@@ -290,7 +286,8 @@
 	"run usb_boot ; " \
 	\
 	"run mmc1_boot ; " \
-	"run mmc0_boot ; "
+	"run mmc0_boot ; " \
+	"run mmc0_boot_bringup ; "
 
 /* default location for kernel */
 #define CONFIG_LOADADDR		0x80408000
