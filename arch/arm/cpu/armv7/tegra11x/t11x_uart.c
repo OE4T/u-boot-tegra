@@ -21,7 +21,7 @@
 #define NV_ASSERT(value) \
 { \
 	if ((value) == 0) { \
-		t11x_WriteDebugString("collllld\n"); \
+		t11x_WriteDebugString("t11x_uart:\n"); \
 	} \
 }
 
@@ -58,7 +58,7 @@ enum UartPorts
             UART##uart, PinMuxReg); \
         NV_WRITE32(MISC_PA_BASE + PINMUX_AUX_##reg##_0, PinMuxReg);
 
-static void aos_CpuStallUsT30(NvU32 MicroSec)
+static void CpuStallUs(NvU32 MicroSec)
 {
     NvU32 Reg;
     NvU32 Delay;
@@ -87,7 +87,7 @@ static void aos_CpuStallUsT30(NvU32 MicroSec)
     }
 }
 
-static void aos_UartWriteByteT30(volatile void* pUart, NvU8 ch)
+static void T11xUartWriteByte(volatile void *pUart, NvU8 ch)
 {
     NvU32 LineStatusReg;
     // Wait for transmit buffer to be empty.
@@ -100,7 +100,7 @@ static void aos_UartWriteByteT30(volatile void* pUart, NvU8 ch)
 }
 
 
-static NvU8 aos_UartReadByteT30(volatile void* pUart)
+static NvU8 T11xUartReadByte(volatile void *pUart)
 {
     NvU8 ch;
     NvU32 LineStatusReg;
@@ -109,19 +109,17 @@ static NvU8 aos_UartReadByteT30(volatile void* pUart)
     {
         LineStatusReg = NV_UART_REGR(pUart, LSR);
     } while (!(LineStatusReg & NV_DRF_NUM(UART, LSR, RDR, 1)));
-//    } while (NV_DRF_VAL(UART, LSR, RDR, LineStatusReg) != UART_LSR_0_RDR_DATA_IN_FIFO);
 
     // Read the character.
-//    ch = NV_UART_REGR(pUart, RBR);
     ch = NV_UART_REGR(pUart, THR_DLAB_0);
     return ch;
 }
 
 /////////////////////////////////////////////////////////
 //
-// code added below for t30 bringup
+// code added below for t11x bringup
 //
-// special uart A init before pllp is ready
+// special UARTA init before pllp is ready
 //
 /////////////////////////////////////////////////////////
 #define NV_ADDRESS_MAP_PPSB_CLK_RST_BASE 0x60006000
@@ -186,7 +184,6 @@ static NvU8 aos_UartReadByteT30(volatile void* pUart)
 #define MmioWrite32	NV_WRITE32
 #define MmioRead32	NV_READ32
 
-/* t114 */
 #if defined(CONFIG_TEGRA11X_DALMORE)
 #define UartBaseAddress	UART4_BASE
 #endif
@@ -255,18 +252,17 @@ void NvBlUartInitBase(NvU8 * uart_base)
         (void)NvBlUartRx(uart_base);
 }
 
-void t30_Uart_Init_h(void)
+void Uart_Init_h(void)
 {
-    volatile void* pUart;
-/* t114 */
+    volatile void *pUart;
+
 #if defined(CONFIG_TEGRA11X_DALMORE)
     pUart = (void*)s_UartBaseAddress[3];
 #endif
-
-	NvBlUartInitBase((NvU8 *)pUart);
+    NvBlUartInitBase((NvU8 *)pUart);
 }
 
-void t30_UartA_Init(void)
+void UartA_Init(void)
 {
     NvU32 RegData;
 
@@ -295,7 +291,7 @@ void t30_UartA_Init(void)
         CLK_RST_CONTROLLER_PLLP_OUTB_0, RegData);
 
     // Set up the pinmuxes to bring UARTA out on ULPI_DATA0 and ULPI_DATA1
-    // for T30.  All alternate mappings of UARTA are set to select an input other than UARTA.
+    // All alternate mappings of UARTA are set to select an input other than UARTA.
     //
     //     UART2_RTS_N => Alternate 3 ( SPI4 instead of UA3_TXD)
     //     UART2_CTS_N => Alternate 3 ( SPI4 instead of UA3_TXD)
@@ -358,7 +354,7 @@ void t30_UartA_Init(void)
 
 }
 
-void t30_UartC_Init(void)
+void UartC_Init(void)
 {
     NvU32 RegData;
 
@@ -387,7 +383,6 @@ void t30_UartC_Init(void)
         CLK_RST_CONTROLLER_PLLP_OUTB_0, RegData);
 
     // Set up the pinmuxes to bring UARTC out on uart3_txd and uart_rxd
-    // for oregon T30.
     //
     //     UART3_TXD  =>primary 0 (UC3_TXD)
     //     UART3_RXD  =>primary 0(UC3_RXD)
@@ -438,7 +433,7 @@ void t30_UartC_Init(void)
 
 }
 
-void t30_UartD_Init(void)
+void UartD_Init(void)
 {
     NvU32 RegData;
 
@@ -466,7 +461,7 @@ void t30_UartD_Init(void)
     NV_WRITE32(NV_ADDRESS_MAP_PPSB_CLK_RST_BASE +
         CLK_RST_CONTROLLER_PLLP_OUTB_0, RegData);
 
-//tcw For Dalmore E1611 w/serial out on UARTD via USB on PM342 board
+    // For Dalmore E1611 w/serial out on UARTD via USB on PM342 board
     //     GMI_AD16 => UARTD	input
     //     GMI_AD17 => UARTD	output
     //     GMI_AD18 => UARTD	output
@@ -480,7 +475,7 @@ void t30_UartD_Init(void)
     // Enable the pads.
     SET_PIN(GMI_A16, TRISTATE, NORMAL);
     SET_PIN(GMI_A19, TRISTATE, NORMAL);
-//tcw
+
     // enable UART D clock, toggle reset
     RegData = NV_READ32(NV_ADDRESS_MAP_PPSB_CLK_RST_BASE +
         CLK_RST_CONTROLLER_CLK_OUT_ENB_U_0);
@@ -517,13 +512,12 @@ void t30_UartD_Init(void)
 #endif
 }
 
-
-void t30_Uart_Init(void)
+void Uart_Init(void)
 {
 
   // Enable Divisor Latch access.
   MmioWrite32 (UartBaseAddress + UART_LCR_REG, UART_LCR_DIV_EN_ENABLE);
-//return;
+
   // Programmable divisor
   MmioWrite32 (UartBaseAddress + UART_DLL_REG, (CLK_M / (DEBUG_BAUDRATE * 16))); // low divisor
   MmioWrite32 (UartBaseAddress + UART_DLH_REG,  0);      // high divisor
@@ -533,30 +527,26 @@ void t30_Uart_Init(void)
   MmioWrite32 (UartBaseAddress + UART_MCR_REG, UART_MCR_RTS_FORCE_ACTIVE | UART_MCR_DTR_FORCE_ACTIVE);
   // Clear & enable fifos
   MmioWrite32 (UartBaseAddress + UART_FCR_REG, UART_FCR_TX_FIFO_CLEAR | UART_FCR_RX_FIFO_CLEAR | UART_FCR_FIFO_ENABLE);
-
 }
 
-void t30_UartWriteByte(NvU8 ch)
+void UartWriteByte(NvU8 ch)
 {
-	volatile void* pUart;
+	volatile void *pUart;
 
-/* t114 */
 #if defined(CONFIG_TEGRA11X_DALMORE)
 	pUart = (void*)s_UartBaseAddress[3];
 #endif
-	aos_UartWriteByteT30(pUart, ch);
+	T11xUartWriteByte(pUart, ch);
 }
 
-NvU8 t30_UartReadByte(void)
+NvU8 UartReadByte(void)
 {
-	volatile void* pUart;
+	volatile void *pUart;
 
-/* t114 */
 #if defined(CONFIG_TEGRA11X_DALMORE)
 	pUart = (void*)s_UartBaseAddress[3];
 #endif
-
-	return aos_UartReadByteT30(pUart);
+	return T11xUartReadByte(pUart);
 }
 
 void NvBlUartInit_t11x(void)
@@ -564,11 +554,11 @@ void NvBlUartInit_t11x(void)
 #if defined(TEGRA3_BOOT_TRACE)
 
 #if defined(CONFIG_TEGRA11X_DALMORE)
-	t30_UartD_Init();
+	UartD_Init();
 #endif
-	t30_Uart_Init();
+	Uart_Init();
 
-	aos_CpuStallUsT30(20000);	// 20 ms
+	CpuStallMs(20);
 #endif
 }
 
@@ -578,9 +568,9 @@ void t11x_WriteDebugString(const char* str)
     while (str && *str)
     {
         if (*str == '\n') {
-            t30_UartWriteByte(0x0D);
+            UartWriteByte(0x0D);
         }
-        t30_UartWriteByte(*str++);
+        UartWriteByte(*str++);
     }
 }
 #else
@@ -589,11 +579,10 @@ void t11x_WriteDebugString(const char* str)
 }
 #endif
 
-void CpuStallMsT30(NvU32 ms)
+void CpuStallMs(NvU32 ms)
 {
-	aos_CpuStallUsT30((ms * 1000));
+	CpuStallUs((ms * 1000));
 }
-
 
 void NvBlPrintU32(NvU32 word);
 int NvBlUartWrite(const void *ptr);
@@ -606,21 +595,18 @@ static char s_Hex2Char[] =
     'A', 'B', 'C', 'D', 'E', 'F'
 };
 
-static void
-NvBlPrintU4(NvU8 byte)
+static void NvBlPrintU4(NvU8 byte)
 {
     uart_post(s_Hex2Char[byte & 0xF]);
 }
 
-void
-NvBlPrintU8(NvU8 byte)
+void NvBlPrintU8(NvU8 byte)
 {
     NvBlPrintU4((byte >> 4) & 0xF);
     NvBlPrintU4((byte >> 0) & 0xF);
 }
 
-void
-NvBlPrintU32(NvU32 word)
+void NvBlPrintU32(NvU32 word)
 {
     NvBlPrintU8((word >> 24) & 0xFF);
     NvBlPrintU8((word >> 16) & 0xFF);
@@ -629,16 +615,14 @@ NvBlPrintU32(NvU32 word)
     uart_post(0x20);
 }
 
-void
-NvBlVprintf(const char *format, va_list ap)
+void NvBlVprintf(const char *format, va_list ap)
 {
     char msg[256];
     sprintf(msg, format, ap);
     NvBlUartWrite(msg);
 }
 
-void
-NvBlPrintf(const char *format, ...)
+void NvBlPrintf(const char *format, ...)
 {
     va_list ap;
 
@@ -650,7 +634,7 @@ NvBlPrintf(const char *format, ...)
 void uart_post(char c)
 {
 #if defined(TEGRA3_BOOT_TRACE)
-    t30_UartWriteByte(c);
+    UartWriteByte(c);
 #endif
 }
 
@@ -661,7 +645,7 @@ void PostCc(char c)
     uart_post(c);
     uart_post(c+0x20);
 
-	aos_CpuStallUsT30((2000));
+	CpuStallUs(2000);
 }
 
 void PostZz(void)
@@ -671,22 +655,21 @@ void PostZz(void)
 
 void PostYy(void)
 {
-	CpuStallMsT30(20);
-	CpuStallMsT30(20);
+	CpuStallMs(20);
+	CpuStallMs(20);
     PostCc('Y');
 }
 
 void PostXx(void)
 {
-	CpuStallMsT30(20);
+	CpuStallMs(20);
     PostCc('X');
     uart_post(0x0d);
     uart_post(0x0a);
-	CpuStallMsT30(20);
+	CpuStallMs(20);
 }
 
-int
-NvBlUartWrite(const void *ptr)
+int NvBlUartWrite(const void *ptr)
 {
     const NvU8 *p = ptr;
 

@@ -34,12 +34,9 @@
 #include <asm/arch/warmboot.h>
 #include "../../../../../board/nvidia/common/board.h"
 
-/* t11x bringup */
 #include "t11x.h"
 #include "t11x_uart.h"
 #include <asm/arch/t11x/arapb_misc.h>
-
-NvBool s_FpgaEmulation = 0xa5;  // set to non-zero so this won't be in .bss
 
 struct clk_pll_table {
 	u16		n;
@@ -313,7 +310,6 @@ void start_cpu_ap20(u32 reset_vector)
 
 void halt_avp(void)
 {
-	uart_post('H'); uart_post('.'); uart_post(' ');
 	for (;;) {
 		writel((HALT_COP_EVENT_JTAG | HALT_COP_EVENT_IRQ_1 \
 			| HALT_COP_EVENT_FIQ_1 | (FLOW_MODE_STOP<<29)),
@@ -329,7 +325,6 @@ void start_cpu(u32 reset_vector)
 	u32 s_ChipId;
 	u32 major;
 	u32 minor;
-	s_FpgaEmulation = NV_FALSE;
 
 	reg = readl(NV_PA_APB_MISC_BASE + GP_HIDREV);
 	major = NV_DRF_VAL( APB_MISC_GP, HIDREV, MAJORREV, reg);
@@ -340,13 +335,9 @@ void start_cpu(u32 reset_vector)
 
 	switch( s_ChipId ) {
 	case 0x35:
-		uart_post('3'); uart_post('5'); uart_post(' ');
-//tcw		if(!major && minor)
-//tcw			s_FpgaEmulation = NV_TRUE;
 		start_cpu_t11x(reset_vector);
 		break;
 	default:
-		uart_post('u'); uart_post('.'); uart_post(' ');
 //		NV_ASSERT( !"unknown chipid" );
 		break;
 	}

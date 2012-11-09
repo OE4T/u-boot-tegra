@@ -66,12 +66,12 @@
 #define NVBL_PLL_BYPASS 0
 #define NVBL_PLLP_SUBCLOCKS_FIXED   (1)
 
-#define NV_CAR_REGR(pCar, reg)              NV_READ32( (((NvUPtr)(pCar)) + CLK_RST_CONTROLLER_##reg##_0))
+#define NV_CAR_REGR(pCar, reg)              NV_READ32((((NvUPtr)(pCar)) + CLK_RST_CONTROLLER_##reg##_0))
 #define NV_CAR_REGW(pCar, reg, val)         NV_WRITE32((((NvUPtr)(pCar)) + CLK_RST_CONTROLLER_##reg##_0), (val))
 #define NV_TIMERUS_REGR(pTimer, reg)        NV_READ32((((NvUPtr)(pTimer)) + TIMERUS_##reg##_0))
 #define NV_TIMERUS_REGW(pTimer, reg, val)   NV_WRITE32((((NvUPtr)(pTimer)) + TIMERUS_##reg##_0), (val))
 
-#define NV_MISC_REGR(pMisc, reg)                NV_READ32( (((NvUPtr)(pMisc)) + APB_MISC_##reg##_0))
+#define NV_MISC_REGR(pMisc, reg)                NV_READ32((((NvUPtr)(pMisc)) + APB_MISC_##reg##_0))
 #define NV_MISC_REGW(pMisc, reg, val)           NV_WRITE32((((NvUPtr)(pMisc)) + APB_MISC_##reg##_0), (val))
 
 #define NV_PWRI2C_REGR(pPwrI2c, reg)          	NV_READ32( (((NvUPtr)(pPwrI2c)) + I2C_##reg##_0))
@@ -104,10 +104,10 @@
 #define NVBL_PLLP_KHZ               408000
 #define NVBL_USE_PLL_LOCK_BITS      1
 
-/// Calculate clock fractional divider value from reference and target frequencies
+// Calculate clock fractional divider value from reference and target frequencies
 #define CLK_DIVIDER(REF, FREQ)  ((((REF) * 2) / FREQ) - 2)
 
-/// Calculate clock frequency value from reference and clock divider value
+// Calculate clock frequency value from reference and clock divider value
 #define CLK_FREQUENCY(REF, REG)  (((REF) * 2) / (REG + 2))
 
 #define PMC_CLAMPING_CMD(x)   \
@@ -121,40 +121,29 @@
 #define NV_GEN1I2C_REGR(pGen1I2c, reg)  NV_READ32( (((NvUPtr)(pGen1I2c)) + I2C_##reg##_0))
 #define NV_GEN1I2C_REGW(pGen1I2c, reg, val) NV_WRITE32((((NvUPtr)(pGen1I2c)) + I2C_##reg##_0), (val))
 
-//------------------------------------------------------------------------------
-// Provide missing enumerators for spec files.
-//------------------------------------------------------------------------------
-
-#define NV_BIT_ADDRESS 0x40000000
-#define NV3P_SIGNATURE 0x5AFEADD8
-
 /**
  * @brief CPU complex id.
  */
-	typedef enum NvBlCpuClusterId_t
-	{
-		/// Unknown CPU complex
-		NvBlCpuClusterId_Unknown = 0,
+typedef enum NvBlCpuClusterId_t {
+	/// Unknown CPU complex
+	NvBlCpuClusterId_Unknown = 0,
 
-		/// CPU complex 0
-		NvBlCpuClusterId_Fast,
-		NvBlCpuClusterId_G = NvBlCpuClusterId_Fast,
+	/// CPU complex 0
+	NvBlCpuClusterId_Fast,
+	NvBlCpuClusterId_G = NvBlCpuClusterId_Fast,
 
-		/// CPU complex 1
-		NvBlCpuClusterId_Slow,
-		NvBlCpuClusterId_LP = NvBlCpuClusterId_Slow,
+	/// CPU complex 1
+	NvBlCpuClusterId_Slow,
+	NvBlCpuClusterId_LP = NvBlCpuClusterId_Slow,
 
-		/// Ignore -- Forces compilers to make 32-bit enums.
-		NvBlCpuClusterId__Force32 = 0x7FFFFFFF
-
-	} NvBlCpuClusterId;
-
+	/// Ignore -- Forces compilers to make 32-bit enums.
+	NvBlCpuClusterId__Force32 = 0x7FFFFFFF
+} NvBlCpuClusterId;
 
 void NvBlAvpStallUs(NvU32 MicroSec);
 void NvBlAvpStallMs(NvU32 MilliSec);
 void NvBlAvpSetCpuResetVector(NvU32 reset);
-NvBool NvBlAvpInit_T30(NvBool IsRunningFromSdram);
-void StartCpu_T11x(NvU32 ResetVector);
+void NvBlStartCpu_T11x(NvU32 ResetVector);
 
 #define UINT32	NvU32
 #define VOID	void
