@@ -51,6 +51,7 @@ $(obj)dt.o: $(DT_BIN)
 	cd $(dir ${DT_BIN}) && \
 	$(OBJCOPY) -B armv5te -I binary -O elf32-littlearm \
 		$(notdir ${DT_BIN}) $@
+	$(OBJCOPY) --rename-section .data=.embedded_dts $@
 	rm $(DT_BIN)
 
 OBJS-$(CONFIG_OF_EMBED)	:= dt.o
