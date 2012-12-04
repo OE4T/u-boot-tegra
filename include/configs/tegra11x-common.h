@@ -225,8 +225,10 @@
 	"nfsserverip=172.22.72.144\0" \
 	"netretry="CONFIG_NET_RETRY_CONTROL"\0" \
 	"extra_bootargs=" \
+		"usb_port_owner_info=0 " \
 		"usbcore.old_scheme_first=1 " \
-		"core_edp_mv=0 " \
+		"core_edp_mv=1120 " \
+		"core_edp_ma=4000 " \
 		"cros_legacy " \
 		"no_console_suspend=1 " \
 		CONFIG_EXTRA_BOOTARGS \
@@ -261,16 +263,10 @@
 		"mmc rescan ${mmcdev}; " \
 		"ext2load mmc ${mmcdev}:3 ${loadaddr} /boot/${bootfile}; " \
 		"bootm ${loadaddr}\0" \
-	"mmc0_bringup=run mmc_setup; " \
-		"mmc rescan 0; " \
-		"mmc read 0 ${loadaddr} 0xa000 0x4000 user; " \
-		"bootm ${loadaddr}\0" \
 	"mmc0_boot=setenv mmcdev 0; " \
 		"run mmc_boot\0" \
 	"mmc1_boot=setenv mmcdev 1; " \
 		"run mmc_boot\0" \
-	"mmc0_boot_bringup=setenv mmcdev 1; " \
-		"run mmc0_bringup\0" \
 	\
 	"usb_setup=setenv bootdev_bootargs root=/dev/sda3 rw rootwait; " \
 		"run regen_all\0" \
@@ -286,8 +282,7 @@
 	"run usb_boot ; " \
 	\
 	"run mmc1_boot ; " \
-	"run mmc0_boot ; " \
-	"run mmc0_boot_bringup ; "
+	"run mmc0_boot ; "
 
 /* default location for kernel */
 #define CONFIG_LOADADDR		0x80408000

@@ -43,12 +43,15 @@
 
 #define CONFIG_EXTRA_BOOTARGS \
 	"tegraid=35.1.1.0.0 " \
-	"mem=2013M@2048M vpr=32M@4063M " \
+	"mem=1980M@2048M vpr=32M@4063M tsec=32M@4031M " \
 	"otf_key=0 commchip_id=0 " \
 	"console=tty1 " \
-	"tegra_fbmem=0@0x0 " \
-	"displayboard=0x8026:0x1a44:0x26:0x80:0x01 " \
-	"audio_codec=rt5640 board_info=64b:3e8:2:44:5 " \
+	"tegra_fbmem=18554880@0xad013000 " \
+	"pmuboard=0x8028:0x81c8:0x31:0x80:0x3c " \
+	"displayboard=0x065b:0x03e8:0x02:0x43:0x03 " \
+	"display_panel=0 " \
+	"audio_codec=rt5640 " \
+	"board_info=64b:3e8:2:45:3 " \
 	"debug_uartport=lsport,3\0" \
 
 #include "tegra11x-common.h"
