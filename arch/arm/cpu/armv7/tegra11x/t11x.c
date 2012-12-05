@@ -121,123 +121,14 @@ VOID AvpHaltCpu(BOOLEAN halt)
   NV_FLOW_REGW(FLOW_PA_BASE, HALT_CPU_EVENTS, Reg);
 }
 
-VOID AvpResetCpu(BOOLEAN reset)
-{
-  UINT32   Reg;    // Scratch reg
-  UINT32   Cpu;    // Scratch reg
-
-  //-------------------------------------------------------------------------
-  // NOTE:  Regardless of whether the request is to hold the CPU in reset or
-  //        take it out of reset, every processor in the CPU complex except
-  //        the master (CPU 0) will be held in reset because the AVP only
-  //        talks to the master. The AVP does not know, nor does it need to
-  //        know, that there are multiple processors in the CPU complex.
-  //-------------------------------------------------------------------------
-
-  // Hold CPU 1-3 in reset.
-  Cpu = NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPU_CMPLX_SET, SET_CPURESET1, 1)
-      | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPU_CMPLX_SET, SET_DBGRESET1, 1)
-      | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPU_CMPLX_SET, SET_DERESET1,  1)
-      | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPU_CMPLX_SET, SET_WDRESET1,  1)
-      | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPU_CMPLX_SET, SET_CORERESET1,1)
-      | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPU_CMPLX_SET, SET_CXRESET1,  1)
-
-      | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPU_CMPLX_SET, SET_CPURESET2, 1)
-      | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPU_CMPLX_SET, SET_DBGRESET2, 1)
-      | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPU_CMPLX_SET, SET_DERESET2,  1)
-      | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPU_CMPLX_SET, SET_WDRESET2,  1)
-      | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPU_CMPLX_SET, SET_CORERESET2,1)
-      | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPU_CMPLX_SET, SET_CXRESET2,  1)
-
-      | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPU_CMPLX_SET, SET_CPURESET3, 1)
-      | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPU_CMPLX_SET, SET_DBGRESET3, 1)
-      | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPU_CMPLX_SET, SET_DERESET3,  1)
-      | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPU_CMPLX_SET, SET_WDRESET3,  1)
-      | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPU_CMPLX_SET, SET_CORERESET3,1)
-      | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPU_CMPLX_SET, SET_CXRESET3,  1);
-  NV_CAR_REGW(CLK_RST_PA_BASE, RST_CPU_CMPLX_SET, Cpu);
-
-  if (reset) {
-      // Place CPU0  and the non-CPU partition in to reset.
-      Cpu = NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPU_CMPLX_SET, SET_CPURESET0, 1)
-          | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPU_CMPLX_SET, SET_DBGRESET0, 1)
-          | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPU_CMPLX_SET, SET_DERESET0,  1)
-          | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPU_CMPLX_SET, SET_CORERESET0,1)
-          | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPU_CMPLX_SET, SET_CXRESET0,  1)
-          | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPU_CMPLX_SET, SET_NONCPURESET, 1);
-
-      NV_CAR_REGW(CLK_RST_PA_BASE, RST_CPU_CMPLX_SET, Cpu);
-
-      // Enable master CPU reset.
-       Reg = NV_DRF_NUM(CLK_RST_CONTROLLER, RST_DEV_L_SET, SET_CPU_RST, 1);
-       NV_CAR_REGW(CLK_RST_PA_BASE, RST_DEV_L_SET, Reg);
-
-  } else {
-       // Disable master CPU reset.
-       Reg = NV_DRF_NUM(CLK_RST_CONTROLLER, RST_DEV_L_CLR, CLR_CPU_RST, 1);
-       NV_CAR_REGW(CLK_RST_PA_BASE, RST_DEV_L_CLR, Reg);
-
-        // Take the non-CPU partition out of reset.
-        Cpu = NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPU_CMPLX_CLR, CLR_NONCPURESET, 1);
-        NV_CAR_REGW(CLK_RST_PA_BASE, RST_CPU_CMPLX_CLR, Cpu);
-	// Wait until non-CPU partition is out of reset.
-	do {
-		Cpu = NV_CAR_REGR(CLK_RST_PA_BASE, CPU_CMPLX_STATUS);
-	} while (NV_DRF_VAL(CLK_RST_CONTROLLER, CPU_CMPLX_STATUS, NONCPURESET, Cpu));
-
-	// make SOFTRST_CTRL2 equal to SOFTRST_CTRL1, this gurantees C0/C1NC is
-	// always removed out of reset earlier than CE0/CELP
-	Reg = NV_CAR_REGR(CLK_RST_PA_BASE, CPU_SOFTRST_CTRL2);
-	NV_CAR_REGW(CLK_RST_PA_BASE, CPU_SOFTRST_CTRL1, Reg);
-
-  if (AvpQueryFlowControllerClusterId() == NvBlCpuClusterId_Fast) {
-	// Clear CPULP reset
-	Reg = NV_DRF_DEF(CLK_RST_CONTROLLER, RST_DEV_V_CLR, CLR_CPULP_RST, ENABLE);
-	NV_CAR_REGW(CLK_RST_PA_BASE, RST_DEV_V_CLR, Reg);
-
-	// Clear NONCPU reset of S-cluster
-	Reg = NV_DRF_DEF(CLK_RST_CONTROLLER, RST_CPULP_CMPLX_CLR, CLR_NONCPURESET, ENABLE);
-	NV_CAR_REGW(CLK_RST_PA_BASE, RST_CPULP_CMPLX_CLR, Reg);
-  }
-
-      // Take CPU0 out of reset.
-      Cpu = NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPU_CMPLX_CLR, CLR_CPURESET0, 1)
-          | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPU_CMPLX_CLR, CLR_DBGRESET0, 1)
-          | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPU_CMPLX_CLR, CLR_DERESET0,  1)
-          | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPU_CMPLX_CLR, CLR_CORERESET0,1)
-          | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPU_CMPLX_CLR, CLR_CXRESET0,  1);
-
-      NV_CAR_REGW(CLK_RST_PA_BASE, RST_CPU_CMPLX_CLR, Cpu);
-
-  }
-}
-
-VOID AvpEnableCpuClock(BOOLEAN enable)
+static void AvpEnableCpuClock()
 {
   UINT32   Reg;        // Scratch reg
-  UINT32   Clk;        // Scratch reg
 
-  //-------------------------------------------------------------------------
-  // NOTE:  Regardless of whether the request is to enable or disable the CPU
-  //        clock, every processor in the CPU complex except the master (CPU
-  //        0) will have it's clock stopped because the AVP only talks to the
-  //        master. The AVP, it does not know, nor does it need to know that
-  //        there are multiple processors in the CPU complex.
-  //-------------------------------------------------------------------------
-
-  // Always halt CPU 1-3 at the flow controller so that in uni-processor
-  // configurations the low-power trigger conditions will work properly.
-  Reg = NV_DRF_DEF(FLOW_CTLR, HALT_CPU1_EVENTS, MODE, FLOW_MODE_STOP);
-  NV_FLOW_REGW(FLOW_PA_BASE, HALT_CPU1_EVENTS, Reg);
-  NV_FLOW_REGW(FLOW_PA_BASE, HALT_CPU2_EVENTS, Reg);
-  NV_FLOW_REGW(FLOW_PA_BASE, HALT_CPU3_EVENTS, Reg);
-
-  // Enabling clock?
-  if (enable) {
-          // Wait for PLL-X to lock.
-          do {
-              Reg = NV_CAR_REGR(CLK_RST_PA_BASE, PLLX_BASE);
-          } while (!NV_DRF_VAL(CLK_RST_CONTROLLER, PLLX_BASE, PLLX_LOCK, Reg));
+  // Wait for PLL-X to lock.
+  do {
+      Reg = NV_CAR_REGR(CLK_RST_PA_BASE, PLLX_BASE);
+  } while (!NV_DRF_VAL(CLK_RST_CONTROLLER, PLLX_BASE, PLLX_LOCK, Reg));
 
       // *((volatile long *)0x60006020) = 0x20008888 ;// CCLK_BURST_POLICY
 	/*
@@ -257,7 +148,6 @@ VOID AvpEnableCpuClock(BOOLEAN enable)
           | NV_DRF_DEF(CLK_RST_CONTROLLER, CCLK_BURST_POLICY, CWAKEUP_RUN_SOURCE, PLLX_OUT0)
           | NV_DRF_DEF(CLK_RST_CONTROLLER, CCLK_BURST_POLICY, CWAKEUP_IDLE_SOURCE, PLLX_OUT0);
       NV_CAR_REGW(CLK_RST_PA_BASE, CCLK_BURST_POLICY, Reg);
-  }
 
   // *((volatile long *)0x60006024) = 0x80000000 ;// SUPER_CCLK_DIVIDER
   Reg = NV_DRF_NUM(CLK_RST_CONTROLLER, SUPER_CCLK_DIVIDER, SUPER_CDIV_ENB, 0x1)
@@ -269,29 +159,58 @@ VOID AvpEnableCpuClock(BOOLEAN enable)
       | NV_DRF_NUM(CLK_RST_CONTROLLER, SUPER_CCLK_DIVIDER, SUPER_CDIV_DIVISOR, 0x0);
   NV_CAR_REGW(CLK_RST_PA_BASE, SUPER_CCLK_DIVIDER, Reg);
 
-  // Stop the clock to all CPUs.
-  Clk = NV_DRF_NUM(CLK_RST_CONTROLLER, CLK_CPU_CMPLX_SET, SET_CPU0_CLK_STP, 1)
-      | NV_DRF_NUM(CLK_RST_CONTROLLER, CLK_CPU_CMPLX_SET, SET_CPU1_CLK_STP, 1)
-      | NV_DRF_NUM(CLK_RST_CONTROLLER, CLK_CPU_CMPLX_SET, SET_CPU2_CLK_STP, 1)
-      | NV_DRF_NUM(CLK_RST_CONTROLLER, CLK_CPU_CMPLX_SET, SET_CPU3_CLK_STP, 1);
-  NV_CAR_REGW(CLK_RST_PA_BASE, CLK_CPU_CMPLX_SET, Clk);
-
-  // Enable the CPU0 clock if requested.
-  if (enable) {
-      Clk = NV_DRF_NUM(CLK_RST_CONTROLLER, CLK_CPU_CMPLX_CLR, CLR_CPU0_CLK_STP, 1);
-      NV_CAR_REGW(CLK_RST_PA_BASE, CLK_CPU_CMPLX_CLR, Clk);
-  }
-
   // Always enable the main CPU complex clock.
   Reg = NV_DRF_NUM(CLK_RST_CONTROLLER, CLK_ENB_L_SET, SET_CLK_ENB_CPU, 1);
   NV_CAR_REGW(CLK_RST_PA_BASE, CLK_ENB_L_SET, Reg);
+  Reg = NV_DRF_NUM(CLK_RST_CONTROLLER, CLK_ENB_V_SET, SET_CLK_ENB_CPULP, 1)
+      | NV_DRF_NUM(CLK_RST_CONTROLLER, CLK_ENB_V_SET, SET_CLK_ENB_CPUG, 1);
+  NV_CAR_REGW(CLK_RST_PA_BASE, CLK_ENB_V_SET, Reg);
 }
 
-VOID AvpClockEnableCorsight(BOOLEAN enable)
+static void AvpRemoveCpuReset()
+{
+    NvU32   Reg;    // Scratch reg
+
+    // Take the slow non-CPU partition out of reset.
+    Reg = NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPULP_CMPLX_CLR, CLR_NONCPURESET, 1);
+    NV_CAR_REGW(CLK_RST_PA_BASE, RST_CPULP_CMPLX_CLR, Reg);
+
+    // Take the fast non-CPU partition out of reset.
+    Reg = NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPUG_CMPLX_CLR, CLR_NONCPURESET, 1);
+    NV_CAR_REGW(CLK_RST_PA_BASE, RST_CPUG_CMPLX_CLR, Reg);
+
+    // Clear software controlled reset of slow cluster
+    Reg = NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPULP_CMPLX_CLR, CLR_CPURESET0, 1)
+        | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPULP_CMPLX_CLR, CLR_DBGRESET0, 1)
+        | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPULP_CMPLX_CLR, CLR_CORERESET0,1)
+        | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPULP_CMPLX_CLR, CLR_CXRESET0,  1);
+    NV_CAR_REGW(CLK_RST_PA_BASE, RST_CPULP_CMPLX_CLR, Reg);
+
+    // Clear software controlled reset of fast cluster
+    Reg = NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPUG_CMPLX_CLR, CLR_CPURESET0, 1)
+        | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPUG_CMPLX_CLR, CLR_DBGRESET0, 1)
+        | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPUG_CMPLX_CLR, CLR_CORERESET0,1)
+        | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPUG_CMPLX_CLR, CLR_CXRESET0,  1)
+        | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPUG_CMPLX_CLR, CLR_CPURESET1, 1)
+        | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPUG_CMPLX_CLR, CLR_DBGRESET1, 1)
+        | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPUG_CMPLX_CLR, CLR_CORERESET1,1)
+        | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPUG_CMPLX_CLR, CLR_CXRESET1,  1)
+        | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPUG_CMPLX_CLR, CLR_CPURESET2, 1)
+        | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPUG_CMPLX_CLR, CLR_DBGRESET2, 1)
+        | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPUG_CMPLX_CLR, CLR_CORERESET2,1)
+        | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPUG_CMPLX_CLR, CLR_CXRESET2,  1)
+        | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPUG_CMPLX_CLR, CLR_CPURESET3, 1)
+        | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPUG_CMPLX_CLR, CLR_DBGRESET3, 1)
+        | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPUG_CMPLX_CLR, CLR_CORERESET3,1)
+        | NV_DRF_NUM(CLK_RST_CONTROLLER, RST_CPUG_CMPLX_CLR, CLR_CXRESET3,  1);
+
+    NV_CAR_REGW(CLK_RST_PA_BASE, RST_CPUG_CMPLX_CLR, Reg);
+}
+
+static void AvpClockEnableCorsight()
 {
   UINT32   Reg;        // Scratch register
 
-  if (enable) {
       // Put CoreSight on PLLP_OUT0 (216 MHz) and divide it down by 1.5
       // giving an effective frequency of 144MHz.
 
@@ -323,29 +242,6 @@ VOID AvpClockEnableCorsight(BOOLEAN enable)
 
       Reg = NV_DRF_NUM(CLK_RST_CONTROLLER, RST_DEV_U_CLR, CLR_CSITE_RST, 1);
       NV_CAR_REGW(CLK_RST_PA_BASE, RST_DEV_U_CLR, Reg);
-
-      // Unlock the CPU CoreSight interface for CPU0 be cause CPU0
-      // is always present.
-      NV_CSITE_REGW(CSITE_PA_BASE, CPUDBG0_LAR, 0xC5ACCE55);
-
-      // Find out which CPU complex we're booting to.
-      Reg = NV_FLOW_REGR(FLOW_PA_BASE, CLUSTER_CONTROL);
-      Reg = NV_DRF_VAL(FLOW_CTLR, CLUSTER_CONTROL, ACTIVE, Reg);
-
-      if (Reg == NV_DRF_DEF(FLOW_CTLR, CLUSTER_CONTROL, ACTIVE, G)) {
-          // Unlock all CPU CoreSight interfaces for CPU1-CPU3.
-          NV_CSITE_REGW(CSITE_PA_BASE, CPUDBG1_LAR, 0xC5ACCE55);
-          NV_CSITE_REGW(CSITE_PA_BASE, CPUDBG2_LAR, 0xC5ACCE55);
-          NV_CSITE_REGW(CSITE_PA_BASE, CPUDBG3_LAR, 0xC5ACCE55);
-      }
-  } else {
-      // Disable CoreSight clock and hold it in reset.
-      Reg = NV_DRF_NUM(CLK_RST_CONTROLLER, CLK_ENB_U_CLR, CLR_CLK_ENB_CSITE, 1);
-      NV_CAR_REGW(CLK_RST_PA_BASE, CLK_ENB_U_CLR, Reg);
-
-      Reg = NV_DRF_NUM(CLK_RST_CONTROLLER, RST_DEV_U_SET, SET_CSITE_RST, 1);
-      NV_CAR_REGW(CLK_RST_PA_BASE, RST_DEV_U_SET, Reg);
-  }
 }
 
 VOID AvpSetCpuResetVector(UINT32 reset)
@@ -425,20 +321,14 @@ static void AvpRemoveCpuIoClamps(void)
 #define POWER_PARTITION(x)  \
     AvpPowerPartition(PMC_PWRGATE_STATUS(x), PMC_PWRGATE_TOGGLE(x))
 
-static void AvpRamRepair(void)
-{
-	//FIXME: What is this for??
-}
-
 static void AvpPowerUpCpu(void)
 {
     // Are we booting to the fast cluster?
     if (AvpQueryFlowControllerClusterId() == NvBlCpuClusterId_G) {
+        // TODO: Set CPU Power Good Timer
+
         // Power up the fast cluster rail partition.
         POWER_PARTITION(CRAIL);
-
-        // Do RAM repair. FIXME: Is this needed? Not done on T30!
-       AvpRamRepair();
 
         // Power up the fast cluster non-CPU partition.
         POWER_PARTITION(C0NC);
@@ -452,9 +342,6 @@ static void AvpPowerUpCpu(void)
         // Power up the slow cluster CPU partition.
         POWER_PARTITION(CELP);
     }
-
-    // Remove the I/O clamps from CPU power partition.
-    AvpRemoveCpuIoClamps();
 }
 
 VOID AvpHaltAp20(void)
@@ -1340,14 +1227,14 @@ VOID NvBlStartCpu_T11x(UINT32 ResetVector)
   // Enable VDD_CPU
   AvpEnableCpuPowerRail();
 
-  // Hold the CPUs in reset.
-  AvpResetCpu(TRUE);
-
-  // Disable the CPU clock.
-  AvpEnableCpuClock(FALSE);
+  // Enable the CPU clock.
+  AvpEnableCpuClock();
 
   // Enable CoreSight.
-  AvpClockEnableCorsight(TRUE);
+  AvpClockEnableCorsight();
+
+  // Remove all software overrides
+  AvpRemoveCpuReset();
 
   // Set the entry point for CPU execution from reset, if it's a non-zero value.
   if (ResetVector)
@@ -1355,12 +1242,6 @@ VOID NvBlStartCpu_T11x(UINT32 ResetVector)
 
   // Power up the CPU.
   AvpPowerUpCpu();
-
-  // Enable the CPU clock.
-  AvpEnableCpuClock(TRUE);
-
-  // Take the CPU out of reset.
-  AvpResetCpu(FALSE);
 }
 
 void start_cpu_t11x(u32 reset_vector)
@@ -1592,12 +1473,12 @@ static void NvBlAvpEnableCpuPowerRail(void)
     NV_PMC_REGW(PMC_PA_BASE, CNTRL, Reg);
 
    /*
-    * Set CLK_RST_CONTROLLER_CPU_SOFTRST_CTRL2_0_CAR2PMC_CPU_ACK_WIDTH to 0x960
-    * to improve power gating/ungating reliablity. This is about 8us when
-    * system clock runs at 300MHz.
+    * Set CLK_RST_CONTROLLER_CPU_SOFTRST_CTRL2_0_CAR2PMC_CPU_ACK_WIDTH to 408
+    * to satisfy the requirement of having at least 16 CPU clock cycles before
+    * clamp removal.
     */
     Reg = NV_CAR_REGR(CLK_RST_PA_BASE,CPU_SOFTRST_CTRL2);
-    Reg = NV_FLD_SET_DRF_NUM(CLK_RST_CONTROLLER, CPU_SOFTRST_CTRL2, CAR2PMC_CPU_ACK_WIDTH, 0x960, Reg);
+    Reg = NV_FLD_SET_DRF_NUM(CLK_RST_CONTROLLER, CPU_SOFTRST_CTRL2, CAR2PMC_CPU_ACK_WIDTH, 408, Reg);
     Reg = NV_CAR_REGW(CLK_RST_PA_BASE,CPU_SOFTRST_CTRL2, Reg);
 }
 
