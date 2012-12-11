@@ -495,7 +495,7 @@ const char* get_board_name(void)
 
 struct arch_name_map {
 	const char* board_name;
-	ulong	    arch_number;
+	ulong arch_number;
 };
 
 static struct arch_name_map name_map[] = {
@@ -595,7 +595,7 @@ u32 get_minor_rev(void)
 int misc_init_r(void)
 {
 #if defined(CONFIG_TEGRA3)
-	char buf[255], *s;
+	char buf[255], *s, *maxptr;
 
 	/*
 	 * We need to differentiate between T30 and T33 by passing
@@ -607,9 +607,15 @@ int misc_init_r(void)
 
 	if (get_minor_rev() == 0x03) {
 		if (s) {
-			sprintf(buf, "%s %s", s, "max_cpu_cur_ma=10000");
-			setenv("extra_bootargs", buf);
-			debug("new kernel cmd line is %s\n", buf);
+			maxptr = strstr(s, "max_cpu_cur_ma");
+			if (maxptr == NULL) {
+				sprintf(buf, "%s %s", s,
+					"max_cpu_cur_ma=10000");
+				setenv("extra_bootargs", buf);
+				debug("new kernel cmd line is %s\n", buf);
+			} else {
+				debug("max_cpu_cur_ma already present!\n");
+			}
 		}
 	}
 #endif
