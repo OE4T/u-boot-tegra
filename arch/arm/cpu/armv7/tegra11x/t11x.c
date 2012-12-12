@@ -121,7 +121,7 @@ VOID AvpHaltCpu(BOOLEAN halt)
   NV_FLOW_REGW(FLOW_PA_BASE, HALT_CPU_EVENTS, Reg);
 }
 
-static void AvpEnableCpuClock()
+static void AvpEnableCpuClock(void)
 {
   UINT32   Reg;        // Scratch reg
 
@@ -167,7 +167,7 @@ static void AvpEnableCpuClock()
   NV_CAR_REGW(CLK_RST_PA_BASE, CLK_ENB_V_SET, Reg);
 }
 
-static void AvpRemoveCpuReset()
+static void AvpRemoveCpuReset(void)
 {
     NvU32   Reg;    // Scratch reg
 
@@ -207,7 +207,7 @@ static void AvpRemoveCpuReset()
     NV_CAR_REGW(CLK_RST_PA_BASE, RST_CPUG_CMPLX_CLR, Reg);
 }
 
-static void AvpClockEnableCorsight()
+static void AvpClockEnableCorsight(void)
 {
   UINT32   Reg;        // Scratch register
 
@@ -285,37 +285,6 @@ static void AvpPowerPartition(NvU32 status, NvU32 toggle)
         while (!AvpIsPartitionPowered(status))
 		;            // Do nothing
     }
-}
-
-static void AvpRemoveCpuIoClamps(void)
-{
-    NvU32               Reg;        // Scratch reg
-
-    // If booting to the fast cluster ...
-    if (AvpQueryFlowControllerClusterId() == NvBlCpuClusterId_G) {
-        // ... remove the clamps on the fast rail partition I/O signals ...
-        Reg = PMC_CLAMPING_CMD(CRAIL);
-        NV_PMC_REGW(PMC_PA_BASE, REMOVE_CLAMPING_CMD, Reg);
-
-        // ... and the fast non-CPU I/O signals ...
-        Reg = PMC_CLAMPING_CMD(C0NC);
-        NV_PMC_REGW(PMC_PA_BASE, REMOVE_CLAMPING_CMD, Reg);
-
-        // ...and the fast CPU0 I/O signals.
-        Reg = PMC_CLAMPING_CMD(CE0);
-        NV_PMC_REGW(PMC_PA_BASE, REMOVE_CLAMPING_CMD, Reg);
-    } else {
-        // Remove the clamps on the slow non-CPU I/O signals ...
-        Reg = PMC_CLAMPING_CMD(C1NC);
-        NV_PMC_REGW(PMC_PA_BASE, REMOVE_CLAMPING_CMD, Reg);
-
-        // ...and the CPU0 I/O signals.
-        Reg = PMC_CLAMPING_CMD(CELP);
-        NV_PMC_REGW(PMC_PA_BASE, REMOVE_CLAMPING_CMD, Reg);
-    }
-
-    // Give I/O signals time to stabilize.
-    NvBlAvpStallUs(20);  // !!!FIXME!!! THIS TIME HAS NOT BEEN CHARACTERIZED
 }
 
 #define POWER_PARTITION(x)  \
@@ -567,6 +536,7 @@ static void InitPllX(NvBootClocksOscFreq OscFreq)
             break;
         default:
             NV_ASSERT(!OscFreq); // Invalid frequency
+	    OscFreqKhz = 12000;
     }
 
     RateInKhz = NvBlAvpQueryBootCpuFrequency() * 1000;
@@ -780,69 +750,13 @@ void set_avp_clock_to_clkm(void)
 
 VOID ClockInitT11x(void)
 {
-  const NvBootInfoTable*  pBootInfo;      // Boot Information Table pointer
   NvBootClocksOscFreq     OscFreq;        // Oscillator frequency
   UINT32                   Reg;            // Temporary register
   NvBlCpuClusterId        CpuClusterId;   // Boot CPU cluster id
-  NvU32                   UsecCfg;        // Usec timer configuration register
-  NvU32                   PllRefDiv;      // PLL reference divider
-
-  // Get a pointer to the Boot Information Table.
-  pBootInfo = (const NvBootInfoTable*)(T11X_BASE_PA_BOOT_INFO);
 
   // Get the oscillator frequency.
     Reg = NV_CAR_REGR(CLK_RST_PA_BASE, OSC_CTRL);
     OscFreq = (NvBootClocksOscFreq)NV_DRF_VAL(CLK_RST_CONTROLLER, OSC_CTRL, OSC_FREQ, Reg);
-
-  // For most oscillator frequencies, the PLL reference divider is 1.
-  // Frequencies that require a different reference divider will set
-  // it below.
-  PllRefDiv = CLK_RST_CONTROLLER_OSC_CTRL_0_PLL_REF_DIV_DIV1;
-
-  // Set up the oscillator dependent registers.
-  // NOTE: Don't try to replace this switch statement with an array lookup.
-  //	   Can't use global arrays here because the data segment isn't valid yet.
-
-  switch (OscFreq) {
-	  default:
-		  // Fall Through -- this is what the boot ROM does.
-	  case NvBootClocksOscFreq_13:
-		  UsecCfg = NV_DRF_NUM(TIMERUS_USEC, CFG, USEC_DIVIDEND, (1-1))
-				  | NV_DRF_NUM(TIMERUS_USEC, CFG, USEC_DIVISOR, (13-1));
-		  break;
-
-	  case NvBootClocksOscFreq_19_2:
-		  UsecCfg = NV_DRF_NUM(TIMERUS_USEC, CFG, USEC_DIVIDEND, (5-1))
-				  | NV_DRF_NUM(TIMERUS_USEC, CFG, USEC_DIVISOR, (96-1));
-		  break;
-
-	  case NvBootClocksOscFreq_12:
-		  UsecCfg = NV_DRF_NUM(TIMERUS_USEC, CFG, USEC_DIVIDEND, (1-1))
-				  | NV_DRF_NUM(TIMERUS_USEC, CFG, USEC_DIVISOR, (12-1));
-		  break;
-
-	  case NvBootClocksOscFreq_26:
-		  UsecCfg = NV_DRF_NUM(TIMERUS_USEC, CFG, USEC_DIVIDEND, (1-1))
-				  | NV_DRF_NUM(TIMERUS_USEC, CFG, USEC_DIVISOR, (26-1));
-		  break;
-
-	  case NvBootClocksOscFreq_16_8:
-		  UsecCfg = NV_DRF_NUM(TIMERUS_USEC, CFG, USEC_DIVIDEND, (5-1))
-				  | NV_DRF_NUM(TIMERUS_USEC, CFG, USEC_DIVISOR, (84-1));
-		  break;
-
-	  case NvBootClocksOscFreq_38_4:
-		  UsecCfg = NV_DRF_NUM(TIMERUS_USEC, CFG, USEC_DIVIDEND, (5-1))
-				  | NV_DRF_NUM(TIMERUS_USEC, CFG, USEC_DIVISOR, (192-1));
-		  PllRefDiv = CLK_RST_CONTROLLER_OSC_CTRL_0_PLL_REF_DIV_DIV2;
-		  break;
-
-	  case NvBootClocksOscFreq_48:
-		  UsecCfg = NV_DRF_NUM(TIMERUS_USEC, CFG, USEC_DIVIDEND, (1-1))
-				  | NV_DRF_NUM(TIMERUS_USEC, CFG, USEC_DIVISOR, (48-1));
-		  PllRefDiv = CLK_RST_CONTROLLER_OSC_CTRL_0_PLL_REF_DIV_DIV4;
-		  break;
-  }
 
   // Find out which CPU cluster we're booting to.
   CpuClusterId = NvBlAvpQueryBootCpuClusterId();

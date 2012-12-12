@@ -323,12 +323,8 @@ void start_cpu(u32 reset_vector)
 {
 	u32 reg;
 	u32 s_ChipId;
-	u32 major;
-	u32 minor;
 
 	reg = readl(NV_PA_APB_MISC_BASE + GP_HIDREV);
-	major = NV_DRF_VAL( APB_MISC_GP, HIDREV, MAJORREV, reg);
-	minor = NV_DRF_VAL( APB_MISC_GP, HIDREV, MINORREV, reg);
 
 	s_ChipId = reg >> 8;
 	s_ChipId &= 0xff;
