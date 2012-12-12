@@ -274,6 +274,19 @@ static NvBool AvpIsPartitionPowered(NvU32 Mask)
     return NV_FALSE;
 }
 
+static NvBool AvpIsClampRemoved(NvU32 Mask)
+{
+    // Get clamp status.
+    NvU32   Reg = NV_PMC_REGR(PMC_PA_BASE, CLAMP_STATUS);
+
+    if ((Reg & Mask) == Mask)
+    {
+        return NV_FALSE;
+    }
+
+    return NV_TRUE;
+}
+
 static void AvpPowerPartition(NvU32 status, NvU32 toggle)
 {
     // Is the partition already on?
@@ -283,6 +296,10 @@ static void AvpPowerPartition(NvU32 status, NvU32 toggle)
 
         // Wait for the power to come up.
         while (!AvpIsPartitionPowered(status))
+		;            // Do nothing
+
+        // Wait for the clamp status to be cleared.
+        while (!AvpIsClampRemoved(status))
 		;            // Do nothing
     }
 }
