@@ -60,7 +60,7 @@
 		compatible = "nvidia,tegra2-lcd";
 		width = <1366>;
 		height = <768>;
-		bits_per_pixel = <16>;
+		bits_per_pixel = <32>;
 		pwfm = <&pwfm0>;
 		display = <&display1>;
 		frame-buffer = <0x1C022000>;
