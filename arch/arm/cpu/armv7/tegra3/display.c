@@ -66,6 +66,8 @@ static void update_window(struct dc_ctlr *dc, struct disp_ctl_win *win)
 
 	writel(win->stride, &dc->win.line_stride);
 	writel(0, &dc->win.buf_stride);
+	writel(0, &dc->win.uv_buf_stride);
+
 	val = bf_ones(WIN_ENABLE);
 	if (win->bpp < 24)
 		val |= bf_ones(COLOR_EXPAND);

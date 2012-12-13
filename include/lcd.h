@@ -193,9 +193,6 @@ typedef struct vidinfo {
 	ushort	*cmap;		/* Pointer to the colormap */
 
 	void	*priv;		/* Pointer to driver-specific data */
-#if defined(CONFIG_TEGRA3)
-	ushort	vl_align;	/* stride alignment: 16, 256, etc. */
-#endif
 } vidinfo_t;
 
 #endif /* CONFIG_MPC823, CONFIG_PXA250 or CONFIG_MCC200 or CONFIG_ATMEL_LCD */

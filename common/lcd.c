@@ -336,17 +336,17 @@ static void test_pattern (void)
 /* ** GENERIC Initialization Routines					*/
 /************************************************************************/
 
+static ulong __def_lcd_align_pitch(ulong pitch)
+{
+	return pitch;
+}
+ulong lcd_align_pitch(ulong pitch) \
+		__attribute__((weak, alias("__def_lcd_align_pitch")));
+
 int lcd_get_size(int *line_length)
 {
 	*line_length = (panel_info.vl_col * NBITS (panel_info.vl_bpix)) / 8;
-#if defined(CONFIG_TEGRA3)
-	debug("%s: initial line_length = %d\n", __func__, *line_length);
-
-	if (panel_info.vl_align)
-		*line_length = round_up(*line_length, panel_info.vl_align);
-
-	debug("%s: new line_length = %d\n", __func__, *line_length);
-#endif
+	*line_length = lcd_align_pitch(*line_length);
 	return *line_length * panel_info.vl_row;
 }
 
