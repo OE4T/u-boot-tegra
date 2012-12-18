@@ -206,7 +206,7 @@ void lcd_ctrl_init(void *lcdbase)
 {
 	struct fdt_lcd config;
 	int line_length;
-	char fbmem[32], *buf;
+	char fbmem[32], *buf, *fbmemptr;
 
 	/* get panel details */
 	if (fdt_decode_lcd(gd->blob, &config)) {
@@ -234,8 +234,13 @@ void lcd_ctrl_init(void *lcdbase)
 	sprintf ((char *)fbmem, " tegra_fbmem=3072K@0x%08X", (u32)lcd_base);
 	buf = malloc(strlen(getenv("extra_bootargs")) + sizeof(fbmem) + 1);
 	strcpy(buf, getenv("extra_bootargs"));
-	strcat(buf, fbmem);
-	setenv ("extra_bootargs", (char *)buf);
+
+	fbmemptr = strstr(buf, "tegra_fbmem");
+	if (fbmemptr == NULL) {
+		strcat(buf, fbmem);
+		setenv("extra_bootargs", (char *)buf);
+	} else
+		debug("tegra_fbmem already present!\n");
 }
 
 ulong calc_fbsize(void)

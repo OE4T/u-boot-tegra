@@ -63,6 +63,9 @@ enum clock_id {
 	CLOCK_ID_NONE = -1,
 };
 
+#define PLL_IDX(clk_id) ((clk_id) - CLOCK_ID_FIRST)
+#define PLL_IDX_SIMPLE(clk_id) ((clk_id) - CLOCK_ID_FIRST_SIMPLE)
+
 /* The clocks supported by the hardware */
 enum periph_id {
 	PERIPH_ID_FIRST,
