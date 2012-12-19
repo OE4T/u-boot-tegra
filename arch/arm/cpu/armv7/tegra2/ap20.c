@@ -71,9 +71,10 @@ static int ap20_cpu_is_cortexa9(void)
 static int pllx_set_rate(u32 divn, u32 divm, u32 divp, u32 cpcon)
 {
 	struct clk_rst_ctlr *clkrst = (struct clk_rst_ctlr *)NV_PA_CLK_RST_BASE;
-	struct clk_pll *pll = &clkrst->crc_pll[CLOCK_ID_XCPU];
+	struct clk_pll_simple *pll;
 	u32 reg;
 
+	pll = &clkrst->crc_pll_simple[PLL_IDX_SIMPLE(CLOCK_ID_XCPU)];
 	/* If PLLX is already enabled, just return */
 	if (bf_readl(PLL_ENABLE, &pll->pll_base))
 		return 0;

@@ -546,9 +546,10 @@ void set_scratches(struct pmc_scratch_reg scratches, struct sdram_params *sdram)
 			val = readl((char *)sdram + offset);
 			break;
 		case TYPE_PLLX:
-			val =
-			readl((char *)&clkrst->crc_pll_simple[CLOCK_ID_XCPU]
-				+ offset);
+#define IDX PLL_IDX_SIMPLE(CLOCK_ID_XCPU)
+			val = readl((char *)&clkrst->crc_pll_simple[IDX]
+				    + offset);
+#undef IDX
 			break;
 		case TYPE_CONST:
 			val = offset;
