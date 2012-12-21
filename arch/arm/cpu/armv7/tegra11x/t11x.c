@@ -41,6 +41,15 @@ NvBool s_UsePL310L2Cache = 0xa5;  // set to non-zero so this won't be in .bss
 static NvBlCpuClusterId AvpQueryFlowControllerClusterId(void);
 static void NvBlAvpEnableCpuPowerRail(void);
 
+static NvU32 NvBlGetOscillatorDriveStrength(void)
+{
+	/*
+	 * TODO: get this from the ODM
+	 */
+	/* set to default value (maximum value) */
+	return 0x07;
+}
+
 static NvU32 NvBlAvpQueryBootCpuFrequency(void)
 {
     NvU32   frequency = 350;
@@ -124,6 +133,7 @@ VOID AvpHaltCpu(BOOLEAN halt)
 static void AvpEnableCpuClock(void)
 {
   UINT32   Reg;        // Scratch reg
+  UINT32   Clk;        // Scratch reg
 
   // Wait for PLL-X to lock.
   do {
@@ -158,6 +168,13 @@ static void AvpEnableCpuClock(void)
       | NV_DRF_NUM(CLK_RST_CONTROLLER, SUPER_CCLK_DIVIDER, SUPER_CDIV_DIVIDEND, 0x0)
       | NV_DRF_NUM(CLK_RST_CONTROLLER, SUPER_CCLK_DIVIDER, SUPER_CDIV_DIVISOR, 0x0);
   NV_CAR_REGW(CLK_RST_PA_BASE, SUPER_CCLK_DIVIDER, Reg);
+
+  // Enable the clock to all CPUs.
+  Clk = NV_DRF_NUM(CLK_RST_CONTROLLER, CLK_CPU_CMPLX_CLR, CLR_CPU0_CLK_STP, 1)
+      | NV_DRF_NUM(CLK_RST_CONTROLLER, CLK_CPU_CMPLX_CLR, CLR_CPU1_CLK_STP, 1)
+      | NV_DRF_NUM(CLK_RST_CONTROLLER, CLK_CPU_CMPLX_CLR, CLR_CPU2_CLK_STP, 1)
+      | NV_DRF_NUM(CLK_RST_CONTROLLER, CLK_CPU_CMPLX_CLR, CLR_CPU3_CLK_STP, 1);
+      NV_CAR_REGW(CLK_RST_PA_BASE, CLK_CPU_CMPLX_CLR, Clk);
 
   // Always enable the main CPU complex clock.
   Reg = NV_DRF_NUM(CLK_RST_CONTROLLER, CLK_ENB_L_SET, SET_CLK_ENB_CPU, 1);
@@ -330,7 +347,7 @@ static void AvpPowerUpCpu(void)
     }
 }
 
-VOID AvpHaltAp20(void)
+VOID AvpHaltAvp(void)
 {
 	UINT32   Reg;    // Scratch reg
 
@@ -768,7 +785,8 @@ void set_avp_clock_to_clkm(void)
 VOID ClockInitT11x(void)
 {
   NvBootClocksOscFreq     OscFreq;        // Oscillator frequency
-  UINT32                   Reg;            // Temporary register
+  UINT32                  Reg;            // Temporary register
+  NvU32                   OscStrength;    // Oscillator Drive Strength
   NvBlCpuClusterId        CpuClusterId;   // Boot CPU cluster id
 
   // Get the oscillator frequency.
@@ -790,10 +808,29 @@ VOID ClockInitT11x(void)
 
   NV_FLOW_REGW(FLOW_PA_BASE, CLUSTER_CONTROL, Reg);
 
-  //-------------------------------------------------------------------------
-  // If the boot ROM hasn't performed the PLLM initialization, we have to
-  // do it here and always reconfigure PLLP.
-  //-------------------------------------------------------------------------
+    // Enable the PPSB_STOPCLK feature to allow SCLK to be run at higher
+    // frequencies. See bug 811773.
+    Reg = NV_CAR_REGR(CLK_RST_PA_BASE, MISC_CLK_ENB);
+    Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, MISC_CLK_ENB,
+            EN_PPSB_STOPCLK, ENABLE, Reg);
+    NV_CAR_REGW(CLK_RST_PA_BASE, MISC_CLK_ENB, Reg);
+
+    Reg = NV_AHB_ARBC_REGR(AHB_PA_BASE, XBAR_CTRL);
+    Reg = NV_FLD_SET_DRF_DEF(AHB_ARBITRATION, XBAR_CTRL,
+            PPSB_STOPCLK_ENABLE, ENABLE, Reg);
+    NV_AHB_ARBC_REGW(AHB_PA_BASE, XBAR_CTRL, Reg);
+
+    // Get Oscillator Drive Strength Setting
+    OscStrength = NvBlGetOscillatorDriveStrength();
+
+    // Change the oscillator drive strength
+    Reg = NV_CAR_REGR(CLK_RST_PA_BASE, OSC_CTRL);
+    Reg = NV_FLD_SET_DRF_NUM(CLK_RST_CONTROLLER, OSC_CTRL, XOFS, OscStrength, Reg);
+    NV_CAR_REGW(CLK_RST_PA_BASE, OSC_CTRL, Reg);
+    // Update same value in PMC_OSC_EDPD_OVER XOFS field for warmboot
+    Reg = NV_PMC_REGR(PMC_PA_BASE, OSC_EDPD_OVER);
+    Reg = NV_FLD_SET_DRF_NUM(APBDEV_PMC, OSC_EDPD_OVER, XOFS, OscStrength, Reg);
+    NV_PMC_REGW(PMC_PA_BASE, OSC_EDPD_OVER, Reg);
 
 #if defined(CONFIG_SYS_PLLP_BASE_IS_408MHZ)
 	/* Move AVP clock to CLKM temporarily. Reset to PLLP_OUT4 later */
@@ -1173,6 +1210,9 @@ VOID NvBlStartCpu_T11x(UINT32 ResetVector)
 
   // Power up the CPU.
   AvpPowerUpCpu();
+
+  AvpHaltAvp();
+
 }
 
 void start_cpu_t11x(u32 reset_vector)

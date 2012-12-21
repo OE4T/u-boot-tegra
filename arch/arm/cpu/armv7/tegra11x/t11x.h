@@ -23,6 +23,7 @@
 #include <asm/arch/t11x/arflow_ctlr.h>
 #include <asm/arch/t11x/arapbpm.h>
 #include <asm/arch/t11x/arapb_misc.h>
+#include <asm/arch/t11x/arahb_arbc.h>
 #include <asm/arch/t11x/ari2c.h>
 #include <asm/arch/t11x/arcsite.h>
 #include <asm/arch/t11x/arfuse.h>
