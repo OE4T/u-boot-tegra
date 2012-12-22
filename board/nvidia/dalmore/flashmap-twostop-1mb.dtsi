@@ -24,5 +24,20 @@
 			"chromeos,flashmap";
 		reg = <0x00000000 0x00100000>;
 
+
+		rw-a-vblock@f0000 {
+			label = "vblock-a";
+			/* Alignment: 4k (for updating) and must be in start of
+			 * each RW_SECTION. */
+			reg = <0x000f0000 0x00000000>;
+			preamble-flags = <1>;
+		};
+		rw-b-vblock@f0000 {
+			label = "vblock-b";
+			/* Alignment: 4k (for updating) and must be in start of
+			 * each RW_SECTION. */
+			reg = <0x000f0000 0x00000000>;
+			preamble-flags = <1>;
+		};
 	};
 };
