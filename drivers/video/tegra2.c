@@ -66,7 +66,7 @@ static void clk_init(void)
 	clock_start_periph_pll(PERIPH_ID_PWM, CLOCK_ID_SFROM32KHZ, CLK_32768);
 #endif
 
-#if defined(CONFIG_TEGRA3)
+#if defined(CONFIG_TEGRA3) || defined(CONFIG_TEGRA11X)
 	clock_start_periph_pll(PERIPH_ID_VI, CLOCK_ID_CGENERAL, CLK_228M);
 	clock_start_periph_pll(PERIPH_ID_3D, CLOCK_ID_CGENERAL, CLK_228M);
 	clock_start_periph_pll(PERIPH_ID_2D, CLOCK_ID_CGENERAL, CLK_228M);

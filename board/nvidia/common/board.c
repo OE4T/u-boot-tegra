@@ -47,7 +47,7 @@
 #include <asm/arch/pmu.h>
 #include <mmc.h>
 #endif
-#if defined(CONFIG_TEGRA3)
+#if defined(CONFIG_TEGRA3) || defined(CONFIG_TEGRA11X)
 #include <asm/arch/sdmmc.h>
 #include <asm/arch/gp_padctrl.h>
 #endif
@@ -110,7 +110,7 @@ static void clock_init_uart(int uart_ids)
 		enable_uart(PERIPH_ID_UART4);
 }
 
-#if !defined(CONFIG_TEGRA3)
+#if ((!defined(CONFIG_TEGRA3)) && (!defined(CONFIG_TEGRA11X)))
 /*
  * Routine: pin_mux_uart
  * Description: setup the pin muxes/tristate values for the UART(s)
@@ -134,7 +134,7 @@ static void pin_mux_uart(int uart_ids)
 }
 #endif
 
-#if defined(CONFIG_TEGRA3)
+#if defined(CONFIG_TEGRA3) || defined(CONFIG_TEGRA11X)
 static void enable_clock(enum periph_id pid, int src)
 {
 	/* Assert reset and enable clock */
@@ -172,7 +172,7 @@ static void clock_init_misc(void)
  */
 static void pin_mux_mmc(void)
 {
-#if !defined(CONFIG_TEGRA3)
+#if ((!defined(CONFIG_TEGRA3)) && (!defined(CONFIG_TEGRA11X)))
 	/* SDMMC4: config 3, x8 on 2nd set of pins */
 	pinmux_set_func(PINGRP_ATB, PMUX_FUNC_SDIO4);
 	pinmux_set_func(PINGRP_GMA, PMUX_FUNC_SDIO4);
@@ -195,7 +195,10 @@ static void pin_mux_mmc(void)
 #endif
 
 #if defined(CONFIG_TEGRA3)
-#include "../cardhu/pinmux-config-common.h"
+	#include "../cardhu/pinmux-config-common.h"
+#endif
+#if defined(CONFIG_TEGRA11X)
+	#include "../curacao/pinmux-config-common.h"
 #endif
 
 /*
@@ -206,15 +209,19 @@ static void pinmux_init(int uart_ids)
 {
 #if defined(CONFIG_TEGRA2)
 	pin_mux_uart(uart_ids);
-#endif
+#else
 
+#if defined(CONFIG_TEGRA11X)
+	pinmux_config_table(tegra114_pinmux_common,
+				ARRAY_SIZE(tegra114_pinmux_common));
+#endif
 #if defined(CONFIG_TEGRA3)
 	pinmux_config_table(tegra3_pinmux_common,
 				ARRAY_SIZE(tegra3_pinmux_common));
-
+#endif
 	pinmux_config_table(unused_pins_lowpower,
 				ARRAY_SIZE(unused_pins_lowpower));
-#endif
+#endif	/* !Tegra2 */
 }
 
 /**
@@ -235,7 +242,7 @@ static void gpio_init(const void *blob)
  */
 static void board_sdmmc_voltage_init(void)
 {
-#if defined(CONFIG_TEGRA3) && defined(CONFIG_TEGRA2_MMC)
+#if (defined(CONFIG_TEGRA3) || defined(CONFIG_TEGRA11X)) && defined(CONFIG_TEGRA2_MMC)
 	uchar reg, data_buffer[1];
 	int i;
 
@@ -265,7 +272,7 @@ static void board_sdmmc_voltage_init(void)
  */
 static void power_det_init(void)
 {
-#if !defined(CONFIG_TEGRA3)
+#if ((!defined(CONFIG_TEGRA3)) && (!defined(CONFIG_TEGRA11X)))
 	struct pmc_ctlr *const pmc = (struct pmc_ctlr *)NV_PA_PMC_BASE;
 
 	/* turn off power detects */
@@ -353,7 +360,7 @@ int board_early_init_f(void)
 	/* Initialize UART clocks */
 	clock_init_uart(uart_ids);
 
-#if defined(CONFIG_TEGRA3)
+#if defined(CONFIG_TEGRA3) || defined(CONFIG_TEGRA11X)
 	/* Initialize misc clocks for kernel booting */
 	clock_init_misc();
 #endif
@@ -394,7 +401,7 @@ int arch_cpu_init(void)
 
 void pad_init_mmc(struct tegra2_mmc *reg)
 {
-#if defined(CONFIG_TEGRA3)
+#if defined(CONFIG_TEGRA3) || defined(CONFIG_TEGRA11X)
 	struct apb_misc_gp_ctlr *const gpc =
 		(struct apb_misc_gp_ctlr *)NV_PA_APB_MISC_GP_BASE;
 	struct sdmmc_ctlr *const sdmmc = (struct sdmmc_ctlr *)reg;
@@ -504,6 +511,7 @@ static struct arch_name_map name_map[] = {
 	{"Google Kaen", MACH_TYPE_KAEN},
 	{"NVIDIA Seaboard", MACH_TYPE_SEABOARD},
 	{"NVIDIA Ventana", MACH_TYPE_VENTANA},
+	{"NVIDIA Curacao", MACH_TYPE_CURACAO},
 	{"Google Waluigi", MACH_TYPE_WALUIGI},
 	{"<not defined>", MACH_TYPE_SEABOARD} /* this is the default */
 };
@@ -594,7 +602,7 @@ u32 get_minor_rev(void)
 #ifdef	CONFIG_MISC_INIT_R
 int misc_init_r(void)
 {
-#if defined(CONFIG_TEGRA3)
+#if defined(CONFIG_TEGRA3) || defined(CONFIG_TEGRA11X)
 	char buf[255], *s, *maxptr;
 
 	/*

@@ -107,7 +107,7 @@ static struct usb_ctlr *host_dev_ctlr;
  *
  * 4. The 20 microsecond delay after bias cell operation.
  */
-#if !defined(CONFIG_TEGRA3)
+#if ((!defined(CONFIG_TEGRA3)) && (!defined(CONFIG_TEGRA11X)))
 static const int usb_pll[CLOCK_OSC_FREQ_COUNT][PARAM_COUNT] = {
 	/* DivN, DivM, DivP, CPCON, LFCON,EN_DLY,STB,ACT, XTAL,Debounce,Bias */
 	{ 0x3C0, 0x0D, 0x00, 0xC,   0,  0x02, 0x33, 0x05, 0x7F, 0x7EF4, 5 },
@@ -133,7 +133,7 @@ static void set_host_mode(struct usb_ctlr *usbctlr)
 	if (bf_readl(VBUS_VLD_STS, &usbctlr->phy_vbus_sensors))
 		return;
 
-#if !defined(CONFIG_TEGRA3)
+#if ((!defined(CONFIG_TEGRA3)) && (!defined(CONFIG_TEGRA11X)))
 	/*
 	 * If not driving, we set GPIO USB1_VBus_En. Seaboard platform uses
 	 * PAD SLXK (GPIO D.00) as USB1_VBus_En Config as GPIO
@@ -141,7 +141,11 @@ static void set_host_mode(struct usb_ctlr *usbctlr)
 	gpio_direction_output(GPIO_PD0, 1);
 
 	/* Z_SLXK = 0, normal, not tristate */
+#if t11x_port
+
+#else
 	pinmux_tristate_disable(PINGRP_SLXK);
+#endif
 #else
 	/* TBD - do T30/Cardhu USB GPIOs and muxes here */
 #endif
@@ -158,14 +162,14 @@ void usbf_reset_controller(enum periph_id id, struct usb_ctlr *usbctlr)
 {
 	/* Reset the USB controller with 2us delay */
 	reset_periph(id, 2);
-#if !defined(CONFIG_TEGRA3)
+#if ((!defined(CONFIG_TEGRA3)) && (!defined(CONFIG_TEGRA11X)))
 	/*
 	 * Set USB1_NO_LEGACY_MODE to 1, Registers are accessible under
 	 * base address
 	 */
-	if (id == PERIPH_ID_USBD)
-		bf_writel(USB1_NO_LEGACY_MODE, NO_LEGACY_MODE,
-			&usbctlr->usb1_legacy_ctrl);
+if (id == PERIPH_ID_USBD)
+	bf_writel(USB1_NO_LEGACY_MODE, NO_LEGACY_MODE,
+		&usbctlr->usb1_legacy_ctrl);
 #endif
 	/* Put UTMIP1/3 in reset */
 	bf_writel(UTMIP_RESET, 1, &usbctlr->susp_ctrl);
@@ -186,7 +190,7 @@ static void init_usb_controller(enum periph_id id, struct usb_ctlr *usbctlr,
 {
 	u32 val;
 	int loop_count;
-#if defined(CONFIG_TEGRA3)
+#if defined(CONFIG_TEGRA3) || defined(CONFIG_TEGRA11X)
 	struct clk_rst_ctlr *clkrst =
 			(struct clk_rst_ctlr *)NV_PA_CLK_RST_BASE;
 #endif
@@ -200,7 +204,7 @@ static void init_usb_controller(enum periph_id id, struct usb_ctlr *usbctlr,
 
 	/* Follow the crystal clock disable by >100ns delay */
 	udelay(1);
-#if !defined(CONFIG_TEGRA3)
+#if ((!defined(CONFIG_TEGRA3)) && (!defined(CONFIG_TEGRA11X)))
 	/*
 	 * To Use the A Session Valid for cable detection logic, VBUS_WAKEUP
 	 * mux must be switched to actually use a_sess_vld threshold.
@@ -208,7 +212,6 @@ static void init_usb_controller(enum periph_id id, struct usb_ctlr *usbctlr,
 	if (id == PERIPH_ID_USBD)
 		bf_enum_writel(VBUS_SENSE_CTL, A_SESS_VLD,
 				&usbctlr->usb1_legacy_ctrl);
-
 	/*
 	 * PLL Delay CONFIGURATION settings. The following parameters control
 	 * the bring up of the plls.
@@ -218,9 +221,9 @@ static void init_usb_controller(enum periph_id id, struct usb_ctlr *usbctlr,
 	bf_update(UTMIP_PLL_ACTIVE_DLY_COUNT, val,
 		     params[PARAM_ACTIVE_DELAY_COUNT]);
 	writel(val, &usbctlr->utmip_misc_cfg1);
-
 	/* Set PLL enable delay count and crystal frequency count */
 	val = readl(&usbctlr->utmip_pll_cfg1);
+
 	bf_update(UTMIP_PLLU_ENABLE_DLY_COUNT, val,
 		     params[PARAM_ENABLE_DELAY_COUNT]);
 	bf_update(UTMIP_XTAL_FREQ_COUNT, val, params[PARAM_XTAL_FREQ_COUNT]);
@@ -304,7 +307,7 @@ static void init_usb_controller(enum periph_id id, struct usb_ctlr *usbctlr,
 
 	/* Resuscitate crystal clock by setting UTMIP_PHY_XTAL_CLOCKEN */
 	bf_writel(UTMIP_PHY_XTAL_CLOCKEN, 1, &usbctlr->utmip_misc_cfg1);
-#if defined(CONFIG_TEGRA3)
+#if defined(CONFIG_TEGRA3) || defined(CONFIG_TEGRA11X)
 	if (id == PERIPH_ID_USBD)
 		bf_writel(UTMIP_FORCE_PD_SAMP_A_POWERDOWN, 0,
 			&clkrst->crc_pll_cfg2);
@@ -372,7 +375,7 @@ static int add_port(enum periph_id id, struct usb_ctlr *usbctlr,
 		/* Disable ICUSB FS/LS transceiver */
 		bf_writel(IC_ENB1, 0, &usbctlr->icusb_ctrl);
 
-#if !defined(CONFIG_TEGRA3)
+#if ((!defined(CONFIG_TEGRA3)) && (!defined(CONFIG_TEGRA11X)))
 		/* Select UTMI parallel interface */
 		bf_writel(PTS, PTS_UTMI, &usbctlr->port_sc1);
 		bf_writel(STS, 0, &usbctlr->port_sc1);
@@ -421,7 +424,7 @@ int tegrausb_start_port(unsigned portnum, u32 *hccr, u32 *hcor)
 	tegrausb_stop_port();
 
 	usbctlr = port[portnum].reg;
-#if defined(CONFIG_TEGRA3)
+#if defined(CONFIG_TEGRA3) || defined(CONFIG_TEGRA11X)
 	/* Set Controller Mode as Host mode after Controller Reset was done */
 	bf_writel(CM, CM_HOST_MODE, &usbctlr->usb_mode);
 
@@ -462,7 +465,7 @@ int board_usb_init(const void *blob)
 	int clk_done = 0;
 	int node, upto = 0;
 	unsigned osc_freq = clock_get_rate(CLOCK_ID_OSC);
-#if defined(CONFIG_TEGRA3)
+#if defined(CONFIG_TEGRA3) || defined(CONFIG_TEGRA11X)
 	struct usb_ctlr *usb1ctlr;
 #endif
 	do {
@@ -489,7 +492,7 @@ int board_usb_init(const void *blob)
 		if (add_port(config.periph_id, config.reg, config.params,
 			    config.utmi))
 			return -1;
-#if defined(CONFIG_TEGRA3)
+#if defined(CONFIG_TEGRA3) || defined(CONFIG_TEGRA11X)
 		fdt_setup_gpio(&config.vbus_gpio);
 		fdt_setup_gpio(&config.vbus_pullup_gpio);
 

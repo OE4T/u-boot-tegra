@@ -89,12 +89,12 @@ struct ehci_hcor {
 #define FLAG_CF		(1 << 0)	/* true:  we'll support "high speed" */
 	uint32_t or_portsc[CONFIG_SYS_USB_EHCI_MAX_ROOT_PORTS];
 	uint32_t or_systune;
-#if defined(CONFIG_TEGRA3)
+#if defined(CONFIG_TEGRA3) || defined(CONFIG_TEGRA11X)
 	uint32_t _reserved_2_[13];
 	uint32_t hostpc1_devlc;
 #endif
 } __attribute__ ((packed));
-#if defined(CONFIG_TEGRA3)
+#if defined(CONFIG_TEGRA3) || defined(CONFIG_TEGRA11X)
 #define USBMODE		0xC8		/* USB Device mode */
 #define USBMODE_SDIS	(1 << 4)	/* Stream disable */
 #else

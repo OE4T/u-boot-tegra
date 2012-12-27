@@ -561,7 +561,7 @@ static void mmc_reset(struct mmc_host *host)
 	}
 	debug("SWRST = 0\n");
 
-#if defined(CONFIG_TEGRA3)
+#if defined(CONFIG_TEGRA3) || defined(CONFIG_TEGRA11X)
 	//TCW Set SD_BUS_VOLTAGE and SD_BUS_POWER here for T30!
 	//TCW Find a way to do it based on fuses, device caps, etc.
 	writeb(0x0F, &host->reg->pwrcon);
