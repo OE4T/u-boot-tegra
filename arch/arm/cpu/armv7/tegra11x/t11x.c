@@ -1371,7 +1371,7 @@ static void NvBlAvpEnableCpuPowerRail(void)
      * Dalmore E1613.
      *
      * The cold boot voltage is selected by BRAMP  which is 0v on Dalmore,
-     * so we need to program VSR to 1v
+     * so we need to program VSR to 1.10v
      */
 
 #define DALMORE_TPS51632_I2C_ADDR   0x86
@@ -1382,8 +1382,9 @@ static void NvBlAvpEnableCpuPowerRail(void)
 	NV_WRITE32(PINMUX_BASE + PINMUX_AUX_PWR_I2C_SCL_0, 0x60);
 	NV_WRITE32(PINMUX_BASE + PINMUX_AUX_PWR_I2C_SDA_0, 0x60);
 
-        if (BoardId == DALMORE_E1613_BOARDID) {
-            NvBlAvpI2cWrite(DALMORE_TPS51632_I2C_ADDR, 0x5400);
+	if ((BoardId == DALMORE_E1611_BOARDID) ||
+		(BoardId == DALMORE_E1613_BOARDID)) {
+		NvBlAvpI2cWrite(DALMORE_TPS51632_I2C_ADDR, 0x5500);
 	}
         else if (BoardId == PLUTO_E1580_BOARDID)
         {
@@ -1399,15 +1400,122 @@ static void NvBlAvpEnableCpuPowerRail(void)
         }
 
 	/* FIXME:
-	 * Hack for enabling necessary rails for display, Need to be removed
-	 * once PWR I2C driver is fixed for CPU side.
+	 * Hack for enabling necessary rails for display, sdmmc3, usb, etc.
+	 * Need to be removed once PWR I2C driver is fixed for CPU side.
 	 */
 	if (BoardId == DALMORE_E1611_BOARDID) {
-		NvBlAvpI2cWrite(0xB0, 0x0154);	/* LDO3_CTRL */
-		NvBlAvpI2cWrite(0xB0, 0x0755);	/* LDO3_VOLTAGE */
-						/* ENABLED_MIPI_RAIL */
-		NvBlAvpI2cWrite(0x90, 0x030F);	/* VOUT1 (FET1):VDD_LCD_BL_0 */
-		NvBlAvpI2cWrite(0x90, 0x0312);	/* VOUT4 (FET4) : AVDD_LCD */
+		/*
+		 * Voltage for SDMMC3: VDDIO_SDMMC3_AP
+		 *   LDO9_VOLTAGE = 3.3v (TPS65913)
+		 *   LDO9_CTRL = Active
+		 *
+		 * Voltage for SD Card Socket: VDD_3V3_SD
+		 *   VOUT6 (FET6) = 3.3v (TPS65090)
+		 */
+		NvBlAvpI2cWrite(0xB0, 0x3161);
+		NvBlAvpI2cWrite(0xB0, 0x0160);
+		NvBlAvpI2cWrite(0x90, 0x0314);
+
+		/*
+		 * Enable USB voltage: AVDD_USB_HDMI for AVDD_USB_AP
+		 *			and AVDD_HDMI_AP
+		 *   LDOUSB_VOLTAGE = 3.3v
+		 *   LDOUSB_CTRL = Active
+		 */
+		NvBlAvpI2cWrite(0xB0, 0x3165);
+		NvBlAvpI2cWrite(0xB0, 0x0164);
+
+		/*
+		 * Enable HVDD_USB3 voltage: HVDD_USB3_AP
+		 *   LDOLN_VOLTAGE = 3.3v
+		 *   LDOLN_CTRL = Active
+		 */
+		NvBlAvpI2cWrite(0xB0, 0x3163);
+		NvBlAvpI2cWrite(0xB0, 0x0162);
+
+		/*
+		 * Enable additional VDD_1V1_CORE
+		 *
+		 *   SMPS7_CTRL: enable active: auto
+		 *
+		 *   VDD_CORE is provided by SMPS4_SW, 5 and 7 where
+		 *   4 and 5 are enabled after power on.
+		 */
+		NvBlAvpI2cWrite(0xB0, 0x0530);	/* SMPS7_SW: active: auto */
+
+		/*
+		 * Set and enable AVDD_2V8_CAM1
+		 *   LDO1_VOLTAGE = 2.8v
+		 *   LDO1_CTRL = Active
+		 */
+		NvBlAvpI2cWrite(0xB0, 0x2751);
+		NvBlAvpI2cWrite(0xB0, 0x0150);
+
+		/*
+		 * Set and enable AVDD_2V8_CAM2
+		 *   LDO2_VOLTAGE = 2.8v
+		 *   LDO2_CTRL = Active
+		 */
+		NvBlAvpI2cWrite(0xB0, 0x2753);
+		NvBlAvpI2cWrite(0xB0, 0x0152);
+
+		/*
+		 * Set and enable AVDD_1V2 for VDDIO_HSIC_AP and AVDD_DSI_CSI_AP
+		 *   LDO3_VOLTAGE = 1.2v
+		 *   LDO3_CTRL = Active
+		 */
+		NvBlAvpI2cWrite(0xB0, 0x0755);
+		NvBlAvpI2cWrite(0xB0, 0x0154);
+
+		/*
+		 * Set and enable VPP_FUSE_APP
+		 *   LDO4_VOLTAGE = 1.8v
+		 *   LDO4_CTRL = Active
+		 */
+		NvBlAvpI2cWrite(0xB0, 0x1357);
+		NvBlAvpI2cWrite(0xB0, 0x0156);
+
+		/*
+		 * Set and enable VDD_1V2_LCD
+		 *   LDO5_VOLTAGE = 1.2v (TPS65913)
+		 *   LDO5_CTRL = Active
+		 *
+		 * Enable VDD_LCD_BL
+		 *   VOUT1 (FET1) (TPS65090): auto discharge and enable
+		 *
+		 * Enable AVDD_LCD
+		 *   VOUT4 (FET4) (TPS65090): auto discharge and enable
+		 *
+		 * Enable VDD_LVDS
+		 *   VOUT5 (FET5) (TPS65090): auto discharge and enable
+		 */
+		NvBlAvpI2cWrite(0xB0, 0x0759);	/* LDO5_VOLTAGE */
+		NvBlAvpI2cWrite(0xB0, 0x0158);	/* LD05_CTRL */
+		NvBlAvpI2cWrite(0x90, 0x030F);	/* VOUT1 (FET1) */
+		NvBlAvpI2cWrite(0x90, 0x0312);	/* VOUT4 (FET4) */
+		NvBlAvpI2cWrite(0x90, 0x0313);	/* VOUT5 (FET5) */
+
+		/*
+		 * Set and enable VDD_SENSOR
+		 *   LDO6_VOLTAGE = 2.85v
+		 *   LDO6_CTRL = Active
+		 */
+		NvBlAvpI2cWrite(0xB0, 0x285B);
+		NvBlAvpI2cWrite(0xB0, 0x015A);
+
+		/*
+		 * Set and enable AVDD_2V8_CAM_AF1
+		 *   LDO7_VOLTAGE = 2.8v
+		 *   LDO7_CTRL = Active
+		 */
+		NvBlAvpI2cWrite(0xB0, 0x275D);
+		NvBlAvpI2cWrite(0xB0, 0x015C);
+
+		/*
+		 * Enable VDD_3V3_COM
+		 *   VOUT7 (FET7) (TPS65090): auto discharge and enable
+		 */
+		NvBlAvpI2cWrite(0x90, 0x0315);
 	}
 
     if (BoardId == DALMORE_E1613_BOARDID || BoardId == PLUTO_E1580_BOARDID) {
