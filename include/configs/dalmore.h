@@ -1,5 +1,5 @@
 /*
- *  (C) Copyright 2010,2011
+ *  (C) Copyright 2010-2013
  *  NVIDIA Corporation <www.nvidia.com>
  * Portions Copyright (c) 2011 The Chromium OS Authors
  *
@@ -68,7 +68,6 @@
 
 #define CONFIG_TEGRA_SERIAL_HIGH	0x064b03e8
 #define CONFIG_TEGRA_SERIAL_LOW		0x02450300
-#define EEPROM_I2C_BUS		0
 
 /* The following are used to retrieve the board id from an eeprom */
 #define CONFIG_SERIAL_EEPROM
@@ -94,16 +93,23 @@
 #define CONFIG_MACH_TYPE	MACH_TYPE_CARDHU
 
 #endif /* CONFIG_OF_CONTROL not defined ^^^^^^^ */
+
 #define CONFIG_CONSOLE_MUX
 #define CONFIG_SYS_CONSOLE_IS_IN_ENV
 #define CONFIG_STD_DEVICES_SETTINGS	"stdin=serial,tegra-kbc\0" \
 					"stdout=serial,lcd\0" \
 					"stderr=serial,lcd\0"
 
-#define CONFIG_ENV_SECT_SIZE    CONFIG_ENV_SIZE
-#define CONFIG_ENV_OFFSET       (SZ_4M - CONFIG_ENV_SECT_SIZE)
+#define CONFIG_ENV_SECT_SIZE		CONFIG_ENV_SIZE
+#ifdef CONFIG_L4T
+#define CONFIG_ENV_OFFSET		SZ_16M
+#define CONFIG_FIND_MMC_ENV_OFFSET
+#else /* CONFIG_L4T */
+#define CONFIG_ENV_OFFSET		(SZ_4M - CONFIG_ENV_SECT_SIZE)
+#endif /* CONFIG_L4T */
 
-#define TEGRA_MMC_DEFAULT_DEVICE	"1"	/* TCW SD-card for now */
+#define TEGRA_MMC_DEFAULT_DEVICE	"0"
+
 /* GPIO */
 #define CONFIG_TEGRA2_GPIO
 #define CONFIG_CMD_TEGRA2_GPIO_INFO
@@ -117,8 +123,10 @@
 #define CONFIG_SF_DEFAULT_MODE		SPI_MODE_0
 #define CONFIG_CMD_SPI
 #define CONFIG_CMD_SF
+#ifndef CONFIG_L4T
 /* Environment in SPI */
 #define CONFIG_ENV_IS_IN_SPI_FLASH
+#endif	/* !CONFIG_L4T */
 
 /* I2C */
 #define CONFIG_TEGRA2_I2C
@@ -133,15 +141,23 @@
 #define CONFIG_GENERIC_MMC
 #define CONFIG_TEGRA2_MMC
 #define CONFIG_CMD_MMC
+#ifdef CONFIG_L4T
+/* Environment in MMC partition */
+#define CONFIG_ENV_IS_IN_MMC
+#define CONFIG_SYS_MMC_ENV_DEV	0
+#endif /* CONFIG_L4T */
 
 #define CONFIG_DOS_PARTITION
 #define CONFIG_EFI_PARTITION
 #define CONFIG_CMD_EXT2
 #define CONFIG_CMD_FAT
 
-#if 0 /* tcw - disable kbd and LCD for now */
+#if 0 /* tcw - disable kbd for now */
 #define CONFIG_TEGRA_KEYBOARD
 #define CONFIG_KEYBOARD
+#endif /* tcw if 0 kbd */
+
+#if 0 /* tcw - disable LCD for now */
 /*
  *  LCDC configuration
  */
@@ -150,6 +166,6 @@
 /* TODO: This needs to be configurable at run-time */
 #define LCD_BPP	LCD_COLOR16
 #define CONFIG_SYS_WHITE_ON_BLACK       /*Console colors*/
-#endif /* tcw if 0 kbd */
+#endif /* tcw if 0 LCD */
 
 #endif /* __CONFIG_H */

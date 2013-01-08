@@ -1,5 +1,5 @@
 /*
- *  (C) Copyright 2010,2011
+ *  (C) Copyright 2010-2013
  *  NVIDIA Corporation <www.nvidia.com>
  *
  * See file CREDITS for list of people who contributed to this
@@ -189,6 +189,13 @@
  */
 #define CONFIG_ROOTPATH	"/export/nfsroot-${user}-${board}-${dhcpserial#}"
 #define CONFIG_TFTPPATH	"/tftpboot/uImage-${user}-${board}-${dhcpserial#}"
+#ifdef CONFIG_L4T
+#define TEGRA_DEFAULT_ROOT_PART	"1"
+#define TEGRA_DEFAULT_FORCE_GPT "gpt"
+#else /* CONFIG_L4T */
+#define TEGRA_DEFAULT_ROOT_PART	"3"
+#define TEGRA_DEFAULT_FORCE_GPT ""
+#endif /* CONFIG_L4T */
 
 /*
  * NET retry control
@@ -346,5 +353,7 @@
  * loader to inflate the kernel and keep a copy of the device tree handy.
  */
 #define CONFIG_SYS_BOOTMAPSZ	SZ_32M
+
+#define CONFIG_CMD_BOOTZ
 
 #endif /* __TEGRA11X_COMMON_H */
