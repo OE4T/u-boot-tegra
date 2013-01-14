@@ -263,6 +263,29 @@ static void AvpClockEnableCorsight(void)
 
 VOID AvpSetCpuResetVector(UINT32 reset)
 {
+	NvU32  imme, inst;
+
+	inst = imme = reset & 0xFFFF;
+	inst &= 0xFFF;
+	inst |= ((imme >> 12) << 16);
+	inst |= 0xE3000000;
+	NV_WRITE32(0x4003FFF0, inst); /* MOV R0, #LSB16(ResetVector) */
+
+	imme = (reset >> 16) & 0xFFFF;
+	inst = imme & 0xFFF;
+	inst |= ((imme >> 12) << 16);
+	inst |= 0xE3400000;
+	NV_WRITE32(0x4003FFF4, inst); /* MOVT R0, #MSB16(ResetVector) */
+
+	NV_WRITE32(0x4003FFF8, 0xE12FFF10); /* BX R0 */
+
+	inst = (NvU32)-20;
+	inst >>= 2;
+	inst &= 0x00FFFFFF;
+	inst |= 0xEA000000;
+	NV_WRITE32(0x4003FFFC, inst); /* B -12 */
+
+	/* keep compatible to A01 */
 	NV_EVP_REGW(EVP_PA_BASE, CPU_RESET_VECTOR, reset);
 }
 
