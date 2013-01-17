@@ -206,11 +206,6 @@ void wb_start(void)
 	writel(reg, &clkrst->crc_rst_dev[TEGRA_DEV_U]);
 #endif
 
-	/* Unlock the CPU CoreSight interfaces */
-	reg = 0xC5ACCE55;
-	writel(reg, CSITE_CPU_DBG0_LAR);
-	writel(reg, CSITE_CPU_DBG1_LAR);
-
 	/*
 	 * Sample the microsecond timestamp again. This is the time we must
 	 * use when returning from LP0 for PLL stabilization delays.
