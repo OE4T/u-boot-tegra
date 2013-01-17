@@ -249,10 +249,6 @@ void wb_start(void)
 	reg = SWR_CSITE_RST;
 	writel(reg, &clkrst->crc_rst_dev_ex[TEGRA_DEV_U].clr);
 
-	/* Unlock debugger access. */
-	reg = 0xC5ACCE55;
-	writel(reg, CSITE_CPU_DBG0_LAR);
-
 	/* Find out the current osc frequency */
 	reg = readl(&clkrst->crc_osc_ctrl);
 	reg >>= OSC_CTRL_OSC_FREQ_SHIFT;
