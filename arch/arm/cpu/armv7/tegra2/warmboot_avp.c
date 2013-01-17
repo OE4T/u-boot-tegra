@@ -109,6 +109,7 @@ void wb_start(void)
 	union pllx_misc_reg pllx_misc;
 	union scratch3_reg scratch3;
 	u32 reg;
+	u32 pllp_base, pllp_misc;
 
 	/* enable JTAG & TBE */
 	writel(CONFIG_CTL_TBE | CONFIG_CTL_JTAG, &pmt->pmt_cfg_ctl);
@@ -153,8 +154,84 @@ void wb_start(void)
 	reg |= CPU_CLMP;
 	writel(reg, &pmc->pmc_remove_clamping);
 
+	/*
+	 * PLL-P is at 432MHz (as set by the boot ROM). Upon resume, it
+	 * should be reprogrammed to 216Mhz. Since SCLK/AVP is
+	 * on PLLP after resume, switch SCLK to PLLM_OUT1 first.
+	 *
+	 * Set the divider ratio for PLLM_OUT1 such that the frequency is
+	 * within the safe range for SCLK. PLLM maximum frequence is
+	 * approximately 1066 MHz so a divider of 8 yields PLLM_OUT1
+	 * frquency of approximately 213 MHz. Set APB divider 1:2 to keep
+	 * safe APB clock as well.
+	 */
+	reg = PLLM_OUT1_RSTN_RESET_DISABLE | PLLM_OUT1_CLKEN_ENABLE |
+	      PLLM_OUT1_RATIO_VAL_8;
+	writel(reg, &clkrst->crc_pll[CLOCK_ID_MEMORY].pll_out);
+
+	reg = CLK_SYSTEM_RATE_APB_RATE_1;
+	writel(reg, &clkrst->crc_clk_sys_rate);
+
+	/* Switch AVP to PLLM_OUT1, wait 2us for switch to complete. */
+	reg = SCLK_SWAKE_FIQ_SRC_PLLM_OUT1 | SCLK_SWAKE_IRQ_SRC_PLLM_OUT1 |
+	      SCLK_SWAKE_RUN_SRC_PLLM_OUT1 | SCLK_SWAKE_IDLE_SRC_PLLM_OUT1 |
+	      SCLK_SYS_STATE_IDLE;
+	writel(reg, &clkrst->crc_sclk_brst_pol);
+
+	reg = EVENT_ZERO_VAL_3 | EVENT_USEC | EVENT_MODE_STOP;
+	writel(reg, &flow->halt_cop_events);
+
+	/*
+	 * Re-configure PLLP to 216MHz and adjust PLLP output dividers
+	 * to keep default frequencies; leave PLLP bypassed, ref enabled.
+	 *
+	 * Note: can not use switch statement: compiler builds tables on the
+	 * local stack. We don't want to use anything on the stack.
+	 */
+	reg = readl(&clkrst->crc_osc_ctrl);
+	reg >>= OSC_CTRL_OSC_FREQ_SHIFT;
+	if (reg == CLOCK_OSC_FREQ_13_0) {
+		pllp_base = PLLP_BASE_216MHZ_OSC_13_0;
+		pllp_misc = PLLP_MISC_216MHZ_OSC_13_0;
+	} else if (CLOCK_OSC_FREQ_19_2) {
+		pllp_base = PLLP_BASE_216MHZ_OSC_19_2;
+		pllp_misc = PLLP_MISC_216MHZ_OSC_19_2;
+	} else if (CLOCK_OSC_FREQ_12_0) {
+		pllp_base = PLLP_BASE_216MHZ_OSC_12_0;
+		pllp_misc = PLLP_MISC_216MHZ_OSC_12_0;
+	} else {
+		pllp_base = PLLP_BASE_216MHZ_OSC_26_0;
+		pllp_misc = PLLP_MISC_216MHZ_OSC_26_0;
+	}
+	writel(pllp_base, &clkrst->crc_pll[CLOCK_ID_PERIPH].pll_base);
+	writel(pllp_misc, &clkrst->crc_pll[CLOCK_ID_PERIPH].pll_misc);
+
+	/* Enable PLLP */
+	pllp_base |= PLLP_ENABLE;
+	writel(pllp_base, &clkrst->crc_pll[CLOCK_ID_PERIPH].pll_base);
+
+	/* pllp_out_a */
+	reg = PLLP_OUT1_RSTN_RESET_DISABLE | PLLP_OUT1_CLKEN_ENABLE |
+	      PLLP_OUT1_OVERRIDE_ENABLE    | PLLP_OUT1_RATIO_D |
+	      PLLP_OUT2_RSTN_RESET_DISABLE | PLLP_OUT2_CLKEN_ENABLE |
+	      PLLP_OUT2_OVERRIDE_ENABLE    | PLLP_OUT2_RATIO_7;
+	writel(reg, &clkrst->crc_pll[CLOCK_ID_PERIPH].pll_out);
+
+	/* pllp_out_b */
+	reg = PLLP_OUT3_RSTN_RESET_DISABLE | PLLP_OUT3_CLKEN_ENABLE |
+	      PLLP_OUT3_OVERRIDE_ENABLE    | PLLP_OUT3_RATIO_4 |
+	      PLLP_OUT4_RSTN_RESET_DISABLE | PLLP_OUT4_CLKEN_ENABLE |
+	      PLLP_OUT4_OVERRIDE_ENABLE    | PLLP_OUT4_RATIO_2;
+	writel(reg, &clkrst->crc_pll[CLOCK_ID_PERIPH].reserved);
+
+	/* Give I/O signals and PLLP 20msec to stabilize. */
 	reg = EVENT_ZERO_VAL_20 | EVENT_MSEC | EVENT_MODE_STOP;
 	writel(reg, &flow->halt_cop_events);
+
+	/* Remove PLLP bypass */
+	reg = readl(&clkrst->crc_pll[CLOCK_ID_PERIPH].pll_base);
+	reg &= ~PLLP_BYPASS;
+	writel(reg, &clkrst->crc_pll[CLOCK_ID_PERIPH].pll_base);
 
 	/* Assert CPU complex reset */
 	reg = readl(&clkrst->crc_rst_dev[TEGRA_DEV_L]);
@@ -256,6 +333,7 @@ void wb_start(void)
 	/* PLLX_MISC_CPCON */
 	pllx_misc.cpcon = scratch3.pllx_misc_cpcon;
 
+	/* Start PLL-X using the reconstituted values. */
 	writel(pllx_misc.word, &clkrst->crc_pll_simple[SIMPLE_PLLX].pll_misc);
 	writel(pllx_base.word, &clkrst->crc_pll_simple[SIMPLE_PLLX].pll_base);
 
@@ -264,8 +342,10 @@ void wb_start(void)
 	pllx_base.bypass = 0;
 	writel(pllx_base.word, &clkrst->crc_pll_simple[SIMPLE_PLLX].pll_base);
 
+	/* Unhalt CPU0 */
 	writel(0, flow->halt_cpu_events);
 
+	/* Take CPU0 out of reset (CPU1 is still held in reset). */
 	reg = CPU_CMPLX_CPURESET0 | CPU_CMPLX_DBGRESET0 | CPU_CMPLX_DERESET0;
 	writel(reg, &clkrst->crc_cpu_cmplx_clr);
 
