@@ -51,10 +51,10 @@ struct sdmmc_ctlr {
 	uint sdmmc_auto_cal_status;	/* _AUTO_CAL_STATUS_0,		0x1ec */
 };
 
-/* SDMMC1/3 settings from section 24.6 of T30 TRM */
+/* SDMMC1/3 settings from section 27.5.1 of T114 TRM */
 #define MEMCOMP_PADCTRL_VREF	7
 #define AUTO_CAL_ENABLED	(1 << 29)
-#define AUTO_CAL_PD_OFFSET	(0x70 << 8)
-#define AUTO_CAL_PU_OFFSET	(0x62 << 0)
+#define AUTO_CAL_PD_OFFSET	(0x0 << 8)
+#define AUTO_CAL_PU_OFFSET	(0x0 << 0)
 
 #endif

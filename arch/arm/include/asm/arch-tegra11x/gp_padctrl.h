@@ -61,10 +61,12 @@ struct apb_misc_gp_ctlr {
 	u32	sdio1cfg;	/* 0xEC: APB_MISC_GP_SDIO1CFGPADCTRL */
 };
 
-/* SDMMC1/3 settings from section 24.6 of T30 TRM */
-#define GP_SDIOCFG_DRVUP_SLWF	(1 << 30)
-#define GP_SDIOCFG_DRVDN_SLWR	(1 << 28)
-#define GP_SDIOCFG_DRVUP	(0x2E << 20)
-#define GP_SDIOCFG_DRVDN	(0x2A << 12)
+/* SDMMC1/3 settings from section 27.5.1 of T114 TRM */
+#define GP_SDIOCFG_DRVUP_SLWF	(0 << 30)
+#define GP_SDIOCFG_DRVDN_SLWR	(0 << 28)
+#define GP_SDIOCFG_DRVUP	(0x24 << 20)
+#define GP_SDIOCFG_DRVDN	(0x14 << 12)
+#define GP_SDIOCFG_SCHMITT	(0 << 3)
+#define GP_SDIOCFG_HSM		(1 << 2)
 
 #endif
