@@ -47,7 +47,7 @@
 #include <asm/arch/pmu.h>
 #include <mmc.h>
 #endif
-#if defined(CONFIG_TEGRA3)
+#if defined(CONFIG_TEGRA3) || defined(CONFIG_TEGRA11X)
 #include <asm/arch/sdmmc.h>
 #include <asm/arch/gp_padctrl.h>
 #endif
@@ -110,7 +110,7 @@ static void clock_init_uart(int uart_ids)
 		enable_uart(PERIPH_ID_UART4);
 }
 
-#if !defined(CONFIG_TEGRA3)
+#if ((!defined(CONFIG_TEGRA3)) && (!defined(CONFIG_TEGRA11X)))
 /*
  * Routine: pin_mux_uart
  * Description: setup the pin muxes/tristate values for the UART(s)
@@ -134,7 +134,7 @@ static void pin_mux_uart(int uart_ids)
 }
 #endif
 
-#if defined(CONFIG_TEGRA3)
+#if defined(CONFIG_TEGRA3) || defined(CONFIG_TEGRA11X)
 static void enable_clock(enum periph_id pid, int src)
 {
 	/* Assert reset and enable clock */
@@ -155,6 +155,7 @@ static void enable_clock(enum periph_id pid, int src)
 /* Init misc clocks for kernel booting */
 static void clock_init_misc(void)
 {
+#if defined(CONFIG_TEGRA3)
 	/* 0 = PLLA_OUT0, -1 = CLK_M (default) */
 	enable_clock(PERIPH_ID_I2S0, -1);
 	enable_clock(PERIPH_ID_I2S1, 0);
@@ -162,6 +163,107 @@ static void clock_init_misc(void)
 	enable_clock(PERIPH_ID_I2S3, 0);
 	enable_clock(PERIPH_ID_I2S4, -1);
 	enable_clock(PERIPH_ID_SPDIF, -1);
+#endif
+
+#if defined(CONFIG_TEGRA11X)
+	/*
+	 * init of clocks that are needed by kernel
+	 *
+	 * TODO: use function instead of direct writel
+	 */
+
+	/* i2s0 */ /* default: clock source CLK_M and divisor 1 */
+	enable_clock(PERIPH_ID_I2S0, -1);
+	enable_clock(PERIPH_ID_I2S1, -1);
+	enable_clock(PERIPH_ID_I2S2, -1);
+	enable_clock(PERIPH_ID_I2S3, -1);
+	enable_clock(PERIPH_ID_I2S4, -1);
+
+	writel(0x00000010, 0x6000610c); /* src: PLLP_OUT0, divisor: 9 */
+	enable_clock(PERIPH_ID_SPDIF, -1);
+
+	/* host1x */
+	writel(0x10000000, 0x60006300); /* SET: rst_l, bit 28 */
+	writel(0x10000000, 0x60006320); /* SET: enb_l, bit 28 */
+	writel(0x80000006, 0x60006180); /* src: PLLP_OUT0, divisor: 4 */
+	udelay(2);
+	writel(0x10000000, 0x60006304); /* CLR: rst_l, bit 28 */
+
+	/* 3d */
+	writel(0x01000000, 0x60006300); /* SET: rst_l, bit 24 */
+	writel(0x01000000, 0x60006320); /* SET: enb_l, bit 24 */
+	writel(0x0000320a, 0x60006158); /* src: PLLM_OUT0, divisor: 6 */
+	udelay(2);
+	writel(0x01000000, 0x60006304); /* CLR: rst_l, bit 24 */
+
+	/* 2d */
+	writel(0x00200000, 0x60006300); /* SET: rst_l, bit 21 */
+	writel(0x00200000, 0x60006320); /* SET: enb_l, bit 21 */
+	writel(0x0000320a, 0x6000615c); /* src: PLLM_OUT0, divisor: 6 */
+	udelay(2);
+	writel(0x00200000, 0x60006304); /* CLR: rst_l, bit 21 */
+
+	/* 3d2 */
+	writel(0x00000004, 0x60006430); /* SET: rst_v, bit 2 */
+	writel(0x00000004, 0x60006440); /* SET: enb_v, bit 2 */
+	writel(0x0000000a, 0x600063b0); /* src: PLLM_OUT0, divisor: 6 */
+	udelay(2);
+	writel(0x00000004, 0x60006434); /* CLR: rst_v, bit 2 */
+
+	/* epp */
+	writel(0x00080000, 0x60006300); /* SET: rst_l, bit 19 */
+	writel(0x00080000, 0x60006320); /* SET: enb_l, bit 19 */
+	writel(0x0000000a, 0x6000616c); /* src: PLLM_OUT0, divisor: 6 */
+	udelay(2);
+	writel(0x00080000, 0x60006304); /* CLR: rst_l, bit 19 */
+
+	/* msenc */
+	writel(0x08000000, 0x60006310); /* SET: rst_u, bit 27 */
+	writel(0x08000000, 0x60006330); /* SET: enb_u, bit 27 */
+	writel(0x0000000a, 0x600061f0); /* src: pllm (def), divisor: 6 */
+	udelay(2);
+	writel(0x08000000, 0x60006314); /* CLR: rst_u, bit 27 */
+
+	/* tsec */
+	writel(0x00080000, 0x60006310); /* SET: rst_u, bit 19 */
+	writel(0x00080000, 0x60006330); /* SET: enb_u, bit 19 */
+	writel(0x00000006, 0x600061f4); /* src: pllp_out0, divisor: 4 */
+	udelay(2);
+	writel(0x00080000, 0x60006314); /* CLR: rst_u, bit 19 */
+
+	/* vi */
+	writel(0x00100000, 0x60006300); /* SET: rst_l, bit 20 */
+	writel(0x00100000, 0x60006320); /* SET: enb_l, bit 20 */
+	writel(0x0000000a, 0x60006148); /* src: PLLM_OUT0, divisor: 6 */
+	udelay(2);
+	writel(0x00100000, 0x60006304); /* CLR: rst_l, bit 20 */
+
+	/* vde */
+	writel(0x20000000, 0x60006308); /* SET: rst_h, bit 29 */
+	writel(0x20000000, 0x60006328); /* SET: enb_h, bit 29 */
+	writel(0x40000004, 0x600061c8); /* src: PLLC_OUT0, divisor: 3 */
+	udelay(2);
+	writel(0x20000000, 0x6000630c); /* CLR: rst_h, bit 29 */
+
+	/*
+	 * RST_V: de-assert reset on:
+	 *
+	 * 14-12: DAM2-0
+	 * 11: APBIF
+	 * 10: AUDIO
+	 */
+	writel(0x00007c00, 0x60006434); /* CLR: rst_v */
+	udelay(2);
+
+	/*
+	 * RST_W: de-assert reset on:
+	 *
+	 * 26-24: ADX0, AMX and RSV
+	 */
+	writel(0x07000000, 0x6000643c); /* CLR: rst_w */
+	udelay(2);
+
+#endif
 }
 #endif
 
@@ -172,7 +274,7 @@ static void clock_init_misc(void)
  */
 static void pin_mux_mmc(void)
 {
-#if !defined(CONFIG_TEGRA3)
+#if ((!defined(CONFIG_TEGRA3)) && (!defined(CONFIG_TEGRA11X)))
 	/* SDMMC4: config 3, x8 on 2nd set of pins */
 	pinmux_set_func(PINGRP_ATB, PMUX_FUNC_SDIO4);
 	pinmux_set_func(PINGRP_GMA, PMUX_FUNC_SDIO4);
@@ -195,7 +297,10 @@ static void pin_mux_mmc(void)
 #endif
 
 #if defined(CONFIG_TEGRA3)
-#include "../cardhu/pinmux-config-common.h"
+	#include "../cardhu/pinmux-config-common.h"
+#endif
+#if defined(CONFIG_TEGRA11X)
+	#include "../dalmore/pinmux-config-common.h"
 #endif
 
 /*
@@ -206,15 +311,19 @@ static void pinmux_init(int uart_ids)
 {
 #if defined(CONFIG_TEGRA2)
 	pin_mux_uart(uart_ids);
-#endif
+#else
 
+#if defined(CONFIG_TEGRA11X)
+	pinmux_config_table(tegra114_pinmux_common,
+				ARRAY_SIZE(tegra114_pinmux_common));
+#endif
 #if defined(CONFIG_TEGRA3)
 	pinmux_config_table(tegra3_pinmux_common,
 				ARRAY_SIZE(tegra3_pinmux_common));
-
+#endif
 	pinmux_config_table(unused_pins_lowpower,
 				ARRAY_SIZE(unused_pins_lowpower));
-#endif
+#endif	/* !Tegra2 */
 }
 
 /**
@@ -235,7 +344,7 @@ static void gpio_init(const void *blob)
  */
 static void board_sdmmc_voltage_init(void)
 {
-#if defined(CONFIG_TEGRA3) && defined(CONFIG_TEGRA2_MMC)
+#if (defined(CONFIG_TEGRA3) || defined(CONFIG_TEGRA11X)) && defined(CONFIG_TEGRA2_MMC)
 	uchar reg, data_buffer[1];
 	int i;
 
@@ -265,7 +374,7 @@ static void board_sdmmc_voltage_init(void)
  */
 static void power_det_init(void)
 {
-#if !defined(CONFIG_TEGRA3)
+#if ((!defined(CONFIG_TEGRA3)) && (!defined(CONFIG_TEGRA11X)))
 	struct pmc_ctlr *const pmc = (struct pmc_ctlr *)NV_PA_PMC_BASE;
 
 	/* turn off power detects */
@@ -353,7 +462,7 @@ int board_early_init_f(void)
 	/* Initialize UART clocks */
 	clock_init_uart(uart_ids);
 
-#if defined(CONFIG_TEGRA3)
+#if defined(CONFIG_TEGRA3) || defined(CONFIG_TEGRA11X)
 	/* Initialize misc clocks for kernel booting */
 	clock_init_misc();
 #endif
@@ -394,7 +503,7 @@ int arch_cpu_init(void)
 
 void pad_init_mmc(struct tegra2_mmc *reg)
 {
-#if defined(CONFIG_TEGRA3)
+#if defined(CONFIG_TEGRA3) || defined(CONFIG_TEGRA11X)
 	struct apb_misc_gp_ctlr *const gpc =
 		(struct apb_misc_gp_ctlr *)NV_PA_APB_MISC_GP_BASE;
 	struct sdmmc_ctlr *const sdmmc = (struct sdmmc_ctlr *)reg;
@@ -495,7 +604,7 @@ const char* get_board_name(void)
 
 struct arch_name_map {
 	const char* board_name;
-	ulong	    arch_number;
+	ulong arch_number;
 };
 
 static struct arch_name_map name_map[] = {
@@ -504,6 +613,7 @@ static struct arch_name_map name_map[] = {
 	{"Google Kaen", MACH_TYPE_KAEN},
 	{"NVIDIA Seaboard", MACH_TYPE_SEABOARD},
 	{"NVIDIA Ventana", MACH_TYPE_VENTANA},
+	{"NVIDIA Dalmore", MACH_TYPE_DALMORE},
 	{"Google Waluigi", MACH_TYPE_WALUIGI},
 	{"<not defined>", MACH_TYPE_SEABOARD} /* this is the default */
 };
@@ -594,8 +704,8 @@ u32 get_minor_rev(void)
 #ifdef	CONFIG_MISC_INIT_R
 int misc_init_r(void)
 {
-#if defined(CONFIG_TEGRA3)
-	char buf[255], *s;
+#if defined(CONFIG_TEGRA3) || defined(CONFIG_TEGRA11X)
+	char buf[255], *s, *maxptr;
 
 	/*
 	 * We need to differentiate between T30 and T33 by passing
@@ -607,9 +717,15 @@ int misc_init_r(void)
 
 	if (get_minor_rev() == 0x03) {
 		if (s) {
-			sprintf(buf, "%s %s", s, "max_cpu_cur_ma=10000");
-			setenv("extra_bootargs", buf);
-			debug("new kernel cmd line is %s\n", buf);
+			maxptr = strstr(s, "max_cpu_cur_ma");
+			if (maxptr == NULL) {
+				sprintf(buf, "%s %s", s,
+					"max_cpu_cur_ma=10000");
+				setenv("extra_bootargs", buf);
+				debug("new kernel cmd line is %s\n", buf);
+			} else {
+				debug("max_cpu_cur_ma already present!\n");
+			}
 		}
 	}
 #endif

@@ -44,6 +44,12 @@ SECTIONS
 	. = ALIGN(4);
 	.data : {
 		*(.data)
+
+		/*
+		 * FDT library expects dts located at four-byte aligned address.
+		 */
+		. = ALIGN(4);
+		*(.embedded_dts)
 	}
 
 	. = ALIGN(4);

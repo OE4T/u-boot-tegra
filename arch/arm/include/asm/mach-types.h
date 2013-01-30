@@ -3313,7 +3313,9 @@ extern unsigned int __machine_arch_type;
 #define MACH_TYPE_DINGO                3337
 #define MACH_TYPE_GOFLEXHOME           3338
 #define MACH_TYPE_CARDHU               3436
-#define MACH_TYPE_WALUIGI              3591	//tcw hack
+#define MACH_TYPE_CURACAO              3454
+#define MACH_TYPE_WALUIGI              3591
+#define MACH_TYPE_DALMORE              4304
 
 #ifdef CONFIG_ARCH_EBSA110
 # ifdef machine_arch_type
@@ -42938,6 +42940,31 @@ extern unsigned int __machine_arch_type;
 #else
 # define machine_is_waluigi()	(0)
 #endif
+
+#ifdef CONFIG_MACH_CURACAO
+# ifdef machine_arch_type
+#  undef machine_arch_type
+#  define machine_arch_type	__machine_arch_type
+# else
+#  define machine_arch_type	MACH_TYPE_CURACAO
+# endif
+# define machine_is_curacao()	(machine_arch_type == MACH_TYPE_CURACAO)
+#else
+# define machine_is_curacao()	(0)
+#endif
+
+#ifdef CONFIG_MACH_DALMORE
+# ifdef machine_arch_type
+#  undef machine_arch_type
+#  define machine_arch_type     __machine_arch_type
+# else
+#  define machine_arch_type     MACH_TYPE_DALMORE
+# endif
+# define machine_is_dalmore()   (machine_arch_type == MACH_TYPE_DALMORE)
+#else
+# define machine_is_dalmore()   (0)
+#endif
+
 
 /*
  * These have not yet been registered

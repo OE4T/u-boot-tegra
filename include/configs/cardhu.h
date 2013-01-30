@@ -171,7 +171,7 @@
 #define CONFIG_VIDEO_TEGRA2
 
 /* TODO: This needs to be configurable at run-time */
-#define LCD_BPP	LCD_COLOR16
+#define LCD_BPP	LCD_COLOR32
 #define CONFIG_SYS_WHITE_ON_BLACK       /*Console colors*/
 
 #endif /* __CONFIG_H */

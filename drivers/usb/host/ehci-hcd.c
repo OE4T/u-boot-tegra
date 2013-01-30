@@ -586,7 +586,7 @@ ehci_submit_root(struct usb_device *dev, unsigned long pipe, void *buffer,
 	int len, srclen;
 	uint32_t reg;
 	uint32_t *status_reg;
-#if defined(CONFIG_TEGRA3)
+#if defined(CONFIG_TEGRA3) || defined(CONFIG_TEGRA11X)
 	uint32_t *status_reg2;
 	uint32_t reg2;
 #endif
@@ -690,7 +690,7 @@ ehci_submit_root(struct usb_device *dev, unsigned long pipe, void *buffer,
 		if (reg & EHCI_PS_PP)
 			tmpbuf[1] |= USB_PORT_STAT_POWER >> 8;
 
-#if defined(CONFIG_TEGRA3)
+#if defined(CONFIG_TEGRA3) || defined(CONFIG_TEGRA11X)
 		status_reg2 = (uint32_t *)&hcor->hostpc1_devlc;
 		reg2 = ehci_readl(status_reg2);
 		switch ((reg2 >> 25) & 3) {

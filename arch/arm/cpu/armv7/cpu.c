@@ -68,7 +68,18 @@ int cleanup_before_linux(void)
 	 * So just invalidate the entire d-cache again to avoid coherency
 	 * problems for kernel
 	 */
+	/*
+	 * Calling following function on Dalmore board will cause system hung.
+	 *
+	 * Since all data in d-cache has been flushed out of cache by previous
+	 * function call, ie, dcache_disable(), and since there is no more
+	 * data update before passing control to kernel, it is safe to skip
+	 * calling function invalidate_dcache_all().
+	 *
+	 * TODO: figure out the root cause and fix this hung issue.
+	 */
+#ifndef CONFIG_TEGRA11X_DALMORE
 	invalidate_dcache_all();
-
+#endif
 	return 0;
 }

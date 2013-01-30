@@ -88,4 +88,7 @@ struct timerus {
 #define NVBOOTINFOTABLE_BCTPTR	0x3C	/* BCT pointer in BIT in IRAM */
 #define BCT_ODMDATA_OFFSET	4068	/* 12 bytes from end of BCT */
 
+#define round_up(x, y) (((x) + ((y)-1)) & (~((y)-1)))
+#define TEGRA_LINEAR_PITCH_ALIGNMENT	32
+
 #endif	/* TEGRA2_H */

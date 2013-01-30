@@ -25,8 +25,8 @@ PLATFORM_RELFLAGS += -fno-common -ffixed-r8 -msoft-float
 # Make ARMv5 to allow more compilers to work, even though its v7a.
 PLATFORM_CPPFLAGS += -march=armv5
 
-# Enforce stricter warning checking.
-PLATFORM_CPPFLAGS += -Werror
+# Enforce stricter warning checking.#t11x_port
+#PLATFORM_CPPFLAGS += -Werror
 
 # Prevent warning when generating autoconf.mk.dep
 HOSTCFLAGS_autoconf.mk.dep = -Wno-variadic-macros

@@ -92,6 +92,9 @@ static int mmc_resize_bounce(struct mmc_host *host, struct mmc_data *data)
 {
 	uint	new_bounce_size = data->blocks * data->blocksize;
 
+	debug("mmc_resize_bounce: new size (0x%08x) from old (0x%08x)\n",
+		new_bounce_size, host->bounce ? host->bounce_size : 0);
+
 	if (host->bounce)
 	{
 		free(host->bounce);
@@ -142,8 +145,6 @@ static int mmc_setup_bounce_data(struct mmc_host *host, struct mmc_data *data)
 static void mmc_restore_bounce_data(struct mmc_host *host,
 				    struct mmc_data *data)
 {
-	mmc_dcache_invalidate(&host->bounce_data);
-
 	memcpy(data->dest,
 	       host->bounce_data.src,
 	       data->blocks * data->blocksize);
@@ -175,6 +176,12 @@ static int mmc_prepare_data(struct mmc_host *host, struct mmc_data *data)
 		data = &host->bounce_data;
 	}
 
+	/*
+	 * Invalidate (for read) or flush (for write) before dma start
+	 */
+	if (data->flags & MMC_DATA_READ)
+		mmc_dcache_invalidate(data);
+
 	if (data->flags & MMC_DATA_WRITE)
 		mmc_dcache_flush(data);
 
@@ -205,17 +212,13 @@ static int mmc_prepare_data(struct mmc_host *host, struct mmc_data *data)
 static void mmc_restore_data(struct mmc_host *host, struct mmc_data *data)
 {
 	/*
-	 * If we performed a read then we need to invalidate the dcache lines
-	 * that cover the DMA buffer.  This might also require copying data
-	 * back from the bounce buffer if the original mmc_data's buffer is
-	 * unaligned.
+	 * If we performed a read then we need to copy data back from the
+	 * bounce buffer if the original mmc_data's buffer is unaligned.
 	 */
 	if (data->flags & MMC_DATA_READ)
 	{
 		if (((uint)data->dest) & (CACHE_LINE_SIZE - 1))
 			mmc_restore_bounce_data(host, data);
-		else
-			mmc_dcache_invalidate(data);
 	}
 }
 
@@ -283,7 +286,8 @@ static int mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd,
 	int result;
 	unsigned int mask;
 	unsigned int retry = 0x100000;
-	debug(" mmc_send_cmd called\n");
+	debug("%s: entry, cmd: %d, arg: %08x w/ data %p\n", __func__,
+		cmd->cmdidx, cmd->cmdarg, data);
 
 	if ((result = mmc_wait_inhibit(host, cmd, data, 10 /* ms */)) < 0)
 		return result;
@@ -292,7 +296,6 @@ static int mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd,
 		if ((result = mmc_prepare_data(host, data)) < 0)
 			return result;
 
-	debug("cmd->arg: %08x\n", cmd->cmdarg);
 	writel(cmd->cmdarg, &host->reg->argument);
 
 	if (data)
@@ -330,8 +333,6 @@ static int mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd,
 
 	if (data)
 		flags |= (1 << 5);
-
-	debug("cmd: %d\n", cmd->cmdidx);
 
 	writew((cmd->cmdidx << 8) | flags, &host->reg->cmdreg);
 
@@ -561,7 +562,7 @@ static void mmc_reset(struct mmc_host *host)
 	}
 	debug("SWRST = 0\n");
 
-#if defined(CONFIG_TEGRA3)
+#if defined(CONFIG_TEGRA3) || defined(CONFIG_TEGRA11X)
 	//TCW Set SD_BUS_VOLTAGE and SD_BUS_POWER here for T30!
 	//TCW Find a way to do it based on fuses, device caps, etc.
 	writeb(0x0F, &host->reg->pwrcon);

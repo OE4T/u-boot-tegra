@@ -29,6 +29,7 @@
 #include <asm/arch/power.h>
 #include <asm/arch/pwfm.h>
 #include <asm/arch/display.h>
+#include <asm/arch/tegra.h>
 #include <asm/system.h>
 #include <asm/io.h>
 
@@ -66,7 +67,7 @@ static void clk_init(void)
 	clock_start_periph_pll(PERIPH_ID_PWM, CLOCK_ID_SFROM32KHZ, CLK_32768);
 #endif
 
-#if defined(CONFIG_TEGRA3)
+#if defined(CONFIG_TEGRA3) || defined(CONFIG_TEGRA11X)
 	clock_start_periph_pll(PERIPH_ID_VI, CLOCK_ID_CGENERAL, CLK_228M);
 	clock_start_periph_pll(PERIPH_ID_3D, CLOCK_ID_CGENERAL, CLK_228M);
 	clock_start_periph_pll(PERIPH_ID_2D, CLOCK_ID_CGENERAL, CLK_228M);
@@ -206,7 +207,8 @@ void lcd_ctrl_init(void *lcdbase)
 {
 	struct fdt_lcd config;
 	int line_length;
-	char fbmem[32], *buf;
+	char fbmem[32], *buf, *fbmemptr;
+	u32 lcd_size;
 
 	/* get panel details */
 	if (fdt_decode_lcd(gd->blob, &config)) {
@@ -221,27 +223,45 @@ void lcd_ctrl_init(void *lcdbase)
 	 * and this causes screen flicker.
 	 */
 	config.frame_buffer = (u32)lcd_base;
+
 	update_panel_size(&config);
 
 	/* call board specific hw init */
 	init_lcd(&config);
+	lcd_size = lcd_get_size(&line_length);
 	mmu_set_region_dcache(config.frame_buffer,
-			lcd_get_size(&line_length), DCACHE_WRITETHROUGH);
+				lcd_size, DCACHE_WRITETHROUGH);
 
 	debug("LCD frame buffer at %p\n", lcd_base);
 
 	/* Store FB start as a kernel arg in extra_bootargs */
-	sprintf ((char *)fbmem, " tegra_fbmem=3072K@0x%08X", (u32)lcd_base);
+	sprintf ((char *)fbmem, " tegra_fbmem=%dK@0x%08X",
+				lcd_size/1024, (u32)lcd_base);
 	buf = malloc(strlen(getenv("extra_bootargs")) + sizeof(fbmem) + 1);
 	strcpy(buf, getenv("extra_bootargs"));
-	strcat(buf, fbmem);
-	setenv ("extra_bootargs", (char *)buf);
+
+	fbmemptr = strstr(buf, "tegra_fbmem");
+	if (fbmemptr == NULL) {
+		strcat(buf, fbmem);
+		setenv("extra_bootargs", (char *)buf);
+	} else
+		debug("tegra_fbmem already present!\n");
+}
+
+ulong lcd_align_pitch(ulong pitch)
+{
+	 return round_up(pitch, TEGRA_LINEAR_PITCH_ALIGNMENT);
 }
 
 ulong calc_fbsize(void)
 {
-	return (panel_info.vl_col * panel_info.vl_row *
+	ulong fbsize;
+
+	fbsize = (panel_info.vl_col * panel_info.vl_row *
 		NBITS(panel_info.vl_bpix)) / 8;
+	fbsize = lcd_align_pitch(fbsize);
+
+	return fbsize;
 }
 
 void lcd_setcolreg(ushort regno, ushort red, ushort green, ushort blue)
@@ -260,4 +280,3 @@ void lcd_early_init(const void *blob)
 	if (!fdt_decode_lcd(gd->blob, &config))
 		update_panel_size(&config);
 }
-

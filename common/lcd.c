@@ -237,6 +237,8 @@ static void lcd_drawchars (ushort x, ushort y, uchar *str, int count)
 		int i;
 #if LCD_BPP == LCD_COLOR16
 		ushort *d = (ushort *)dest;
+#elif LCD_BPP == LCD_COLOR32
+		ulong *d = (ulong *)dest;
 #else
 		uchar *d = dest;
 #endif
@@ -257,13 +259,7 @@ static void lcd_drawchars (ushort x, ushort y, uchar *str, int count)
 
 			*d++ = rest | (sym >> off);
 			rest = sym << (8-off);
-#elif LCD_BPP == LCD_COLOR8
-			for (c=0; c<8; ++c) {
-				*d++ = (bits & 0x80) ?
-						lcd_color_fg : lcd_color_bg;
-				bits <<= 1;
-			}
-#elif LCD_BPP == LCD_COLOR16
+#else
 			for (c=0; c<8; ++c) {
 				*d++ = (bits & 0x80) ?
 						lcd_color_fg : lcd_color_bg;
@@ -340,9 +336,17 @@ static void test_pattern (void)
 /* ** GENERIC Initialization Routines					*/
 /************************************************************************/
 
+static ulong __def_lcd_align_pitch(ulong pitch)
+{
+	return pitch;
+}
+ulong lcd_align_pitch(ulong pitch) \
+		__attribute__((weak, alias("__def_lcd_align_pitch")));
+
 int lcd_get_size(int *line_length)
 {
 	*line_length = (panel_info.vl_col * NBITS (panel_info.vl_bpix)) / 8;
+	*line_length = lcd_align_pitch(*line_length);
 	return *line_length * panel_info.vl_row;
 }
 
@@ -602,10 +606,9 @@ void bitmap_plot (int x, int y)
 			bmap += BMP_LOGO_WIDTH;
 			fb   += panel_info.vl_col;
 		}
-	}
-	else { /* true color mode */
+	} else if (NBITS(panel_info.vl_bpix) < 24) { /* high color mode */
 		u16 col16;
-		fb16 = (ushort *)(lcd_base + y * lcd_line_length + x);
+		fb16 = (ushort *)(lcd_base + y * lcd_line_length + (2 * x));
 		for (i=0; i<BMP_LOGO_HEIGHT; ++i) {
 			for (j=0; j<BMP_LOGO_WIDTH; j++) {
 				col16 = bmp_logo_palette[(bmap[j]-16)];
@@ -616,6 +619,20 @@ void bitmap_plot (int x, int y)
 				}
 			bmap += BMP_LOGO_WIDTH;
 			fb16 += panel_info.vl_col;
+		}
+	} else { /* true color mode */
+		u32 col16;
+		fb32 = (ulong *)(lcd_base + y * lcd_line_length + (4 * x));
+		for (i=0; i<BMP_LOGO_HEIGHT; ++i) {
+			for (j=0; j<BMP_LOGO_WIDTH; j++) {
+				col16 = bmp_logo_palette[(bmap[j]-32)];
+				fb32[j] =
+				((ulong)(col16 & 0x000F) << 4) |
+				((ulong)(col16 & 0x00F0) << 8) |
+				((ulong)(col16 & 0x0F00) << 12);
+			}
+			bmap += BMP_LOGO_WIDTH;
+			fb32 += panel_info.vl_col;
 		}
 	}
 

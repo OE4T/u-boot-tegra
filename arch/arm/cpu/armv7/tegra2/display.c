@@ -66,6 +66,7 @@ static void update_window(struct dc_ctlr *dc, struct disp_ctl_win *win)
 
 	writel(win->stride, &dc->win.line_stride);
 	writel(0, &dc->win.buf_stride);
+	writel(0, &dc->win.uv_buf_stride);
 
 	val = bf_ones(WIN_ENABLE);
 	if (win->bpp < 24)
@@ -217,6 +218,7 @@ void setup_window(struct disp_ctl_win *win, struct fdt_lcd *config)
 	win->phys_addr = config->frame_buffer;
 	/* Is this easier to understand than 1 << (x - 3) ? */
 	win->stride = config->width * (1 << config->log2_bpp) / 8;
+	win->stride = round_up(win->stride, TEGRA_LINEAR_PITCH_ALIGNMENT);
 	switch (config->log2_bpp) {
 	case 5:
 	case 24:
