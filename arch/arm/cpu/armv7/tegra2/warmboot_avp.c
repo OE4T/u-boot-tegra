@@ -188,15 +188,13 @@ void wb_start(void)
 	 * Note: can not use switch statement: compiler builds tables on the
 	 * local stack. We don't want to use anything on the stack.
 	 */
-	reg = readl(&clkrst->crc_osc_ctrl);
-	reg >>= OSC_CTRL_OSC_FREQ_SHIFT;
-	if (reg == CLOCK_OSC_FREQ_13_0) {
+	if (osc_ctrl.osc_freq == CLOCK_OSC_FREQ_13_0) {
 		pllp_base = PLLP_BASE_216MHZ_OSC_13_0;
 		pllp_misc = PLLP_MISC_216MHZ_OSC_13_0;
-	} else if (CLOCK_OSC_FREQ_19_2) {
+	} else if (osc_ctrl.osc_freq == CLOCK_OSC_FREQ_19_2) {
 		pllp_base = PLLP_BASE_216MHZ_OSC_19_2;
 		pllp_misc = PLLP_MISC_216MHZ_OSC_19_2;
-	} else if (CLOCK_OSC_FREQ_12_0) {
+	} else if (osc_ctrl.osc_freq == CLOCK_OSC_FREQ_12_0) {
 		pllp_base = PLLP_BASE_216MHZ_OSC_12_0;
 		pllp_misc = PLLP_MISC_216MHZ_OSC_12_0;
 	} else {
@@ -343,7 +341,7 @@ void wb_start(void)
 	writel(pllx_base.word, &clkrst->crc_pll_simple[SIMPLE_PLLX].pll_base);
 
 	/* Unhalt CPU0 */
-	writel(0, flow->halt_cpu_events);
+	writel(0, &flow->halt_cpu_events);
 
 	/* Take CPU0 out of reset (CPU1 is still held in reset). */
 	reg = CPU_CMPLX_CPURESET0 | CPU_CMPLX_DBGRESET0 | CPU_CMPLX_DERESET0;
@@ -366,7 +364,7 @@ void wb_start(void)
 	/* avp_halt: */
 avp_halt:
 	reg = EVENT_MODE_STOP | EVENT_JTAG;
-	writel(reg, flow->halt_cop_events);
+	writel(reg, &flow->halt_cop_events);
 	goto avp_halt;
 
 do_reset:
