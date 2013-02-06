@@ -311,19 +311,26 @@ static void pinmux_init(int uart_ids)
 {
 #if defined(CONFIG_TEGRA2)
 	pin_mux_uart(uart_ids);
-#else
-
-#if defined(CONFIG_TEGRA11X)
-	pinmux_config_table(tegra114_pinmux_common,
-				ARRAY_SIZE(tegra114_pinmux_common));
 #endif
+
 #if defined(CONFIG_TEGRA3)
 	pinmux_config_table(tegra3_pinmux_common,
 				ARRAY_SIZE(tegra3_pinmux_common));
-#endif
+
 	pinmux_config_table(unused_pins_lowpower,
 				ARRAY_SIZE(unused_pins_lowpower));
-#endif	/* !Tegra2 */
+#endif
+
+#if defined(CONFIG_TEGRA11X)
+	pinmux_config_table(tegra114_pinmux_set_nontristate,
+				ARRAY_SIZE(tegra114_pinmux_set_nontristate));
+
+	pinmux_config_table(tegra114_pinmux_common,
+				ARRAY_SIZE(tegra114_pinmux_common));
+
+	pinmux_config_table(unused_pins_lowpower,
+				ARRAY_SIZE(unused_pins_lowpower));
+#endif
 }
 
 /**
@@ -344,7 +351,7 @@ static void gpio_init(const void *blob)
  */
 static void board_sdmmc_voltage_init(void)
 {
-#if (defined(CONFIG_TEGRA3) || defined(CONFIG_TEGRA11X)) && defined(CONFIG_TEGRA2_MMC)
+#if defined(CONFIG_TEGRA3) && defined(CONFIG_TEGRA2_MMC)
 	uchar reg, data_buffer[1];
 	int i;
 

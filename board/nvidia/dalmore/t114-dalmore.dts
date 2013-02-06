@@ -47,14 +47,18 @@
 		width = <4>;	/* width of SDIO port */
 		removable = <1>;
 		/* Parameter 3 bit 0:1=output, 0=input; bit 1:1=high, 0=low */
+		cd-gpio = <&gpio 170 0>; /* card detect, gpio PV2(SDMMC3_CD_N)*/
+		wp-gpio = <&gpio 132 0>; /* write protect, gpio PQ4(KB_COL4) */
 
 		/*
-		 * TODO: The following settings are used on cardhu board.
-		 * need to further verify / change for dalmore board.
+		 * Dalmore board no longer uses gpio pin to enable power supply.
+		 * Instead, it needs directly programming PMICs.
+		 *
+		 * 1. Provide power 3.3v for SDMMC3 controller:
+		 *		LDO9_OUT -> VDDIO_SDMMC3_AP (65913)
+		 * 2. Provide power 3.3v for SD card:
+		 *		FET6/VOUT6 -> VDD_3V3_SD (65090)
 		 */
-		cd-gpio = <&gpio 69 0>; /* card detect, gpio PI5 */
-		wp-gpio = <&gpio 155 0>; /* write protect, gpio PT3 */
-		power-gpio = <&gpio 31 3>; /* power enable, gpio PD7 */
 	};
 
 	sdhci@78000600 {
@@ -88,7 +92,7 @@
 	usb@0x7d000000 {
 		status = "ok";
 		host-mode = <1>;
-		vbus_pullup-gpio = <&gpio 233 3>;	/* PDD1, EN_3V3_PU */
+		/* USB_VBUS_EN0:0:B: USB_VBUS_EN0 */
 	};
 
 	usbphy: usbphy@0 {
@@ -100,5 +104,6 @@
 		status = "ok";
 		utmi = <&usbphy>;
 		host-mode = <0>;
+		vbus-gpio = <&gpio 86 0>;       /* SPDIF_IN:1:B: USB_VBUS_EN1 */
 	};
 };
