@@ -311,19 +311,26 @@ static void pinmux_init(int uart_ids)
 {
 #if defined(CONFIG_TEGRA2)
 	pin_mux_uart(uart_ids);
-#else
-
-#if defined(CONFIG_TEGRA11X)
-	pinmux_config_table(tegra114_pinmux_common,
-				ARRAY_SIZE(tegra114_pinmux_common));
 #endif
+
 #if defined(CONFIG_TEGRA3)
 	pinmux_config_table(tegra3_pinmux_common,
 				ARRAY_SIZE(tegra3_pinmux_common));
-#endif
+
 	pinmux_config_table(unused_pins_lowpower,
 				ARRAY_SIZE(unused_pins_lowpower));
-#endif	/* !Tegra2 */
+#endif
+
+#if defined(CONFIG_TEGRA11X)
+	pinmux_config_table(tegra114_pinmux_set_nontristate,
+				ARRAY_SIZE(tegra114_pinmux_set_nontristate));
+
+	pinmux_config_table(tegra114_pinmux_common,
+				ARRAY_SIZE(tegra114_pinmux_common));
+
+	pinmux_config_table(unused_pins_lowpower,
+				ARRAY_SIZE(unused_pins_lowpower));
+#endif
 }
 
 /**
@@ -344,7 +351,7 @@ static void gpio_init(const void *blob)
  */
 static void board_sdmmc_voltage_init(void)
 {
-#if (defined(CONFIG_TEGRA3) || defined(CONFIG_TEGRA11X)) && defined(CONFIG_TEGRA2_MMC)
+#if defined(CONFIG_TEGRA3) && defined(CONFIG_TEGRA2_MMC)
 	uchar reg, data_buffer[1];
 	int i;
 
@@ -519,20 +526,30 @@ void pad_init_mmc(struct tegra2_mmc *reg)
 		return;
 	}
 
-	/* Set pads as per T30 TRM, section 24.6.1.2 */
+	/*
+	 * Set pads as per T30 TRM, section 24.6.1.2
+	 * or per T114 TRM, section 27.5.1
+	 */
 	padcfg = (GP_SDIOCFG_DRVUP_SLWF | GP_SDIOCFG_DRVDN_SLWR | \
 		GP_SDIOCFG_DRVUP | GP_SDIOCFG_DRVDN);
 	padmask = 0x00000FFF;
 
+#if defined(CONFIG_TEGRA11X)
+	val = padcfg | (GP_SDIOCFG_SCHMITT | GP_SDIOCFG_HSM);
+#endif
 	if (offset == NV_PA_SDMMC1_BASE) {
+#if defined(CONFIG_TEGRA3)
 		val = readl(&gpc->sdio1cfg);
 		val &= padmask;
 		val |= padcfg;
+#endif
 		writel(val, &gpc->sdio1cfg);
 	} else {				/* SDMMC3 */
+#if defined(CONFIG_TEGRA3)
 		val = readl(&gpc->sdio3cfg);
 		val &= padmask;
 		val |= padcfg;
+#endif
 		writel(val, &gpc->sdio3cfg);
 	}
 
@@ -541,10 +558,13 @@ void pad_init_mmc(struct tegra2_mmc *reg)
 	val |= MEMCOMP_PADCTRL_VREF;
 	writel(val, &sdmmc->sdmmc_sdmemcomp_pad_ctrl);
 
+#if defined(CONFIG_TEGRA3)
 	val = readl(&sdmmc->sdmmc_auto_cal_config);
 	val &= 0xFFFF0000;
 	val |= AUTO_CAL_PU_OFFSET | AUTO_CAL_PD_OFFSET | AUTO_CAL_ENABLED;
 	writel(val, &sdmmc->sdmmc_auto_cal_config);
+#endif
+
 #endif
 }
 

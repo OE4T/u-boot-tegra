@@ -57,12 +57,12 @@ enum pmux_pingrp {
 	PINGRP_SDMMC1_DAT2,
 	PINGRP_SDMMC1_DAT1,
 	PINGRP_SDMMC1_DAT0,
-	PINGRP_CLK2_OUT,
+	PINGRP_CLK2_OUT = PINGRP_SDMMC1_DAT0 + 3,
 	PINGRP_CLK2_REQ,
-	PINGRP_HDMI_INT,
+	PINGRP_HDMI_INT = PINGRP_CLK2_REQ + 41,
 	PINGRP_DDC_SCL,
 	PINGRP_DDC_SDA,
-	PINGRP_UART2_RXD,
+	PINGRP_UART2_RXD = PINGRP_DDC_SDA + 19,
 	PINGRP_UART2_TXD,
 	PINGRP_UART2_RTS_N,
 	PINGRP_UART2_CTS_N,
@@ -120,7 +120,6 @@ enum pmux_pingrp {
 	PINGRP_GMI_WR_N,
 	PINGRP_GMI_OE_N,
 	PINGRP_GMI_DQS_P,
-	PINGRP_GMI_DQS = PINGRP_GMI_DQS_P,
 	PINGRP_GMI_RST_N,
 	PINGRP_GEN2_I2C_SCL,
 	PINGRP_GEN2_I2C_SDA,
@@ -134,8 +133,7 @@ enum pmux_pingrp {
 	PINGRP_SDMMC4_DAT5,
 	PINGRP_SDMMC4_DAT6,
 	PINGRP_SDMMC4_DAT7,
-	PINGRP_SDMMC4_RST_N,
-	PINGRP_CAM_MCLK,
+	PINGRP_CAM_MCLK = PINGRP_SDMMC4_DAT7 + 2,
 	PINGRP_GPIO_PCC1,
 	PINGRP_GPIO_PBB0,
 	PINGRP_CAM_I2C_SCL,
@@ -160,7 +158,7 @@ enum pmux_pingrp {
 	PINGRP_KB_ROW8,
 	PINGRP_KB_ROW9,
 	PINGRP_KB_ROW10,
-	PINGRP_KB_COL0,
+	PINGRP_KB_COL0 = PINGRP_KB_ROW10 + 6,
 	PINGRP_KB_COL1,
 	PINGRP_KB_COL2,
 	PINGRP_KB_COL3,
@@ -187,31 +185,30 @@ enum pmux_pingrp {
 	PINGRP_DAP2_DIN,
 	PINGRP_DAP2_DOUT,
 	PINGRP_DAP2_SCLK,
-	PINGRP_SPI2_MOSI,
-	PINGRP_SPI2_MISO,
-	PINGRP_SPI2_CS0_N,
-	PINGRP_SPI2_SCK,
-	PINGRP_SPI1_MOSI,
-	PINGRP_SPI1_SCK,
-	PINGRP_SPI1_CS0_N,
-	PINGRP_SPI1_MISO,
-	PINGRP_SDMMC3_CLK,
+	PINGRP_DVFS_PWM,
+	PINGRP_GPIO_X1_AUD,
+	PINGRP_GPIO_X3_AUD,
+	PINGRP_DVFS_CLK,
+	PINGRP_GPIO_X4_AUD,
+	PINGRP_GPIO_X5_AUD,
+	PINGRP_GPIO_X6_AUD,
+	PINGRP_GPIO_X7_AUD,
+	PINGRP_SDMMC3_CLK = PINGRP_GPIO_X7_AUD + 3,
 	PINGRP_SDMMC3_CMD,
 	PINGRP_SDMMC3_DAT0,
 	PINGRP_SDMMC3_DAT1,
 	PINGRP_SDMMC3_DAT2,
 	PINGRP_SDMMC3_DAT3,
-	PINGRP_HDMI_CEC,	/* offset 0x33e0 */
+	PINGRP_HDMI_CEC = PINGRP_SDMMC3_DAT3 + 15, /* offset 0x33e0 */
 	PINGRP_SDMMC1_WP_N,
 	PINGRP_SDMMC3_CD_N,
-	PINGRP_SPI1_CS1_N,
-	PINGRP_SPI1_CS2_N,
+	PINGRP_GPIO_W2_AUD,
+	PINGRP_GPIO_W3_AUD,
 	PINGRP_USB_VBUS_EN0,	/* offset 0x33f4 */
 	PINGRP_USB_VBUS_EN1,
-	PINGRP_SDMMC3_CLK_LB_IN,
 	PINGRP_SDMMC3_CLK_LB_OUT,
-	PINGRP_NAND_GMI_CLK_LB,
-	PINGRP_RESET_OUT_N,
+	PINGRP_SDMMC3_CLK_LB_IN,
+	PINGRP_RESET_OUT_N = PINGRP_SDMMC3_CLK_LB_IN + 2,
 	PINGRP_COUNT,
 };
 
@@ -287,8 +284,7 @@ enum pmux_func {
 	PMUX_FUNC_GMI,
 	PMUX_FUNC_GMI_INT,
 	PMUX_FUNC_HDMI,
-	PMUX_FUNC_I2C,
-	PMUX_FUNC_I2C1 = PMUX_FUNC_I2C,
+	PMUX_FUNC_I2C1,
 	PMUX_FUNC_I2C2,
 	PMUX_FUNC_I2C3,
 	PMUX_FUNC_IDE,
@@ -311,13 +307,9 @@ enum pmux_func {
 	PMUX_FUNC_PWR_ON,
 	PMUX_FUNC_RTCK,
 	PMUX_FUNC_SDIO1,
-	PMUX_FUNC_SDMMC1 = PMUX_FUNC_SDIO1,
 	PMUX_FUNC_SDIO2,
-	PMUX_FUNC_SDMMC2 = PMUX_FUNC_SDIO2,
 	PMUX_FUNC_SDIO3,
-	PMUX_FUNC_SDMMC3 = PMUX_FUNC_SDIO3,
 	PMUX_FUNC_SDIO4,
-	PMUX_FUNC_SDMMC4 = PMUX_FUNC_SDIO4,
 	PMUX_FUNC_SFLASH,
 	PMUX_FUNC_SPDIF,
 	PMUX_FUNC_SPI1,
@@ -336,6 +328,7 @@ enum pmux_func {
 	PMUX_FUNC_VI,
 	PMUX_FUNC_VI_SENSOR_CLK,
 	PMUX_FUNC_XIO,
+	/* End of Tegra2 MUX selectors */
 	PMUX_FUNC_BLINK,
 	PMUX_FUNC_CEC,
 	PMUX_FUNC_CLK12,
@@ -379,7 +372,7 @@ enum pmux_func {
 	PMUX_FUNC_VGP4,
 	PMUX_FUNC_VGP5,
 	PMUX_FUNC_VGP6,
-/* End of Tegra3 MUX selectors */
+	/* End of Tegra3 MUX selectors */
 	PMUX_FUNC_USB,
 	PMUX_FUNC_SOC,
 	PMUX_FUNC_CPU,
@@ -390,9 +383,15 @@ enum pmux_func {
 	PMUX_FUNC_RESET_OUT_N,
 	/* End of Tegra114 MUX selectors */
 
-        PMUX_FUNC_SAFE,
+	PMUX_FUNC_SAFE,
+	PMUX_FUNC_MAX,
 
-        PMUX_FUNC_MAX,
+	/* Mux selector aliases */
+	PMUX_FUNC_I2C    = PMUX_FUNC_I2C1,
+	PMUX_FUNC_SDMMC1 = PMUX_FUNC_SDIO1,
+	PMUX_FUNC_SDMMC2 = PMUX_FUNC_SDIO2,
+	PMUX_FUNC_SDMMC3 = PMUX_FUNC_SDIO3,
+	PMUX_FUNC_SDMMC4 = PMUX_FUNC_SDIO4,
 
 };
 
@@ -425,6 +424,7 @@ enum pmux_tristate {
 enum pmux_pin_io {
 	PMUX_PIN_OUTPUT = 0,
 	PMUX_PIN_INPUT = 1,
+	PMUX_PIN_NONE,
 };
 /* return 1 if a pin_io_is in range */
 #define pmux_pin_io_isvalid(io) (((io) >= PMUX_PIN_OUTPUT) && \
@@ -457,6 +457,16 @@ enum pmux_pin_ioreset {
 #define pmux_pin_ioreset_isvalid(ioreset) \
 				(((ioreset) >= PMUX_PIN_IO_RESET_DEFAULT) && \
 				((ioreset) <= PMUX_PIN_IO_RESET_ENABLE))
+
+enum pmux_pin_rcv_sel {
+	PMUX_PIN_RCV_SEL_DEFAULT = 0,
+	PMUX_PIN_RCV_SEL_NORMAL,
+	PMUX_PIN_RCV_SEL_HIGH,
+};
+/* return 1 if a pin_rcv_sel_is in range */
+#define pmux_pin_rcv_sel_isvalid(rcv_sel) \
+				(((rcv_sel) >= PMUX_PIN_RCV_SEL_DEFAULT) && \
+				((rcv_sel) <= PMUX_PIN_RCV_SEL_HIGH))
 
 /* Available power domains used by pin groups */
 enum pmux_vddio {
@@ -514,6 +524,8 @@ struct pingroup_config {
 	enum pmux_pin_lock lock;	/* lock enable/disable PMUX_PIN...  */
 	enum pmux_pin_od od;		/* open-drain or push-pull driver  */
 	enum pmux_pin_ioreset ioreset;	/* input/output reset PMUX_PIN...  */
+	enum pmux_pin_rcv_sel rcv_sel;	/* select between High and Normal  */
+					/* VIL/VIH receivers */
 };
 
 /* Set a pin group to tristate */
