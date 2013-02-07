@@ -111,5 +111,20 @@
 
 #define CCLK_PLLP_BURST_POLICY		0x20004444
 
-#endif
+/* PLLU Base */
+#define PLLU_BYPASS			(1 << 31)
+#define PLLU_ENABLE			(1 << 30)
+#define PLLU_REF_DIS_REF_DISABLE	(1 << 29)
+#define PLLU_BASE_OSC_13_0		0x0003c00d
+#define PLLU_BASE_OSC_19_2		0x0000c804
+#define PLLU_BASE_OSC_12_0		0x0003c00c
+#define PLLU_BASE_OSC_26_0		0x0003c01a
 
+/* PLLU Misc */
+#define PLLU_LOCK_ENABLE_ENABLE		(1 << 22)
+#define PLLU_MISC_OSC_13_0		0x00000c10
+#define PLLU_MISC_OSC_19_2		0x00000300
+#define PLLU_MISC_OSC_12_0		0x00000c10
+#define PLLU_MISC_OSC_26_0		0x00000c10
+
+#endif
