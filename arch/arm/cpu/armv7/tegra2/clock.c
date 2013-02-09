@@ -890,6 +890,37 @@ static int clock_set_rate(enum clock_id clkid, u32 n, u32 m, u32 p, u32 cpcon,
 	return 0;
 }
 
+/**
+ * Set the lock for each PLL clock.
+ *
+ * @parma misc_locken LOCK enable bit mask in pll misc reg.
+ * @parma base_stat LOCK status bit mask in pll base reg.
+ * @return 0 if ok, -1 on error (the requested PLL cannot be overriden)
+ */
+static int clock_set_lock(enum clock_id clkid, u32 misc_locken, u32 base_stat)
+{
+	u32 base_reg;
+	u32 misc_reg;
+	struct clk_pll *pll;
+
+	if ((pll = get_pll(clkid)) == NULL)
+		return -1;
+
+	misc_reg = readl(&pll->pll_misc);
+	misc_reg |= misc_locken;
+	writel(misc_reg, &pll->pll_misc);
+	do {
+		base_reg = readl(&pll->pll_base);
+	} while ((base_reg & base_stat) == 0);
+
+	return 0;
+}
+
+#define PLLC_LOCK_STATE			(1 << 27)
+#define PLLC_LOCK_ENABLE		(1 << 18)
+#define PLLP_LOCK_STATE			(1 << 27)
+#define PLLP_LOCK_ENABLE		(1 << 18)
+
 #define PLL_OUT_RSTN_RESET_DISABLE	(1 << 0)
 #define PLL_OUT_CLKEN_ENABLE		(1 << 1)
 #define PLL_OUT_OVERRIDE_ENABLE		(1 << 2)
@@ -969,6 +1000,9 @@ void common_pll_init(void)
 		clock_set_rate(CLOCK_ID_CGENERAL, 600, 26, 0, 8, couta, 0);
 		break;
 	}
+
+	clock_set_lock(CLOCK_ID_PERIPH,   PLLP_LOCK_ENABLE, PLLP_LOCK_STATE);
+	clock_set_lock(CLOCK_ID_CGENERAL, PLLC_LOCK_ENABLE, PLLC_LOCK_STATE);
 }
 
 void clock_init(void)
