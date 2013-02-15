@@ -122,6 +122,8 @@
 #define NV_GEN1I2C_REGR(pGen1I2c, reg)  NV_READ32( (((NvUPtr)(pGen1I2c)) + I2C_##reg##_0))
 #define NV_GEN1I2C_REGW(pGen1I2c, reg, val) NV_WRITE32((((NvUPtr)(pGen1I2c)) + I2C_##reg##_0), (val))
 
+#define MC_EMEM_ARB_OVERRIDE_0	0xe8
+
 /**
  * @brief CPU complex id.
  */

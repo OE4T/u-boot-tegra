@@ -46,8 +46,8 @@ static NvU32 NvBlGetOscillatorDriveStrength(void)
 	/*
 	 * TODO: get this from the ODM
 	 */
-	/* set to default value (maximum value) */
-	return 0x07;
+	/* set to default value */
+	return 0x01;
 }
 
 static NvU32 NvBlAvpQueryBootCpuFrequency(void)
@@ -385,7 +385,7 @@ VOID AvpHaltAvp(void)
 
 VOID InitPllP(NvBootClocksOscFreq OscFreq)
 {
-	UINT32   Base, Misc;
+	UINT32   Base, Misc, Reg;
 	Base = NV_CAR_REGR(CLK_RST_PA_BASE, PLLP_BASE);
 #if defined(CONFIG_SYS_PLLP_BASE_IS_408MHZ)
 	UINT32 OutA, OutB;
@@ -503,6 +503,21 @@ VOID InitPllP(NvBootClocksOscFreq OscFreq)
 	NV_CAR_REGW(CLK_RST_PA_BASE, PLLP_MISC, Misc);
 	NV_CAR_REGW(CLK_RST_PA_BASE, PLLP_BASE, Base);
 
+	/* Assert OUTx_RSTN for pllp_out1,2,3,4 before PLLP enable */
+	Reg = NV_CAR_REGR(CLK_RST_PA_BASE,PLLP_OUTA);
+	Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, PLLP_OUTA, PLLP_OUT2_RSTN,
+		RESET_ENABLE,Reg);
+	Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, PLLP_OUTA, PLLP_OUT1_RSTN,
+		RESET_ENABLE,Reg);
+	NV_CAR_REGW(CLK_RST_PA_BASE, PLLP_OUTA, Reg);
+
+	Reg = NV_CAR_REGR(CLK_RST_PA_BASE,PLLP_OUTB);
+	Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, PLLP_OUTB, PLLP_OUT4_RSTN,
+		RESET_ENABLE,Reg);
+	Reg = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, PLLP_OUTB, PLLP_OUT3_RSTN,
+		RESET_ENABLE,Reg);
+	NV_CAR_REGW(CLK_RST_PA_BASE, PLLP_OUTB, Reg);
+
 	// disable override
 	Base = NV_FLD_SET_DRF_DEF(CLK_RST_CONTROLLER, PLLP_BASE, PLLP_BASE_OVRRIDE, DISABLE, Base);
 	NV_CAR_REGW(CLK_RST_PA_BASE, PLLP_BASE, Base);
@@ -519,7 +534,7 @@ VOID InitPllP(NvBootClocksOscFreq OscFreq)
 	NV_CAR_REGW(CLK_RST_PA_BASE, PLLP_BASE, Base);
 
 #if defined(CONFIG_SYS_PLLP_BASE_IS_408MHZ)
-	/* Set pllp_out1,2,3,4 to frequencies 9.6MHz, 48MHz, 102MHz, 204MHz */
+	/* Set pllp_out1,2,3,4 to frequencies 9.6MHz, 48MHz, 102MHz, 102MHz */
 	OutA = NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_OUTA, PLLP_OUT1_RATIO, 83) |
 	NV_DRF_DEF(CLK_RST_CONTROLLER, PLLP_OUTA, PLLP_OUT1_OVRRIDE, ENABLE) |
 	NV_DRF_DEF(CLK_RST_CONTROLLER, PLLP_OUTA, PLLP_OUT1_CLKEN, ENABLE) |
@@ -535,7 +550,7 @@ VOID InitPllP(NvBootClocksOscFreq OscFreq)
 	NV_DRF_DEF(CLK_RST_CONTROLLER, PLLP_OUTB, PLLP_OUT3_CLKEN, ENABLE) |
 	NV_DRF_DEF(CLK_RST_CONTROLLER, PLLP_OUTB, PLLP_OUT3_RSTN, RESET_DISABLE) |
 
-	NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_OUTB, PLLP_OUT4_RATIO, 2) |
+	NV_DRF_NUM(CLK_RST_CONTROLLER, PLLP_OUTB, PLLP_OUT4_RATIO, 6) |
 	NV_DRF_DEF(CLK_RST_CONTROLLER, PLLP_OUTB, PLLP_OUT4_OVRRIDE, ENABLE) |
 	NV_DRF_DEF(CLK_RST_CONTROLLER, PLLP_OUTB, PLLP_OUT4_CLKEN, ENABLE) |
 	NV_DRF_DEF(CLK_RST_CONTROLLER, PLLP_OUTB, PLLP_OUT4_RSTN, RESET_DISABLE);
@@ -1075,6 +1090,9 @@ VOID ClockInitT11x(void)
             MSELECT_CLK_DIVISOR, CLK_DIVIDER(NVBL_PLLP_KHZ, 102000), Reg);
     NV_CAR_REGW(CLK_RST_PA_BASE, CLK_SOURCE_MSELECT, Reg);
 
+  /* Give clocks time to stabilize */
+  NvBlAvpStallMs(1);
+
   Reg = NV_CAR_REGR(CLK_RST_PA_BASE, CLK_SOURCE_I2C5);
   Reg = NV_FLD_SET_DRF_NUM(CLK_RST_CONTROLLER, CLK_SOURCE_I2C5,
           I2C5_CLK_DIVISOR, 0x10, Reg);
@@ -1235,11 +1253,77 @@ VOID NvBlStartCpu_T11x(UINT32 ResetVector)
   AvpPowerUpCpu();
 
   AvpHaltAvp();
+}
 
+static void NvBlMemoryControllerInit(NvBool IsChipInitialized)
+{
+    NvU32   Reg;
+
+    //-------------------------------------------------------------------------
+    // Memory Aperture Configuration
+    //-------------------------------------------------------------------------
+
+    // Get the default aperture configuration.
+    Reg = NV_DRF_DEF(APBDEV_PMC, GLB_AMAP_CFG, IROM_LOVEC, MMIO)
+        | NV_DRF_DEF(APBDEV_PMC, GLB_AMAP_CFG, PCIE_A1, DRAM)
+        | NV_DRF_DEF(APBDEV_PMC, GLB_AMAP_CFG, PCIE_A2, DRAM)
+        | NV_DRF_DEF(APBDEV_PMC, GLB_AMAP_CFG, PCIE_A3, DRAM)
+        | NV_DRF_DEF(APBDEV_PMC, GLB_AMAP_CFG, IRAM_RSVD, DRAM)
+        | NV_DRF_DEF(APBDEV_PMC, GLB_AMAP_CFG, NOR_A1, DRAM)
+        | NV_DRF_DEF(APBDEV_PMC, GLB_AMAP_CFG, NOR_A2, DRAM)
+        | NV_DRF_DEF(APBDEV_PMC, GLB_AMAP_CFG, NOR_A3, DRAM)
+        | NV_DRF_DEF(APBDEV_PMC, GLB_AMAP_CFG, VERIF_RSVD, DRAM)
+        | NV_DRF_DEF(APBDEV_PMC, GLB_AMAP_CFG, GFX_HOST_RSVD, DRAM)
+        | NV_DRF_DEF(APBDEV_PMC, GLB_AMAP_CFG, GART_GPU, DRAM)
+        | NV_DRF_DEF(APBDEV_PMC, GLB_AMAP_CFG, PPSB_RSVD, DRAM)
+        | NV_DRF_DEF(APBDEV_PMC, GLB_AMAP_CFG, EXTIO_RSVD, DRAM)
+        | NV_DRF_DEF(APBDEV_PMC, GLB_AMAP_CFG, APB_RSVD, DRAM)
+        | NV_DRF_DEF(APBDEV_PMC, GLB_AMAP_CFG, AHB_A1, MMIO)
+        | NV_DRF_DEF(APBDEV_PMC, GLB_AMAP_CFG, AHB_A1_RSVD, DRAM)
+        | NV_DRF_DEF(APBDEV_PMC, GLB_AMAP_CFG, AHB_A2_RSVD, DRAM)
+        | NV_DRF_DEF(APBDEV_PMC, GLB_AMAP_CFG, IROM_HIVEC, MMIO);
+
+    NV_PMC_REGW(PMC_PA_BASE, GLB_AMAP_CFG, Reg);
+
+    // Disable any further writes to the address map configuration register.
+    Reg = NV_PMC_REGR(PMC_PA_BASE, SEC_DISABLE);
+    Reg = NV_FLD_SET_DRF_DEF(APBDEV_PMC, SEC_DISABLE, AMAP_WRITE, ON, Reg);
+    NV_PMC_REGW(PMC_PA_BASE, SEC_DISABLE, Reg);
+
+    //-------------------------------------------------------------------------
+    // Memory Controller Tuning
+    //-------------------------------------------------------------------------
+
+    // Set up the AHB Mem Gizmo
+    Reg = NV_AHB_GIZMO_REGR(AHB_PA_BASE, AHB_MEM);
+    Reg = NV_FLD_SET_DRF_NUM(AHB_GIZMO, AHB_MEM, ENABLE_SPLIT, 1, Reg);
+    Reg = NV_FLD_SET_DRF_NUM(AHB_GIZMO, AHB_MEM, DONT_SPLIT_AHB_WR, 0, Reg);
+    /// Added for USB Controller
+    Reg = NV_FLD_SET_DRF_NUM(AHB_GIZMO, AHB_MEM, ENB_FAST_REARBITRATE, 1, Reg);
+    NV_AHB_GIZMO_REGW(AHB_PA_BASE, AHB_MEM, Reg);
+
+    // Enable GIZMO settings for USB controller.
+    Reg = NV_AHB_GIZMO_REGR(AHB_PA_BASE, USB);
+    Reg = NV_FLD_SET_DRF_NUM(AHB_GIZMO, USB, IMMEDIATE, 1, Reg);
+    NV_AHB_GIZMO_REGW(AHB_PA_BASE, USB, Reg);
+
+    // Make sure the debug registers are clear.
+    Reg = 0;
+    NV_MISC_REGW(MISC_PA_BASE, GP_ASDBGREG, Reg);
+    NV_MISC_REGW(MISC_PA_BASE, GP_ASDBGREG2, Reg);
+
+    //Set Weak Bias
+    NV_PMC_REGW(PMC_PA_BASE, WEAK_BIAS, 0x3ff);
+
+    // Enable errata for 1157520
+    Reg = NV_MC_REGR(MC_PA_BASE, EMEM_ARB_OVERRIDE);
+    Reg &= ~0x2;
+    NV_MC_REGW(MC_PA_BASE, EMEM_ARB_OVERRIDE, Reg);
 }
 
 void start_cpu_t11x(u32 reset_vector)
 {
+	UINT32 Reg;
 #if 0	//FIXME: need it for A15 remove tmp dependency ??
 
 	UINT32 tmp;
@@ -1264,6 +1348,15 @@ void start_cpu_t11x(u32 reset_vector)
 	}
 #endif	//0
 	ClockInitT11x();
+
+	/* Initialize memory controller */
+	NvBlMemoryControllerInit(1);
+
+	/* Set power gating timer multiplier -- see bug 966323 */
+	Reg = NV_PMC_REGR(PMC_PA_BASE, PWRGATE_TIMER_MULT);
+	Reg = NV_FLD_SET_DRF_DEF(APBDEV_PMC, PWRGATE_TIMER_MULT, MULT, EIGHT, Reg);
+	NV_PMC_REGW(PMC_PA_BASE, PWRGATE_TIMER_MULT, Reg);
+
 	NvBlStartCpu_T11x(reset_vector);
 }
 
