@@ -135,15 +135,19 @@ static void pin_mux_uart(int uart_ids)
 #endif
 
 #if defined(CONFIG_TEGRA3) || defined(CONFIG_TEGRA11X)
-static void enable_clock(enum periph_id pid, int src)
+static void enable_clock(enum periph_id pid, int src, unsigned divisor)
 {
 	/* Assert reset and enable clock */
 	reset_set_enable(pid, 1);
 	clock_enable(pid);
 
 	/* Use 'src' if provided, else use default */
-	if (src != -1)
-		clock_ll_set_source(pid, src);
+	if (src != -1) {
+		if (divisor != 0)
+			clock_ll_set_source_divisor(pid, src, (divisor-1)<<1);
+		else
+			clock_ll_set_source(pid, src);
+	}
 
 	/* wait for 2us */
 	udelay(2);
@@ -157,93 +161,55 @@ static void clock_init_misc(void)
 {
 #if defined(CONFIG_TEGRA3)
 	/* 0 = PLLA_OUT0, -1 = CLK_M (default) */
-	enable_clock(PERIPH_ID_I2S0, -1);
-	enable_clock(PERIPH_ID_I2S1, 0);
-	enable_clock(PERIPH_ID_I2S2, 0);
-	enable_clock(PERIPH_ID_I2S3, 0);
-	enable_clock(PERIPH_ID_I2S4, -1);
-	enable_clock(PERIPH_ID_SPDIF, -1);
+	enable_clock(PERIPH_ID_I2S0, -1, 0);
+	enable_clock(PERIPH_ID_I2S1, 0, 0);
+	enable_clock(PERIPH_ID_I2S2, 0, 0);
+	enable_clock(PERIPH_ID_I2S3, 0, 0);
+	enable_clock(PERIPH_ID_I2S4, -1, 0);
+	enable_clock(PERIPH_ID_SPDIF, -1, 0);
 #endif
 
 #if defined(CONFIG_TEGRA11X)
 	/*
 	 * init of clocks that are needed by kernel
 	 *
-	 * TODO: use function instead of direct writel
 	 */
+	/* set to power on default: source: CLK_M, divisor: 1 */
+	enable_clock(PERIPH_ID_I2S0, 3, 1);
+	enable_clock(PERIPH_ID_I2S1, 3, 1);
+	enable_clock(PERIPH_ID_I2S2, 3, 1);
+	enable_clock(PERIPH_ID_I2S3, 3, 1);
+	enable_clock(PERIPH_ID_I2S4, 3, 1);
 
-	/* i2s0 */ /* default: clock source CLK_M and divisor 1 */
-	enable_clock(PERIPH_ID_I2S0, -1);
-	enable_clock(PERIPH_ID_I2S1, -1);
-	enable_clock(PERIPH_ID_I2S2, -1);
-	enable_clock(PERIPH_ID_I2S3, -1);
-	enable_clock(PERIPH_ID_I2S4, -1);
+	/* spdif: source: PLLP_OUT0, divisor: 9 */
+	enable_clock(PERIPH_ID_SPDIF, 0, 9);
 
-	writel(0x00000010, 0x6000610c); /* src: PLLP_OUT0, divisor: 9 */
-	enable_clock(PERIPH_ID_SPDIF, -1);
+	/* host1x: source: PLLP_OUT0, divisor: 4 */
+	enable_clock(PERIPH_ID_HOST1X, 4, 4);
 
-	/* host1x */
-	writel(0x10000000, 0x60006300); /* SET: rst_l, bit 28 */
-	writel(0x10000000, 0x60006320); /* SET: enb_l, bit 28 */
-	writel(0x80000006, 0x60006180); /* src: PLLP_OUT0, divisor: 4 */
-	udelay(2);
-	writel(0x10000000, 0x60006304); /* CLR: rst_l, bit 28 */
+	/* 3d: source: PLLM_OUT0, divisor: 6 */
+	enable_clock(PERIPH_ID_3D, 0, 6);
 
-	/* 3d */
-	writel(0x01000000, 0x60006300); /* SET: rst_l, bit 24 */
-	writel(0x01000000, 0x60006320); /* SET: enb_l, bit 24 */
-	writel(0x0000320a, 0x60006158); /* src: PLLM_OUT0, divisor: 6 */
-	udelay(2);
-	writel(0x01000000, 0x60006304); /* CLR: rst_l, bit 24 */
+	/* 2d: source: PLLM_OUT0, divisor: 6 */
+	enable_clock(PERIPH_ID_2D, 0, 6);
 
-	/* 2d */
-	writel(0x00200000, 0x60006300); /* SET: rst_l, bit 21 */
-	writel(0x00200000, 0x60006320); /* SET: enb_l, bit 21 */
-	writel(0x0000320a, 0x6000615c); /* src: PLLM_OUT0, divisor: 6 */
-	udelay(2);
-	writel(0x00200000, 0x60006304); /* CLR: rst_l, bit 21 */
+	/* 3d2: source: PLLM_OUT0, divisor: 6 */
+	enable_clock(PERIPH_ID_3D2, 0, 6);
 
-	/* 3d2 */
-	writel(0x00000004, 0x60006430); /* SET: rst_v, bit 2 */
-	writel(0x00000004, 0x60006440); /* SET: enb_v, bit 2 */
-	writel(0x0000000a, 0x600063b0); /* src: PLLM_OUT0, divisor: 6 */
-	udelay(2);
-	writel(0x00000004, 0x60006434); /* CLR: rst_v, bit 2 */
+	/* epp: source: PLLM_OUT0, divisor: 6 */
+	enable_clock(PERIPH_ID_EPP, 0, 6);
 
-	/* epp */
-	writel(0x00080000, 0x60006300); /* SET: rst_l, bit 19 */
-	writel(0x00080000, 0x60006320); /* SET: enb_l, bit 19 */
-	writel(0x0000000a, 0x6000616c); /* src: PLLM_OUT0, divisor: 6 */
-	udelay(2);
-	writel(0x00080000, 0x60006304); /* CLR: rst_l, bit 19 */
+	/* msenc: source: PLLM_OUT0, divisor: 6 */
+	enable_clock(PERIPH_ID_MSENC, 0, 6);
 
-	/* msenc */
-	writel(0x08000000, 0x60006310); /* SET: rst_u, bit 27 */
-	writel(0x08000000, 0x60006330); /* SET: enb_u, bit 27 */
-	writel(0x0000000a, 0x600061f0); /* src: pllm (def), divisor: 6 */
-	udelay(2);
-	writel(0x08000000, 0x60006314); /* CLR: rst_u, bit 27 */
+	/* tsec: source: PLLP_OUT0, divisor: 4 */
+	enable_clock(PERIPH_ID_TSEC, 0, 4);
 
-	/* tsec */
-	writel(0x00080000, 0x60006310); /* SET: rst_u, bit 19 */
-	writel(0x00080000, 0x60006330); /* SET: enb_u, bit 19 */
-	writel(0x00000006, 0x600061f4); /* src: pllp_out0, divisor: 4 */
-	udelay(2);
-	writel(0x00080000, 0x60006314); /* CLR: rst_u, bit 19 */
+	/* vi: source: PLLM_OUT0, divisor: 6 */
+	enable_clock(PERIPH_ID_VI, 0, 6);
 
-	/* vi */
-	writel(0x00100000, 0x60006300); /* SET: rst_l, bit 20 */
-	writel(0x00100000, 0x60006320); /* SET: enb_l, bit 20 */
-	writel(0x0000000a, 0x60006148); /* src: PLLM_OUT0, divisor: 6 */
-	udelay(2);
-	writel(0x00100000, 0x60006304); /* CLR: rst_l, bit 20 */
-
-	/* vde */
-	writel(0x20000000, 0x60006308); /* SET: rst_h, bit 29 */
-	writel(0x20000000, 0x60006328); /* SET: enb_h, bit 29 */
-	writel(0x40000004, 0x600061c8); /* src: PLLC_OUT0, divisor: 3 */
-	udelay(2);
-	writel(0x20000000, 0x6000630c); /* CLR: rst_h, bit 29 */
+	/* vde: source: PLLC_OUT0, divisor: 3 */
+	enable_clock(PERIPH_ID_VDE, 2, 3);
 
 	/*
 	 * RST_V: de-assert reset on:
@@ -252,17 +218,22 @@ static void clock_init_misc(void)
 	 * 11: APBIF
 	 * 10: AUDIO
 	 */
-	writel(0x00007c00, 0x60006434); /* CLR: rst_v */
+	reset_set_enable(PERIPH_ID_AUDIO, 0);
+	reset_set_enable(PERIPH_ID_APBIF, 0);
+	reset_set_enable(PERIPH_ID_DAM0, 0);
+	reset_set_enable(PERIPH_ID_DAM1, 0);
+	reset_set_enable(PERIPH_ID_DAM2, 0);
 	udelay(2);
 
 	/*
 	 * RST_W: de-assert reset on:
 	 *
-	 * 26-24: ADX0, AMX and RSV
+	 * 26: ADX0
+	 * 25: AMX0
 	 */
-	writel(0x07000000, 0x6000643c); /* CLR: rst_w */
+	reset_set_enable(PERIPH_ID_AMX0, 0);
+	reset_set_enable(PERIPH_ID_ADX0, 0);
 	udelay(2);
-
 #endif
 }
 #endif
