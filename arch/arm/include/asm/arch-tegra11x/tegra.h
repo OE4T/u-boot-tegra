@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2010,2011
+ * (C) Copyright 2010 - 2013
  * NVIDIA Corporation <www.nvidia.com>
  *
  * See file CREDITS for list of people who contributed to this
@@ -33,8 +33,10 @@
 #define NV_PA_CLK_RST_BASE	0x60006000
 #define NV_PA_FLOW_BASE		0x60007000
 #define NV_PA_AHB_BASE		0x6000C000
+#define NV_SECURE_BOOT_BASE	0x6000C200
 #define NV_PA_GPIO_BASE		0x6000D000
 #define NV_PA_EVP_BASE		0x6000F000
+#define NV_VDE_PA_BASE		0x6001A000
 #define NV_PA_APB_MISC_BASE	0x70000000
 #define NV_PA_APB_MISC_GP_BASE	(NV_PA_APB_MISC_BASE + 0x0800)
 #define NV_PA_APB_UARTA_BASE	(NV_PA_APB_MISC_BASE + 0x6000)
@@ -88,7 +90,7 @@ struct timerus {
 #define TEGRA_SOC_COUNT		(2)
 
 /* Address at which WB code runs, it must not overlap Bootrom's IRAM usage */
-#define T30_WB_RUN_ADDRESS	0x40020000
+#define T11X_WB_RUN_ADDRESS	0x40020000
 
 #define NVBOOTINFOTABLE_BCTSIZE	0x48	/* BCT size in BIT in IRAM */
 #define NVBOOTINFOTABLE_BCTPTR	0x4C	/* BCT pointer in BIT in IRAM */

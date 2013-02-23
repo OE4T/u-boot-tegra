@@ -1,5 +1,5 @@
 /*
- *  (C) Copyright 2010,2011,2012
+ *  (C) Copyright 2010 - 2013
  *  NVIDIA Corporation <www.nvidia.com>
  *
  * See file CREDITS for list of people who contributed to this
@@ -28,7 +28,7 @@
 /* PLL registers - there are several PLLs in the clock controller */
 struct clk_pll {
 	uint pll_base;	/* the control register */
-	uint pll_out;		/* output control */
+	uint pll_out;	/* output control */
 	uint pll_out_b;	/* some clock has output B control */
 	uint pll_misc;	/* other misc things */
 };
@@ -37,6 +37,13 @@ struct clk_pll {
 struct clk_pll_simple {
 	uint pll_base;		/* the control register */
 	uint pll_misc;		/* other misc things */
+};
+
+struct clk_pllm {
+	uint pllm_base;		/* the control register */
+	uint pllm_out;		/* output control */
+	uint pllm_misc1;	/* misc1 */
+	uint pllm_misc2;	/* misc2 */
 };
 
 /* RST_DEV_(L,H,U,V,W)_(SET,CLR) and CLK_ENB_(L,H,U,V,W)_(SET,CLR) */
@@ -145,7 +152,12 @@ struct clk_rst_ctlr {
 	struct clk_set_clr crc_rst_dev_ex_vw[TEGRA_CLK_REGS_VW];
 	/* _CLK_ENB_V/W_CLR_0 0x440 ~ 0x44c */
 	struct clk_set_clr crc_clk_enb_ex_vw[TEGRA_CLK_REGS_VW];
-	uint crc_reserved40[12];	/* _reserved_40,	0x450-47C */
+	uint crc_rst_cpug_cmplx_set;	/* _RST_CPUG_CMPLX_SET_0,   0x450*/
+	uint crc_rst_cpug_cmplx_clr;	/* _RST_CPUG_CMPLX_CLR_0,   0x454*/
+	uint crc_rst_cpulp_cmplx_set;	/* _RST_CPULP_CMPLX_SET_0,  0x458*/
+	uint crc_rst_cpulp_cmplx_clr;	/* _RST_CPULP_CMPLX_CLR_0,  0x45C*/
+
+	uint crc_reserved40[8];	/* _reserved_40,	0x460-47C */
 	uint crc_pll_cfg0;		/* _PLL_CFG0_0,		0x480 */
 	uint crc_pll_cfg1;		/* _PLL_CFG1_0,		0x484 */
 	uint crc_pll_cfg2;		/* _PLL_CFG2_0,		0x488 */

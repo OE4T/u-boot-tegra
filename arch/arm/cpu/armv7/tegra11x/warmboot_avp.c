@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2010 - 2011
+ * (C) Copyright 2013
  * NVIDIA Corporation <www.nvidia.com>
  *
  * See file CREDITS for list of people who contributed to this
@@ -25,48 +25,30 @@
 #include <asm/io.h>
 #include <asm/arch/clk_rst.h>
 #include <asm/arch/clock.h>
-#include <asm/arch/pinmux.h>
 #include <asm/arch/pmc.h>
 #include <asm/arch/tegra.h>
 #include <asm/arch/flow.h>
+#include <asm/arch/fuse.h>
 #include <asm/arch/ahb.h>
-#include <asm/arch/sdmmc.h>
 #include <asm/arch/warmboot.h>
+#include <asm/arch/sysctr.h>
 #include "ap20.h"
 #include "warmboot_avp.h"
 
-/* t11x bringup */
-#include <asm/arch/t11x/arpg.h>
-
-/* set to 1 to skip resetting CORESIGHT */
-#define DEBUG_DO_NOT_RESET_CORESIGHT	0
-
-/* set to 1 to enable ICE debug */
-#define DEBUG_LP0			0
-
 void wb_start(void)
 {
-	struct pmux_tri_ctlr *pmt = (struct pmux_tri_ctlr *)NV_PA_APB_MISC_BASE;
 	struct pmc_ctlr *pmc = (struct pmc_ctlr *)NV_PA_PMC_BASE;
 	struct flow_ctlr *flow = (struct flow_ctlr *)NV_PA_FLOW_BASE;
-	struct sdmmc_ctlr *sdmmc4 = (struct sdmmc_ctlr *)NV_PA_SDMMC4_BASE;
-	struct clk_rst_ctlr *clkrst =
-			(struct clk_rst_ctlr *)NV_PA_CLK_RST_BASE;
+	struct clk_rst_ctlr *clkrst = (struct clk_rst_ctlr *)NV_PA_CLK_RST_BASE;
 	struct ahb_ctlr *ahb = (struct ahb_ctlr *)NV_PA_AHB_BASE;
-	u32 reg, saved_reg;
-	u32 divm, divn;
+	struct fuse_regs *fuse = (struct fuse_regs *)NV_PA_FUSE_BASE;
+	struct sysctr_ctlr *sysctr = (struct sysctr_ctlr *)NV_PA_TSC_BASE;
+	u32 reg;
+	u32 reg_1;
+	u32 reg_saved;
+	u32 divm;
+	u32 divn;
 	u32 cpcon, lfcon;
-	u32 base, misc;
-	u32 status_mask, toggle, clamp;
-
-#if DEBUG_LP0
-	asm volatile (
-		"b ."
-	);
-#endif
-
-	/* enable JTAG & TBE */
-	writel(CONFIG_CTL_TBE | CONFIG_CTL_JTAG, &pmt->pmt_cfg_ctl);
 
 	/* Are we running where we're supposed to be? */
 	asm volatile (
@@ -75,11 +57,11 @@ void wb_start(void)
 					/* no input, no clobber list */
 	);
 
-	if (reg != T30_WB_RUN_ADDRESS)
+	if (reg != T11X_WB_RUN_ADDRESS)
 		goto do_reset;
 
 	/* Are we running with AVP? */
-	if (readl(NV_PA_PG_UP_BASE + PG_UP_TAG_0) != PG_UP_TAG_AVP)
+	if (readl(NV_PA_PG_UP_BASE + PG_UP_TAG) != PG_UP_TAG_AVP)
 		goto do_reset;
 
 #if defined(CONFIG_SYS_PLLP_BASE_IS_408MHZ)
@@ -87,26 +69,36 @@ void wb_start(void)
 	 * Save the current setting for CLK_BURST_POLICY and change clock
 	 * source to CLKM
 	 */
-	saved_reg = readl(&clkrst->crc_sclk_brst_pol);
+
+	/* use reg_saved to save the crc_sclk_brst_pol value */
+	reg_saved = readl(&clkrst->crc_sclk_brst_pol);
 
 	reg = SCLK_SWAKE_FIQ_SRC_CLKM | SCLK_SWAKE_IRQ_SRC_CLKM |
 		SCLK_SWAKE_RUN_SRC_CLKM | SCLK_SWAKE_IDLE_SRC_CLKM |
 		SCLK_SYS_STATE_RUN;
 	writel(reg, &clkrst->crc_sclk_brst_pol);
 
-	/* Update PLLP output dividers for 408 MHz operation */
+	/* Update PLLP output dividers for 408 MHz operation, assert RST */
 	/* Set OUT1 to 9.6MHz and OUT2 to 48MHz (based on 408MHz of PLLP) */
-	reg = PLLP_408_OUTA;
-	writel(reg, &clkrst->crc_pll[CLOCK_ID_PERIPH].pll_out);
-
-	reg = PLLP_408_OUTB;
-	writel(reg, &clkrst->crc_pll[CLOCK_ID_PERIPH].pll_out_b);
+	writel(PLLP_408_OUTA_RST, &clkrst->crc_pll[CLOCK_ID_PERIPH].pll_out);
+	/* Set OUT3 to 9.6MHz and OUT4 to 48MHz (based on 408MHz of PLLP) */
+	writel(PLLP_408_OUTB_RST, &clkrst->crc_pll[CLOCK_ID_PERIPH].pll_out_b);
 #endif
 
-	/* Set oscillator the drive strength */
-	reg = readl(&clkrst->crc_osc_ctrl);
-	reg &= ~(OSC_CTRL_XOE | OSC_CTRL_XOFS);
-	reg |= OSC_CTRL_XOE_ENABLE  | OSC_CTRL_XOFS_4;
+	/*
+	 * Read oscillator drive strength from OSC_EDPD_OVER.XOFS and copy
+	 * to OSC_CTRL.XOFS and set XOE
+	 */
+	reg = readl(&pmc->pmc_osc_edpd_over);
+	reg >>= PMC_OSC_EDPD_OVER_XOFS_SHIFT;
+	reg &= PMC_OSC_EDPD_OVER_XOFS_MASK;
+
+	reg_1 = readl(&clkrst->crc_osc_ctrl);
+	reg_1 &= ~(OSC_CTRL_XOE | OSC_CTRL_XOFS);
+
+	reg <<= CLK_OSC_CTRL_XOFS_SHIFT;
+	reg |= OSC_CTRL_XOE_ENABLE;
+	reg |= reg_1;
 	writel(reg, &clkrst->crc_osc_ctrl);
 
 #if defined(CONFIG_SYS_PLLP_BASE_IS_408MHZ)
@@ -116,7 +108,6 @@ void wb_start(void)
 
 	/* Find out the current osc frequency */
 	reg = readl(&clkrst->crc_osc_ctrl);
-	/* Find out the PLLP_BASE value to use */
 
 	/*
 	 * Note: can not use switch statement: compiler builds tables on the
@@ -148,15 +139,17 @@ void wb_start(void)
 	reg = (divm << PLLP_BASE_PLLP_DIVM_SHIFT) |
 			(divn << PLLP_BASE_PLLP_DIVN_SHIFT) |
 			PLLP_BASE_OVRRIDE_ENABLE |
-			PLLP_BASE_PLLP_ENABLE_ENABLE;
+			PLLP_BASE_PLLP_ENABLE;
 	writel(reg, &clkrst->crc_pll[CLOCK_ID_PERIPH].pll_base);
 
 	/* Wait till PLLP is lock */
-	while (1) {
-		reg = readl(&clkrst->crc_pll[CLOCK_ID_PERIPH].pll_base);
-		if (reg & PLLP_BASE_PLLP_LOCK_LOCK)
-			break;
-	}
+	while ((readl(&clkrst->crc_pll[CLOCK_ID_PERIPH].pll_base) &
+		PLLP_BASE_PLLP_LOCK) == 0)
+			;
+
+	/* Update PLLP output dividers for 408 MHz operation, deassert RSTN */
+	writel(PLLP_408_OUTA_NRST, &clkrst->crc_pll[CLOCK_ID_PERIPH].pll_out);
+	writel(PLLP_408_OUTB_NRST, &clkrst->crc_pll[CLOCK_ID_PERIPH].pll_out_b);
 
 	/*
 	 * Wait for 250uS after lock bit is set to make sure pll is stable.
@@ -167,115 +160,120 @@ void wb_start(void)
 	writel(reg, &flow->halt_cop_events);
 
 	/* Restore setting for SCLK_BURST_POLICY */
-	writel(saved_reg, &clkrst->crc_sclk_brst_pol);
-
+	writel(reg_saved, &clkrst->crc_sclk_brst_pol);
 #endif
 
 	/*
 	 * Enable the PPSB_STOPCLK feature to allow SCLK to be run at
-	 * higher frequencies. See bug 811773.
+	 * higher frequencies.
 	 */
 	reg = readl(&clkrst->crc_misc_clk_enb);
 	reg |= MISC_CLK_ENB_EN_PPSB_STOPCLK_ENABLE;
 	writel(reg, &clkrst->crc_misc_clk_enb);
 
 	reg = readl(&ahb->arbitration_xbar_ctrl);
-	reg |= ARBITRATION_XBAR_CTRL_PPSB_ENABLE_ENABLE;
+	reg |= ARBITRATION_XBAR_CTRL_PPSB_ENABLE;
 	writel(reg, &ahb->arbitration_xbar_ctrl);
 
-#if	!DEBUG_DO_NOT_RESET_CORESIGHT
-	/* Assert CoreSight reset */
-	reg = SWR_CSITE_RST;
-	writel(reg, &clkrst->crc_rst_dev_ex[TEGRA_DEV_U].set);
-#endif
-
-	/* Halt the G complex CPUs at the flow controller in case the G
-	 * complex was running in a uni-processor configuration.
+	/*
+	 * Lock down the memory aperture configuration since the sticky
+	 * secure lock bit was reset because of LP0.
 	 */
-	writel(EVENT_MODE_STOP, &flow->halt_cpu_events);
-	writel(EVENT_MODE_STOP, &flow->halt_cpu1_events);
-	writel(EVENT_MODE_STOP, &flow->halt_cpu2_events);
-	writel(EVENT_MODE_STOP, &flow->halt_cpu3_events);
+	reg = readl(&pmc->pmc_sec_disable);
+	reg |= SEC_DISABLE_AMAP_WRITE_ON;
+	writel(reg, &pmc->pmc_sec_disable);
 
-	/* Find out which CPU (LP or G) to wake up. The default setting
-	 * in flow controller is to wake up GCPU.
-	 *
-	 * Select the LP CPU cluster. All accesses to the cluster-dependent
-	 * CPU registers (legacy clock enables, resets, burst policy, flow
-	 * controller) now refer to the LP CPU.
+	/* setup GMI_CS7 (PI.06) as output */
+	reg = readl(GMI_CS7_N_PA_BASE);
+	reg &= PINMUX_AUX_GMI_CS7_N_TRISTATE_SW;
+	writel(reg, GMI_CS7_N_PA_BASE);
+	writel(GPIO_MSK_BIT_6_ON, GPIO_I_PA_BASE + GPIO_MSK_CNF);
+	writel(GPIO_MSK_BIT_6_ON, GPIO_I_PA_BASE + GPIO_MSK_OE);
+
+	/* wait for timer to have a new micro-second */
+	reg = readl(TIMER_USEC_CNTR);
+	while (readl(TIMER_USEC_CNTR) == reg)
+			;
+
+	/* toggle GMI_CS7 (PI.06) for 16 times */
+	for (reg_1 = 0; reg_1 < 16; ++reg_1) {
+		writel(GPIO_MSK_BIT_6_OFF, GPIO_I_PA_BASE + GPIO_MSK_OUT);
+		/* delay 1 us */
+		reg = readl(TIMER_USEC_CNTR);
+		while (readl(TIMER_USEC_CNTR) == reg)
+			;
+
+		/* toggle */
+		writel(GPIO_MSK_BIT_6_ON, GPIO_I_PA_BASE + GPIO_MSK_OUT);
+		/* delay 1 us */
+		reg = readl(TIMER_USEC_CNTR);
+		while (readl(TIMER_USEC_CNTR) == reg)
+			;
+	}
+
+	writel(GPIO_MSK_BIT_6_OFF, GPIO_I_PA_BASE + GPIO_MSK_OE);
+
+	/* Disable RAM repair bypass if required by fuse (enable RAM repair) */
+	reg = readl(&fuse->fuse_spare_bit_10) & readl(&fuse->fuse_spare_bit_11);
+	if (reg & 1) {
+		reg = readl(&flow->ram_repair);
+		reg |= RAM_REPAIR_BYPASS_EN;
+		writel(reg, &flow->ram_repair);
+	}
+
+	/*
+	 * Find out which CPU (slow or fast) to wake up. The default setting
+	 * in flow controller is to wake up GCPU
 	 */
 	reg = readl(&pmc->pmc_scratch4);
-	reg &= CPU_WAKEUP_CLUSTER;
-	if (reg) {
+	if (reg & CPU_WAKEUP_CLUSTER) {
 		reg = readl(&flow->cluster_control);
 		reg |= ACTIVE_LP;
 		writel(reg, &flow->cluster_control);
 	}
 
-	/* Hold all CPUs in reset. */
-	reg = CPU_CMPLX_CPURESET0 | CPU_CMPLX_CPURESET1 |
-		CPU_CMPLX_CPURESET2 | CPU_CMPLX_CPURESET3 |
-		CPU_CMPLX_DERESET0 | CPU_CMPLX_DERESET1 |
-		CPU_CMPLX_DERESET2 | CPU_CMPLX_DERESET3 |
-		CPU_CMPLX_DBGRESET0 | CPU_CMPLX_DBGRESET1 |
-		CPU_CMPLX_DBGRESET2 | CPU_CMPLX_DBGRESET3;
-	writel(reg, &clkrst->crc_rst_cpu_cmplx_set);
-
-	/* Assert CPU complex reset. */
-	reg = readl(&clkrst->crc_rst_dev[TEGRA_DEV_L]);
-	reg |= CPU_RST;
-	writel(reg, &clkrst->crc_rst_dev[TEGRA_DEV_L]);
-
 	/* Program SUPER_CCLK_DIVIDER */
 	reg = SUPER_CDIV_ENB_ENABLE;
 	writel(reg, &clkrst->crc_super_cclk_div);
 
-	/* Stop the clock to all CPUs. */
-	reg = SET_CPU0_CLK_STP_ENABLE | SET_CPU1_CLK_STP_ENABLE |
-		SET_CPU2_CLK_STP_ENABLE | SET_CPU3_CLK_STP_ENABLE;
-	writel(reg, &clkrst->crc_clk_cpu_cmplx_set);
-
-	/* Make sure the resets are held for at least 2 microseconds. */
-	reg = readl(TIMER_USEC_CNTR);
-	while (1) {
-		if (readl(TIMER_USEC_CNTR) > (reg + 2))
-			break;
-	}
-
+	/* Enable the CoreSight clock */
 	reg = CLK_ENB_CSITE;
 	writel(reg, &clkrst->crc_clk_enb_ex[TEGRA_DEV_U].set);
 
-	/* De-assert CoreSight reset */
+	/*
+	 * De-assert CoreSight reset.
+	 * NOTE: We're leaving the CoreSight clock on the oscillator for
+	 *       now. It will be restored to its original clock source
+	 *       when the CPU-side restoration code runs.
+	 */
 	reg = SWR_CSITE_RST;
 	writel(reg, &clkrst->crc_rst_dev_ex[TEGRA_DEV_U].clr);
-
-	/* Unlock debugger access. */
-	reg = 0xC5ACCE55;
-	writel(reg, CSITE_CPU_DBG0_LAR);
 
 	/* Find out the current osc frequency */
 	reg = readl(&clkrst->crc_osc_ctrl);
 	reg >>= OSC_CTRL_OSC_FREQ_SHIFT;
+
+	/* Find out the PLL-U value to use */
 	if ((reg == OSC_FREQ_OSC12) || (reg == OSC_FREQ_OSC48)) {
 		divm = 0x0c;
 		divn = 0x3c0;
 		cpcon = 0x0c;
-		lfcon = 0x01;
+		lfcon = 0x02;
 	} else if (reg == OSC_FREQ_OSC16P8) {
 		divm = 0x07;
 		divn = 0x190;
 		cpcon = 0x05;
-		lfcon = 0x00;
+		lfcon = 0x02;
 	} else if ((reg == OSC_FREQ_OSC19P2) || (reg == OSC_FREQ_OSC38P4)) {
 		divm = 0x04;
 		divn = 0xc8;
 		cpcon = 0x03;
-		lfcon = 0x00;
+		lfcon = 0x02;
 	} else if (reg == OSC_FREQ_OSC26) {
 		divm = 0x1a;
 		divn = 0x3c0;
 		cpcon = 0x0c;
-		lfcon = 0x01;
+		lfcon = 0x02;
 	} else {
 		/*
 		 * Unused code in OSC_FREQ is mapped to 13MHz - use 13MHz as
@@ -284,65 +282,63 @@ void wb_start(void)
 		divm = 0x0d;
 		divn = 0x3c0;
 		cpcon = 0x0c;
-		lfcon = 0x01;
+		lfcon = 0x02;
 	}
 
-	base = PLLU_BYPASS_ENABLE | (divn << 8) | (divm << 0);
-	writel(base, &clkrst->crc_pll[CLOCK_ID_USB].pll_base);
-	misc = (cpcon << 8) | (lfcon << 4);
-	writel(misc, &clkrst->crc_pll[CLOCK_ID_USB].pll_misc);
+	/* Program PLL-U */
+	reg = PLLU_BYPASS_ENABLE | PLLU_OVERRIDE_ENABLE | (divn << 8) |
+		(divm << 0);
+	writel(reg, &clkrst->crc_pll[CLOCK_ID_USB].pll_base);
+	reg_1 = (cpcon << 8) | (lfcon << 4);
+	writel(reg_1, &clkrst->crc_pll[CLOCK_ID_USB].pll_misc);
 
-	base &= ~PLLU_BYPASS_ENABLE;
-	base |= PLLU_ENABLE_ENABLE;
-	writel(base, &clkrst->crc_pll[CLOCK_ID_USB].pll_base);
-	misc |= PLLU_LOCK_ENABLE_ENABLE;
-	writel(misc, &clkrst->crc_pll[CLOCK_ID_USB].pll_misc);
+	/* Enable PLL-U */
+	reg &= ~PLLU_BYPASS_ENABLE;
+	reg |= PLLU_ENABLE_ENABLE;
+	writel(reg, &clkrst->crc_pll[CLOCK_ID_USB].pll_base);
+	reg_1 |= PLLU_LOCK_ENABLE_ENABLE;
+	writel(reg_1, &clkrst->crc_pll[CLOCK_ID_USB].pll_misc);
 
-	/*
-	 * Restore SDMMC4 write-protect status (BUG 762311).
-	 *   1. Enable SDMMC4 clock (it's OK to leave it on the default clock
-	 *      source, CLK_M, since only one register will be written).
-	 *   2. Take SDMMC4 controller out of reset.
-	 *   3. Set SDMMC4_VENDOR_CLOCK_CNTRL_0_HW_RSTN_OVERRIDE.
-	 *   4. Restore SDMMC4 reset state.
-	 *   5. Stop the clock to SDMMC4 controller.
-	 */
-	reg = SET_CLK_ENB_SDMMC4_ENABLE;
-	writel(reg, &clkrst->crc_clk_enb_ex[TEGRA_DEV_L].set);
-
-	saved_reg = readl(&clkrst->crc_rst_dev[TEGRA_DEV_L]);
-	reg = CLR_SDMMC4_RST_ENABLE;
-	writel(reg, &clkrst->crc_rst_dev_ex[TEGRA_DEV_L].clr);
-
-	reg = readl(sdmmc4->sdmmc_vendor_clk_cntrl);
-	reg |= HW_RSTN_OVERRIDE_OVERRIDE;
-	writel(reg, &sdmmc4->sdmmc_vendor_clk_cntrl);
-
-	writel(saved_reg, &clkrst->crc_rst_dev[TEGRA_DEV_L]);
-
-	reg = CLR_CLK_ENB_SDMMC4_ENABLE;
-	writel(reg, &clkrst->crc_clk_enb_ex[TEGRA_DEV_L].clr);
+	/* Configure BSEV_CYA_SECURE & BSEV_VPR_CONFIG for secure playback */
+	reg = readl(ARVDE_BSEV_CYA_SECURE);
+	reg |= 4;
+	writel(reg, ARVDE_BSEV_CYA_SECURE);
+	reg = readl(ARVDE_BSEV_VPR_CONFIG);
+	reg |= 1;
+	writel(reg, ARVDE_BSEV_VPR_CONFIG);
 
 	/*
-	 * Set the CPU reset vector. SCRATCH41 contains the physical
+	 * Set the CPU reset vector. pmc_scratch41 contains the physical
 	 * address of the CPU-side restoration code.
 	 */
 	reg = readl(&pmc->pmc_scratch41);
 	writel(reg, EXCEP_VECTOR_CPU_RESET_VECTOR);
 
-	/* Select CPU complex clock source */
+	/*
+	 * Following builds up instructions for the CPU startup
+	 *	MOV	R0, #LSB16(ResetVector);
+	 *	MOVT	R0, #MSB16(ResetVector);
+	 *	BX	R0;
+	 *	B	-12;
+	 */
+	reg_1 = ((reg & 0xF000) << 4) | (reg & 0x0FFF);
+	reg_1 |= 0xE3000000;	/* MOV LSB(Rn) */
+	writel(reg_1, 0x4003FFF0);
+
+	reg >>= 16;
+	reg_1 = ((reg & 0xF000) << 4) | (reg & 0x0FFF);
+	reg_1 |= 0xE3400000;	/* MOV MSB(Rn) */
+	writel(reg_1, 0x4003FFF4);
+	/* BX R0 */
+	writel(0xE12FFF10, 0x4003FFF8);
+	/* B -12 */
+	writel(0xEAFFFFFB, 0x4003FFFC);
+
+	/* Select CPU complex clock source. */
 	writel(CCLK_PLLP_BURST_POLICY, &clkrst->crc_cclk_brst_pol);
 
-	/* Enable CPU0 clock */
-	reg = CPU_CMPLX_CLR_CPU0_CLK_STP;
-	writel(reg, &clkrst->crc_clk_cpu_cmplx_clr);
-
-	/* Enable the CPU complex clock */
-	reg = CLK_ENB_CPU;
-	writel(reg, &clkrst->crc_clk_enb_ex[TEGRA_DEV_L].set);
-
-	/* Set MSELECT clock source to PLL_P */
-	reg = MSELECT_CLK_SRC_PLLP_OUT0;
+	/* Set MSELECT clock source to PLL_P with 1:4 divider */
+	reg = MSELECT_CLK_SRC_PLLP_OUT0 | MSELECT_CLK_DIVISOR_6;
 	writel(reg,
 		&clkrst->crc_clk_src_vw[PERIPHC_MSELECT - PERIPHC_VW_FIRST]);
 
@@ -350,89 +346,165 @@ void wb_start(void)
 	reg = SET_CLK_ENB_MSELECT_ENABLE;
 	writel(reg, &clkrst->crc_clk_enb_ex_vw[TEGRA_DEV_V].set);
 
-	/* Bring MSELECT out of reset */
-	reg = SET_MSELECT_RST_ENABLE;
-	writel(reg, &clkrst->crc_rst_dev_ex_vw[TEGRA_DEV_V].clr);
-
-	/*
-	 * Find out which CPU (LP or G) to power on
-	 * Power up the CPU0 partition if necessary.
-	 * status_mask: bit mask for CPU enable in APBDEV_PMC_PWRGATE_STATUS_0
-	 * toggle: value to power on cpu
-	 * clamp: value to remove clamping to CPU
-	 */
-	reg = readl(&pmc->pmc_scratch4);
-	reg &= CPU_WAKEUP_CLUSTER;
-	if (reg) {
-		/* Setup registers for powering up LPCPU */
-		/* PWRGATE_STATUS, A9LP */
-		status_mask = PWRGATE_STATUS_A9LP_ENABLE;
-		/* PWRGATE_TOGGLE, PARTID, A9LP , START, ENABLE */
-		toggle = PWRGATE_TOGGLE_START | PWRGATE_TOGGLE_PARTID_A9LP;
-		/* REMOVE_CLAMPING_CMD, A9LP, ENABLE */
-		clamp = REMOVE_CLAMPING_CMD_A9LP_ENABLE;
-	} else {
-		/* Setup registers for powering up GCPU */
-		/* PWRGATE_STATUS, CPU */
-		status_mask = PWRGATE_STATUS_CPU_ENABLE;
-		/* PWRGATE_TOGGLE, PARTID, CP , START, ENABLE */
-		toggle = PWRGATE_TOGGLE_START | PWRGATE_TOGGLE_PARTID_CP;
-		/* REMOVE_CLAMPING_CMD, CPU, ENABLE */
-		clamp = REMOVE_CLAMPING_CMD_CPU_ENABLE;
-	}
-
-	reg = readl(&pmc->pmc_pwrgate_status);
-	if (!(reg & status_mask))
-		writel(toggle, &pmc->pmc_pwrgate_toggle);
-
+	/* Bring MSELECT out of reset, after 2 microsecond wait */
+	reg = readl(TIMER_USEC_CNTR);
 	while (1) {
-		reg = readl(&pmc->pmc_pwrgate_status);
-		if (reg & status_mask)
+		if (readl(TIMER_USEC_CNTR) > (reg + 2))
 			break;
 	}
 
-	/* Remove the I/O clamps from the CPU0 power partition. */
-	writel(clamp, &pmc->pmc_remove_clamping);
+	reg = SET_CLK_ENB_MSELECT_ENABLE;
+	writel(reg, &clkrst->crc_rst_dev_ex_vw[TEGRA_DEV_V].clr);
 
-	/*
-	 * Give I/O signals time to stabilize.
-	 * !!!FIXME!!! (BUG 580733) THIS TIME HAS NOT BEEN CHARACTERIZED
-	 * BUT 20 MS (Hw/SysEng Recomendation) IS A GOOD VALUE
-	 */
+	/* Disable PLLX, since it is not used as CPU clock source */
+	reg = readl(&clkrst->crc_pll_simple[SIMPLE_PLLX].pll_base);
+	reg &= ~(PLLX_BASE_PLLX_ENABLE);
+	writel(reg, &clkrst->crc_pll_simple[SIMPLE_PLLX].pll_base);
 
-	reg = EVENT_ZERO_VAL_20 | EVENT_MSEC | EVENT_MODE_STOP;
-	writel(reg, &flow->halt_cop_events);
+	/* Set CAR2PMC_CPU_ACK_WIDTH to 408 */
+	reg = readl(&clkrst->crc_cpu_softrst_ctrl2);
+	reg |= CAR2PMC_CPU_ACK_WIDTH_408;
+	writel(reg, &clkrst->crc_cpu_softrst_ctrl2);
 
-	/* Take CPU0 out of reset. */
-	reg = CPU_CMPLX_CPURESET0 | CPU_CMPLX_DERESET0 |
-		CPU_CMPLX_DBGRESET0;
-	writel(reg, &clkrst->crc_rst_cpu_cmplx_clr);
+	/* Enable the CPU complex clock */
+	reg = CLK_ENB_CPU;
+	writel(reg, &clkrst->crc_clk_enb_ex[TEGRA_DEV_L].set);
 
-	/* De-assert CPU complex reset. */
-	reg = CPU_RST;
-	writel(reg, &clkrst->crc_rst_dev_ex[TEGRA_DEV_L].clr);
+	reg = SET_CLK_ENB_CPUG_ENABLE | SET_CLK_ENB_CPULP_ENABLE;
+	writel(reg, &clkrst->crc_clk_enb_ex_vw[TEGRA_DEV_V].set);
 
-	/* Unhalt the CPU at the flow controller. */
-	writel(0, &flow->halt_cpu_events);
+	/* Take non-cpu of G and LP cluster OUT of reset */
+	reg = CLR_NONCPURESET;
+	writel(reg, &clkrst->crc_rst_cpulp_cmplx_clr);
+	writel(reg, &clkrst->crc_rst_cpug_cmplx_clr);
 
-	/* avp_resume: no return after the write */
-	reg = readl(&clkrst->crc_rst_dev[TEGRA_DEV_L]);
-	reg &= ~CPU_RST;
-	writel(reg, &clkrst->crc_rst_dev[TEGRA_DEV_L]);
+	/* Clear software controlled reset of slow cluster */
+	reg = CLR_CPURESET0 | CLR_DBGRESET0 | CLR_CORERESET0 | CLR_CXRESET0;
+	writel(reg, &clkrst->crc_rst_cpulp_cmplx_clr);
 
-	/* avp_halt: */
+	/* Clear software controlled reset of fast cluster */
+	reg = CLR_CPURESET0 | CLR_DBGRESET0 | CLR_CORERESET0 | CLR_CXRESET0 |
+		CLR_CPURESET1 | CLR_DBGRESET1 | CLR_CORERESET1 | CLR_CXRESET1 |
+		CLR_CPURESET2 | CLR_DBGRESET2 | CLR_CORERESET2 | CLR_CXRESET2 |
+		CLR_CPURESET3 | CLR_DBGRESET3 | CLR_CORERESET3 | CLR_CXRESET3;
+	writel(reg, &clkrst->crc_rst_cpug_cmplx_clr);
+
+	/* Initialize System Counter (TSC) with osc frequency */
+	/* Find out the current osc frequency */
+	reg = readl(&clkrst->crc_osc_ctrl);
+	reg >>= OSC_CTRL_OSC_FREQ_SHIFT;
+
+	if (reg == OSC_FREQ_OSC12)
+		reg_1 = 12000000;
+	else if (reg == OSC_FREQ_OSC48)
+		reg_1 = 48000000;
+	else if (reg == OSC_FREQ_OSC16P8)
+		reg_1 = 16800000;
+	else if (reg == OSC_FREQ_OSC19P2)
+		reg_1 = 19200000;
+	else if (reg == OSC_FREQ_OSC38P4)
+		reg_1 = 38400000;
+	else if (reg == OSC_FREQ_OSC26)
+		reg_1 = 26000000;
+	else reg_1 = 13000000;
+
+	/* write frequency (in reg_1) to SYSCTR0_CNTFID0 */
+	writel(reg_1, &sysctr->cntfid0);
+	/* enable the TSC */
+	reg = readl(&sysctr->cntcr);
+	reg |= TSC_CNTCR_ENABLE | TSC_CNTCR_HDBG;
+	writel(reg, &sysctr->cntcr);
+
+	/* Find out which cluster (slow or fast) to power on */
+	reg = readl(&pmc->pmc_scratch4);
+	if (reg & CPU_WAKEUP_CLUSTER) {
+		/* Power up the slow cluster non-CPU partition. */
+		reg = PWRGATE_STATUS_C1NC_ENABLE;
+		reg_1 = PWRGATE_TOGGLE_PARTID_C1NC | PWRGATE_TOGGLE_START;
+		if (!(readl(&pmc->pmc_pwrgate_status) & reg)) {
+			/* partition is not on, turn it on */
+			writel(reg_1, &pmc->pmc_pwrgate_toggle);
+
+			/* wait until the partitions is powered on */
+			while (!(readl(&pmc->pmc_pwrgate_status) & reg))
+				;
+
+			/* wait until clamp is off */
+			while (readl(&pmc->pmc_clamp_status) & reg)
+				;
+		}
+
+		reg = PWRGATE_STATUS_CELP_ENABLE;
+		reg_1 = PWRGATE_TOGGLE_PARTID_CELP | PWRGATE_TOGGLE_START;
+		if (!(readl(&pmc->pmc_pwrgate_status) & reg)) {
+			/* partition is not on, turn it on */
+			writel(reg_1, &pmc->pmc_pwrgate_toggle);
+
+			/* wait until the partitions is powered on */
+			while (!(readl(&pmc->pmc_pwrgate_status) & reg))
+				;
+
+			/* wait until clamp is off */
+			while (readl(&pmc->pmc_clamp_status) & reg)
+				;
+		}
+	} else {
+		/* FastCPU */
+		reg = PWRGATE_STATUS_CRAIL_ENABLE;
+		reg_1 = PWRGATE_TOGGLE_PARTID_CRAIL | PWRGATE_TOGGLE_START;
+		if (!(readl(&pmc->pmc_pwrgate_status) & reg)) {
+			/* partition is not on, turn it on */
+			writel(reg_1, &pmc->pmc_pwrgate_toggle);
+
+			/* wait until the partitions is powered on */
+			while (!(readl(&pmc->pmc_pwrgate_status) & reg))
+				;
+
+			/* wait until clamp is off */
+			while (readl(&pmc->pmc_clamp_status) & reg)
+				;
+		}
+
+		reg = PWRGATE_STATUS_C0NC_ENABLE;
+		reg_1 = PWRGATE_TOGGLE_PARTID_C0NC | PWRGATE_TOGGLE_START;
+		if (!(readl(&pmc->pmc_pwrgate_status) & reg)) {
+			/* partition is not on, turn it on */
+			writel(reg_1, &pmc->pmc_pwrgate_toggle);
+
+			/* wait until the partitions is powered on */
+			while (!(readl(&pmc->pmc_pwrgate_status) & reg))
+				;
+
+			/* wait until clamp is off */
+			while (readl(&pmc->pmc_clamp_status) & reg)
+				;
+		}
+
+		reg = PWRGATE_STATUS_CE0_ENABLE;
+		reg_1 = PWRGATE_TOGGLE_PARTID_CE0 | PWRGATE_TOGGLE_START;
+		if (!(readl(&pmc->pmc_pwrgate_status) & reg)) {
+			/* partition is not on, turn it on */
+			writel(reg_1, &pmc->pmc_pwrgate_toggle);
+
+			/* wait until the partitions is powered on */
+			while (!(readl(&pmc->pmc_pwrgate_status) & reg))
+				;
+
+			/* wait until clamp is off */
+			while (readl(&pmc->pmc_clamp_status) & reg)
+				;
+		}
+	}
+
 avp_halt:
-	reg = EVENT_MODE_STOP | EVENT_JTAG;
+	reg = EVENT_MODE_STOP;
 	writel(reg, &flow->halt_cop_events);
 	goto avp_halt;
 
 do_reset:
-	/*
-	 * Execution comes here if something goes wrong. The chip is reset and
-	 * a cold boot is performed.
-	 */
 	writel(SWR_TRIG_SYS_RST, &clkrst->crc_rst_dev[TEGRA_DEV_L]);
-	goto do_reset;
+	while (1)
+		;
 }
 
 /*

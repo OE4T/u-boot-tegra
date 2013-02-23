@@ -37,6 +37,7 @@
 
 /* Defines the supported operating modes */
 enum fuse_operating_mode {
+	MODE_PREPRODUCTION = 2,
 	MODE_PRODUCTION = 3,
 	MODE_UNDEFINED,
 };
@@ -63,7 +64,11 @@ struct hash {
 struct wb_header {
 	u32 length_in_secure;	/* length of the code header */
 	u32 reserved[3];
-	struct hash hash;	/* hash of header+code, starts next field*/
+	u32 modules[64];	/* RsaKeyModulus */
+	union {
+		struct hash hash;  /* hash of header+code, starts next field */
+		u32 signature[64]; /* The RSA-PSS signature*/
+	} hash_signature;
 	struct hash random_aes_block;	/* a data block to aid security. */
 	u32 length_secure;	/* length of the code header */
 	u32 destination;	/* destination address to put the wb code */

@@ -1,5 +1,5 @@
 /*
- *  (C) Copyright 2010,2011
+ *  (C) Copyright 2010 - 2013
  *  NVIDIA Corporation <www.nvidia.com>
  *
  * See file CREDITS for list of people who contributed to this
@@ -37,7 +37,7 @@ struct pmc_ctlr {
 	uint pmc_dpd_sample;		/* _DPD_PADS_SAMPLE_0, offset 20 */
 	uint pmc_dpd_enable;		/* _DPD_PADS_ENABLE_0, offset 24 */
 	uint pmc_pwrgate_timer_off;	/* _PWRGATE_TIMER_OFF_0, offset 28 */
-	uint pmc_pwrgate_timer_on;	/* _PWRGATE_TIMER_ON_0, offset 2C */
+	uint pmc_clamp_status;		/* _PMC_CLAMP_STATUS_0, offset 2C */
 	uint pmc_pwrgate_toggle;	/* _PWRGATE_TOGGLE_0, offset 30 */
 	uint pmc_remove_clamping;	/* _REMOVE_CLAMPING_CMD_0, offset 34 */
 	uint pmc_pwrgate_status;	/* _PWRGATE_STATUS_0, offset 38 */
@@ -119,15 +119,113 @@ struct pmc_ctlr {
 	uint pmc_sys_33v_en;		/* _SYS_33V_EN_0, offset 154 */
 	uint pmc_bo_mirror_access;	/* _BOUNDOUT_MIRROR_ACCESS_0, off158 */
 	uint pmc_gate;			/* _GATE_0, offset 15C */
-	uint pmc_todo[51];			/* TODO: 160 ~ 228 */
-	uint pmc_scratch43;
-	uint pmc_scratch44;
+	uint pmc_todo_00[17];		/* TODO: 160 ~ 1A0 */
+	uint pmc_osc_edpd_over;		/* _OSC_EDPD_OVER_0, offset 1A4 */
+	uint pmc_todo_01[31];		/* TODO: 1A8 ~ 220 */
+	uint pmc_secure_scratch6;	/* _SECURE_SCRATCH6_0, offset 224 */
+	uint pmc_secure_scratch7;	/* _SECURE_SCRATCH7_0, offset 228 */
+	uint pmc_scratch43;		/* _SCRATCH43_0, offset 22C */
+	uint pmc_scratch44;		/* _SCRATCH44_0, offset 230 */
 	uint pmc_scratch45;
 	uint pmc_scratch46;
 	uint pmc_scratch47;
 	uint pmc_scratch48;
 	uint pmc_scratch49;
 	uint pmc_scratch50;
+	uint pmc_scratch51;
+	uint pmc_scratch52;
+	uint pmc_scratch53;
+	uint pmc_scratch54;
+	uint pmc_scratch55;		/* _SCRATCH55_0, offset 25C */
+	uint pmc_scratch0_eco;		/* _SCRATCH0_ECO, offset 260 */
+	uint pmc_scratch1_eco;		/* _SCRATCH1_ECO, offset 264 */
+	uint pmc_scratch2_eco;		/* _SCRATCH2_ECO, offset 268 */
+	uint pmc_todo_1[17];		/* TODO: 26C ~ 2AC */
+	uint pmc_pllm_wb0_override2;	/* _PLLM_WB0_OVERRIDE2, offset 2B0 */
+	uint pmc_todo_2[3];		/* TODO: 2B4 ~ 2BC */
+	uint pmc_sticky_bits;		/* _STICKY_BITS_0, offset 2C0 */
+	uint pmc_sec_disable2;		/* _SEC_DISALBE2, offset 2C4 */
+	uint pmc_todo_3[14];		/* TODO: 2C8 ~ 2FC */
+	uint pmc_secure_scratch8;	/* _SECURE_SCRATCH8_0, offset 300 */
+	uint pmc_secure_scratch9;
+	uint pmc_secure_scratch10;
+	uint pmc_secure_scratch11;
+	uint pmc_secure_scratch12;
+	uint pmc_secure_scratch13;
+	uint pmc_secure_scratch14;
+	uint pmc_secure_scratch15;
+	uint pmc_secure_scratch16;
+	uint pmc_secure_scratch17;
+	uint pmc_secure_scratch18;
+	uint pmc_secure_scratch19;
+	uint pmc_secure_scratch20;
+	uint pmc_secure_scratch21;
+	uint pmc_secure_scratch22;
+	uint pmc_secure_scratch23;	/* _SECURE_SCRATCH23_0, offset 33C */
+	uint pmc_scratch56;		/* _SCRATCH56_0, offset 340 */
+	uint pmc_scratch57;
+	uint pmc_scratch58;
+	uint pmc_scratch59;
+	uint pmc_scratch60;
+	uint pmc_scratch61;
+	uint pmc_scratch62;
+	uint pmc_scratch63;
+	uint pmc_scratch64;
+	uint pmc_scratch65;
+	uint pmc_scratch66;
+	uint pmc_scratch67;
+	uint pmc_scratch68;
+	uint pmc_scratch69;
+	uint pmc_scratch70;
+	uint pmc_scratch71;
+	uint pmc_scratch72;
+	uint pmc_scratch73;
+	uint pmc_scratch74;
+	uint pmc_scratch75;
+	uint pmc_scratch76;
+	uint pmc_scratch77;
+	uint pmc_scratch78;
+	uint pmc_scratch79;
+	uint pmc_scratch80;
+	uint pmc_scratch81;
+	uint pmc_scratch82;
+	uint pmc_scratch83;
+	uint pmc_scratch84;
+	uint pmc_scratch85;
+	uint pmc_scratch86;
+	uint pmc_scratch87;
+	uint pmc_scratch88;
+	uint pmc_scratch89;
+	uint pmc_scratch90;
+	uint pmc_scratch91;
+	uint pmc_scratch92;
+	uint pmc_scratch93;
+	uint pmc_scratch94;
+	uint pmc_scratch95;
+	uint pmc_scratch96;
+	uint pmc_scratch97;
+	uint pmc_scratch98;
+	uint pmc_scratch99;
+	uint pmc_scratch100;
+	uint pmc_scratch101;
+	uint pmc_scratch102;
+	uint pmc_scratch103;
+	uint pmc_scratch104;
+	uint pmc_scratch105;
+	uint pmc_scratch106;
+	uint pmc_scratch107;
+	uint pmc_scratch108;
+	uint pmc_scratch109;
+	uint pmc_scratch110;
+	uint pmc_scratch111;
+	uint pmc_scratch112;
+	uint pmc_scratch113;
+	uint pmc_scratch114;
+	uint pmc_scratch115;
+	uint pmc_scratch116;
+	uint pmc_scratch117;
+	uint pmc_scratch118;
+	uint pmc_scratch119;
 };
 
 #define PWRGATE_ENABLE	0x100
