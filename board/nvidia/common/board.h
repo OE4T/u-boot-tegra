@@ -24,6 +24,8 @@
 #ifndef _BOARD_H_
 #define _BOARD_H_
 
+#define DSI_PANEL_BL_EN_GPIO		GPIO_PH2
+
 void tegra2_start(void);
 void gpio_config_uart(const void *blob);
 void gpio_early_init_uart(const void *blob);

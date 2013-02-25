@@ -38,6 +38,7 @@
 #include <asm/arch/pmc.h>
 #include <asm/arch/fuse.h>
 #include <asm/arch/emc.h>
+#include <asm/arch/gpio.h>
 #include <spi.h>
 #include <fdt_decode.h>
 #include <i2c.h>
@@ -313,6 +314,10 @@ static void gpio_init(const void *blob)
 {
 #ifdef CONFIG_SPI_UART_SWITCH
 	gpio_early_init_uart(blob);
+#endif
+
+#if defined(CONFIG_TEGRA11X)
+	gpio_direction_output(DSI_PANEL_BL_EN_GPIO, 1);
 #endif
 }
 
