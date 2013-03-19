@@ -281,6 +281,30 @@ void wb_start(void)
 	writel(reg, &clkrst->crc_rst_dev[TEGRA_DEV_U]);
 #endif
 
+	if (osc_ctrl.osc_freq == CLOCK_OSC_FREQ_13_0) {
+		pllp_base = PLLU_BASE_OSC_13_0;
+		pllp_misc = PLLU_MISC_OSC_13_0;
+	} else if (osc_ctrl.osc_freq == CLOCK_OSC_FREQ_19_2) {
+		pllp_base = PLLU_BASE_OSC_19_2;
+		pllp_misc = PLLU_MISC_OSC_19_2;
+	} else if (osc_ctrl.osc_freq == CLOCK_OSC_FREQ_12_0) {
+		pllp_base = PLLU_BASE_OSC_12_0;
+		pllp_misc = PLLU_MISC_OSC_12_0;
+	} else {
+		pllp_base = PLLU_BASE_OSC_26_0;
+		pllp_misc = PLLU_MISC_OSC_26_0;
+	}
+	pllp_base |= PLLU_BYPASS;
+	writel(pllp_base, &clkrst->crc_pll[CLOCK_ID_USB].pll_base);
+	writel(pllp_misc, &clkrst->crc_pll[CLOCK_ID_USB].pll_misc);
+
+	pllp_base &= ~PLLU_BYPASS;
+	pllp_base |= PLLU_ENABLE;
+	writel(pllp_base, &clkrst->crc_pll[CLOCK_ID_USB].pll_base);
+	pllp_misc |= PLLU_LOCK_ENABLE_ENABLE;
+	writel(pllp_misc, &clkrst->crc_pll[CLOCK_ID_USB].pll_misc);
+
+
 	/*
 	 * Sample the microsecond timestamp again. This is the time we must
 	 * use when returning from LP0 for PLL stabilization delays.

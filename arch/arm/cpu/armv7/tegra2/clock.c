@@ -838,9 +838,12 @@ unsigned clock_get_rate(enum clock_id clkid)
  * @param m PLL input divider(DIVN)
  * @param p post divider(DIVP)
  * @param cpcon base PLL charge pump(CPCON)
+ * @param outa PLLx_OUT1 & PLLx_OUT2 config (0 = no driven clock)
+ * @parma outb PLLx_OUT3 & PLLx_OUT4 config (0 = no driven clock)
  * @return 0 if ok, -1 on error (the requested PLL cannot be overriden)
  */
-static int clock_set_rate(enum clock_id clkid, u32 n, u32 m, u32 p, u32 cpcon)
+static int clock_set_rate(enum clock_id clkid, u32 n, u32 m, u32 p, u32 cpcon,
+			u32 outa, u32 outb)
 {
 	u32 base_reg;
 	u32 misc_reg;
@@ -872,6 +875,14 @@ static int clock_set_rate(enum clock_id clkid, u32 n, u32 m, u32 p, u32 cpcon)
 	bf_update(PLL_ENABLE, base_reg, 1);
 	writel(base_reg, &pll->pll_base);
 
+	/* OUTA */
+	if (outa)
+		writel(outa, &pll->pll_out);
+
+	/* OUTB */
+	if (outb)
+		writel(outb, &pll->reserved);
+
 	/* Disable BYPASS */
 	bf_update(PLL_BYPASS, base_reg, 0);
 	writel(base_reg, &pll->pll_base);
@@ -879,22 +890,119 @@ static int clock_set_rate(enum clock_id clkid, u32 n, u32 m, u32 p, u32 cpcon)
 	return 0;
 }
 
+/**
+ * Set the lock for each PLL clock.
+ *
+ * @parma misc_locken LOCK enable bit mask in pll misc reg.
+ * @parma base_stat LOCK status bit mask in pll base reg.
+ * @return 0 if ok, -1 on error (the requested PLL cannot be overriden)
+ */
+static int clock_set_lock(enum clock_id clkid, u32 misc_locken, u32 base_stat)
+{
+	u32 base_reg;
+	u32 misc_reg;
+	struct clk_pll *pll;
+
+	if ((pll = get_pll(clkid)) == NULL)
+		return -1;
+
+	misc_reg = readl(&pll->pll_misc);
+	misc_reg |= misc_locken;
+	writel(misc_reg, &pll->pll_misc);
+	do {
+		base_reg = readl(&pll->pll_base);
+	} while ((base_reg & base_stat) == 0);
+
+	return 0;
+}
+
+#define PLLC_LOCK_STATE			(1 << 27)
+#define PLLC_LOCK_ENABLE		(1 << 18)
+#define PLLP_LOCK_STATE			(1 << 27)
+#define PLLP_LOCK_ENABLE		(1 << 18)
+
+#define PLL_OUT_RSTN_RESET_DISABLE	(1 << 0)
+#define PLL_OUT_CLKEN_ENABLE		(1 << 1)
+#define PLL_OUT_OVERRIDE_ENABLE		(1 << 2)
+#define PLL_OUT_U71_RATIO_15		(0x1c << 8)
+#define PLL_OUT_U71_RATIO_9		(0x10 << 8)
+#define PLL_OUT_U71_RATIO_6		(0x08 << 8)
+#define PLL_OUT_U71_RATIO_4		(0x06 << 8)
+#define PLL_OUT_U71_RATIO_2_5		(0x03 << 8)
+
+#define PLLP_OUT1_RSTN_RESET_DISABLE	(PLL_OUT_RSTN_RESET_DISABLE <<  0)
+#define PLLP_OUT1_CLKEN_ENABLE		(PLL_OUT_CLKEN_ENABLE       <<  0)
+#define PLLP_OUT1_OVERRIDE_ENABLE	(PLL_OUT_OVERRIDE_ENABLE    <<  0)
+#define PLLP_OUT1_RATIO_15		(PLL_OUT_U71_RATIO_15       <<  0)
+
+#define PLLP_OUT2_RSTN_RESET_DISABLE	(PLL_OUT_RSTN_RESET_DISABLE << 16)
+#define PLLP_OUT2_CLKEN_ENABLE		(PLL_OUT_CLKEN_ENABLE       << 16)
+#define PLLP_OUT2_OVERRIDE_ENABLE	(PLL_OUT_OVERRIDE_ENABLE    << 16)
+#define PLLP_OUT2_RATIO_9		(PLL_OUT_U71_RATIO_9        << 16)
+
+#define PLLP_OUT3_RSTN_RESET_DISABLE	(PLL_OUT_RSTN_RESET_DISABLE <<  0)
+#define PLLP_OUT3_CLKEN_ENABLE		(PLL_OUT_CLKEN_ENABLE       <<  0)
+#define PLLP_OUT3_OVERRIDE_ENABLE	(PLL_OUT_OVERRIDE_ENABLE    <<  0)
+#define PLLP_OUT3_RATIO_6		(PLL_OUT_U71_RATIO_6        <<  0)
+
+#define PLLP_OUT4_RSTN_RESET_DISABLE	(PLL_OUT_RSTN_RESET_DISABLE << 16)
+#define PLLP_OUT4_CLKEN_ENABLE		(PLL_OUT_CLKEN_ENABLE       << 16)
+#define PLLP_OUT4_OVERRIDE_ENABLE	(PLL_OUT_OVERRIDE_ENABLE    << 16)
+#define PLLP_OUT4_RATIO_4		(PLL_OUT_U71_RATIO_4        << 16)
+
+#define PLLC_OUT1_RSTN_RESET_DISABLE	(PLL_OUT_RSTN_RESET_DISABLE <<  0)
+#define PLLC_OUT1_CLKEN_ENABLE		(PLL_OUT_CLKEN_ENABLE       <<  0)
+#define PLLC_OUT1_RATIO_2_5		(PLL_OUT_U71_RATIO_2_5      <<  0)
+
 void common_pll_init(void)
 {
+	u32 couta, pouta, poutb;
+
 	/*
-	 * PLLP output frequency set to 216Mh
+	 * Vco = (Fi/M)*N
+	 * Fo = Vco / (2**P)
+	 *    = Fi * N / M / 2**P
+	 *
 	 * PLLC output frequency set to 600Mhz
+	 *	- PLLC_OUT1 to 240Mhz yields 2.5(=0x3) as divisor value
+	 * PLLP output frequency set to 216Mhz: refclk is always 432MHz
+	 *	- PLLP_OUT1 to  28.8 Mhz: divisor = 15 = 0x1c
+	 *	- PLLP_OUT2 to 216.0 Mhz: divisor =  9 = 0x10
+	 *	- PLLP_OUT3 to  72.0 Mhz: divisor =  6 = 0x0a
+	 *	- PLLP_OUT4 to 	24.0 Mhz: divisor =  4 = 0x06
 	 */
+	pouta = PLLP_OUT1_RSTN_RESET_DISABLE | PLLP_OUT1_CLKEN_ENABLE |
+		PLLP_OUT1_OVERRIDE_ENABLE    | PLLP_OUT1_RATIO_15 |
+		PLLP_OUT2_RSTN_RESET_DISABLE | PLLP_OUT2_CLKEN_ENABLE |
+		PLLP_OUT2_OVERRIDE_ENABLE    | PLLP_OUT2_RATIO_9;
+	poutb = PLLP_OUT3_RSTN_RESET_DISABLE | PLLP_OUT3_CLKEN_ENABLE |
+		PLLP_OUT3_OVERRIDE_ENABLE    | PLLP_OUT3_RATIO_6 |
+		PLLP_OUT4_RSTN_RESET_DISABLE | PLLP_OUT4_CLKEN_ENABLE |
+		PLLP_OUT4_OVERRIDE_ENABLE    | PLLP_OUT4_RATIO_4;
+	couta = PLLC_OUT1_RSTN_RESET_DISABLE | PLLC_OUT1_CLKEN_ENABLE |
+		PLLC_OUT1_RATIO_2_5;
+
 	switch (clock_get_rate(CLOCK_ID_OSC)) {
+	case 13000000: /* OSC is 13Mhz */
+		clock_set_rate(CLOCK_ID_PERIPH,   432, 13, 1, 8, pouta, poutb);
+		clock_set_rate(CLOCK_ID_CGENERAL, 600, 13, 0, 8, couta, 0);
+		break;
+	case 19200000: /* OSC is 19.2Mhz. Just best approximation. */
+		clock_set_rate(CLOCK_ID_PERIPH,    90,  4, 1, 1, pouta, poutb);
+		clock_set_rate(CLOCK_ID_CGENERAL, 600, 19, 0, 8, couta, 0);
+		break;
 	case 12000000: /* OSC is 12Mhz */
-		clock_set_rate(CLOCK_ID_PERIPH, 432, 12, 1, 8);
-		clock_set_rate(CLOCK_ID_CGENERAL, 600, 12, 0, 8);
+		clock_set_rate(CLOCK_ID_PERIPH,   432, 12, 1, 8, pouta, poutb);
+		clock_set_rate(CLOCK_ID_CGENERAL, 600, 12, 0, 8, couta, 0);
 		break;
 	case 26000000: /* OSC is 26Mhz */
-		clock_set_rate(CLOCK_ID_PERIPH, 432, 26, 1, 8);
-		clock_set_rate(CLOCK_ID_CGENERAL, 600, 26, 0, 8);
+		clock_set_rate(CLOCK_ID_PERIPH,   432, 26, 1, 8, pouta, poutb);
+		clock_set_rate(CLOCK_ID_CGENERAL, 600, 26, 0, 8, couta, 0);
 		break;
 	}
+
+	clock_set_lock(CLOCK_ID_PERIPH,   PLLP_LOCK_ENABLE, PLLP_LOCK_STATE);
+	clock_set_lock(CLOCK_ID_CGENERAL, PLLC_LOCK_ENABLE, PLLC_LOCK_STATE);
 }
 
 void clock_init(void)
