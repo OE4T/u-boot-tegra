@@ -89,9 +89,9 @@ struct timerus {
 /* Address at which WB code runs, it must not overlap Bootrom's IRAM usage */
 #define T30_WB_RUN_ADDRESS	0x40020000
 
-#define NVBOOTINFOTABLE_BCTSIZE	0x38	/* BCT size in BIT in IRAM */
-#define NVBOOTINFOTABLE_BCTPTR	0x3C	/* BCT pointer in BIT in IRAM */
-#define BCT_ODMDATA_OFFSET	6116	/* 12 bytes from end of BCT */
+#define NVBOOTINFOTABLE_BCTSIZE	0x48	/* BCT size in BIT in IRAM */
+#define NVBOOTINFOTABLE_BCTPTR	0x4C	/* BCT pointer in BIT in IRAM */
+#define BCT_ODMDATA_OFFSET	1752
 
 #define round_up(x, y) ((x + (y-1)) & (~(y-1)))
 #define TEGRA_LINEAR_PITCH_ALIGNMENT	16
