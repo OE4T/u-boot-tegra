@@ -681,7 +681,79 @@ void get_board_serial(struct tag_serialnr *serialnr)
 	}
 #endif	/* SERIAL_EEPROM */
 }
+
+#ifdef CONFIG_OF_BOARD_SETUP
+void fdt_serial_tag_setup(void *blob, bd_t *bd)
+{
+	struct tag_serialnr serialnr;
+	int offset, ret;
+	u32 val;
+
+	offset = fdt_path_offset(blob, "/chosen/board_info");
+	if (offset < 0) {
+		offset = fdt_add_subnode(blob, 0, "chosen/board_info");
+		if (offset < 0) {
+			printf("ERROR: add node /chosen/board_info: %s.\n",
+				fdt_strerror(offset));
+			return;
+		}
+	}
+
+	get_board_serial(&serialnr);
+
+	val = (serialnr.high & 0xFF0000) >> 16;
+	val |= (serialnr.high & 0xFF000000) >> 16;
+	val = cpu_to_fdt32(val);
+	ret = fdt_setprop(blob, offset, "id", &val, sizeof(val));
+	if (ret < 0) {
+		printf("ERROR: could not update id property %s.\n",
+			fdt_strerror(ret));
+	}
+
+	val = serialnr.high & 0xFFFF;
+	val = cpu_to_fdt32(val);
+	ret = fdt_setprop(blob, offset, "sku", &val, sizeof(val));
+	if (ret < 0) {
+		printf("ERROR: could not update sku property %s.\n",
+			fdt_strerror(ret));
+	}
+
+	val = serialnr.low >> 24;
+	val = cpu_to_fdt32(val);
+	ret = fdt_setprop(blob, offset, "fab", &val, sizeof(val));
+	if (ret < 0) {
+		printf("ERROR: could not update fab property %s.\n",
+			fdt_strerror(ret));
+	}
+
+	val = (serialnr.low >> 16) & 0xFF;
+	val = cpu_to_fdt32(val);
+	ret = fdt_setprop(blob, offset, "major_revision", &val, sizeof(val));
+	if (ret < 0) {
+		printf("ERROR: could not update major_revision property %s.\n",
+			fdt_strerror(ret));
+	}
+
+	val = (serialnr.low >> 8) & 0xFF;
+	val = cpu_to_fdt32(val);
+	ret = fdt_setprop(blob, offset, "minor_revision", &val, sizeof(val));
+	if (ret < 0) {
+		printf("ERROR: could not update minor_revision property %s.\n",
+			fdt_strerror(ret));
+	}
+}
+#endif  /* OF_BOARD_SETUP */
 #endif	/* SERIAL_TAG */
+
+#ifdef CONFIG_OF_BOARD_SETUP
+void ft_board_setup(void *blob, bd_t *bd)
+{
+	/* Overwrite DT file with right board info properties */
+#ifdef CONFIG_SERIAL_TAG
+	fdt_serial_tag_setup(blob, bd);
+#endif	/* SERIAL_TAG */
+}
+#endif  /* OF_BOARD_SETUP */
 
 u32 get_minor_rev(void)
 {

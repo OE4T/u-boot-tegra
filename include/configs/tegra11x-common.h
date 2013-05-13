@@ -40,6 +40,9 @@
 /* Embed the device tree in U-Boot, if not otherwise handled */
 #ifndef CONFIG_OF_SEPARATE
 #define CONFIG_OF_EMBED
+
+/* Overwrite DT properties from board setup if needed */
+#define CONFIG_OF_BOARD_SETUP
 #endif
 
 /*
