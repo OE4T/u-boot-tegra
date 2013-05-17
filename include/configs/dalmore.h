@@ -51,7 +51,6 @@
 	"displayboard=0x065b:0x03e8:0x02:0x43:0x03 " \
 	"display_panel=0 " \
 	"audio_codec=rt5640 " \
-	"board_info=64b:3e8:2:45:3 " \
 	"debug_uartport=lsport,3\0" \
 
 #include "tegra11x-common.h"
@@ -71,7 +70,7 @@
 
 /* The following are used to retrieve the board id from an eeprom */
 #define CONFIG_SERIAL_EEPROM
-#define EEPROM_I2C_BUS		0
+#define EEPROM_I2C_BUS		1
 #define EEPROM_I2C_ADDRESS	0x56
 #define EEPROM_SERIAL_OFFSET	0x04
 #define NUM_SERIAL_ID_BYTES	8

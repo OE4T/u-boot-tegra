@@ -70,8 +70,8 @@ struct clk_rst_ctlr {
 	uint crc_sclk_brst_pol;		/* _SCLK_BURST_POLICY_0, 0x28 */
 	uint crc_super_sclk_div;	/* _SUPER_SCLK_DIVIDER_0,0x2C */
 	uint crc_clk_sys_rate;		/* _CLK_SYSTEM_RATE_0,	0x30 */
-	uint crc_prog_dly_clk;		/* _PROG_DLY_CLK_0,	0x34 */
-	uint crc_aud_sync_clk_rate;	/* _AUDIO_SYNC_CLK_RATE_0,0x38 */
+	uint crc_reserved01;		/* reserved_0_1,	0x34 */
+	uint crc_reserved02;		/* reserved_0_2,	0x38 */
 	uint crc_reserved1;		/* reserved_1,		0x3C */
 	uint crc_cop_clk_skip_plcy;	/* _COP_CLK_SKIP_POLICY_0,0x40 */
 	uint crc_clk_mask_arm;		/* _CLK_MASK_ARM_0,	0x44 */
@@ -93,7 +93,21 @@ struct clk_rst_ctlr {
 
 	uint crc_clk_src[TEGRA_CLK_SOURCES]; /*_I2S1_0...	0x100-1fc */
 
-	uint crc_reserved20[64];	/* _reserved_20,	0x200-2fc */
+	uint crc_reserved20[32];	/* _reserved_20,	0x200-27c */
+
+	uint crc_clk_out_enb_x;		/* _CLK_OUT_ENB_X_0,	0x280 */
+	uint crc_clk_enb_x_set;		/* _CLK_ENB_X_SET_0,	0x284 */
+	uint crc_clk_enb_x_clr;		/* _CLK_ENB_X_CLR_0,	0x288 */
+
+	uint crc_rst_devices_x;		/* _RST_DEVICES_X_0,	0x28c */
+	uint crc_rst_dev_x_set;		/* _RST_DEV_X_SET_0,	0x290 */
+	uint crc_rst_dev_x_clr;		/* _RST_DEV_X_CLR_0,	0x294 */
+
+	uint crc_reserved21[23];	/* _reserved_21,	0x298-2f0 */
+
+	uint crc_dfll_base;		/* _DFLL_BASE_0,	0x2f4 */
+
+	uint crc_reserved22[2];		/* _reserved_22,	0x2f8-2fc */
 
 	/* _RST_DEV_L/H/U_SET_0 0x300 ~ 0x314 */
 	struct clk_set_clr crc_rst_dev_ex[TEGRA_CLK_REGS];
@@ -103,7 +117,9 @@ struct clk_rst_ctlr {
 	/* _CLK_ENB_L/H/U_CLR_0 0x320 ~ 0x334 */
 	struct clk_set_clr crc_clk_enb_ex[TEGRA_CLK_REGS];
 
-	uint crc_reserved31[2];		/* _reserved_31,	0x338, 0x33c */
+	uint crc_reserved31;		/* _reserved_31,	0x338 */
+
+	uint crc_ccplex_pg_sm_ovrd;	/* _CCPLEX_PG_SM_OVRD_0,    0x33c */
 
 	uint crc_rst_cpu_cmplx_set;	/* _RST_CPU_CMPLX_SET_0,    0x340 */
 	uint crc_rst_cpu_cmplx_clr;	/* _RST_CPU_CMPLX_CLR_0,    0x344 */
@@ -121,7 +137,9 @@ struct clk_rst_ctlr {
 	uint crc_clk_cpug_cmplx;	/* _CLK_CPUG_CMPLX_0,       0x378 */
 	uint crc_clk_cpulp_cmplx;	/* _CLK_CPULP_CMPLX_0,      0x37C */
 	uint crc_cpu_softrst_ctrl;	/* _CPU_SOFTRST_CTRL_0,     0x380 */
-	uint crc_reserved33[11];	/* _reserved_33,        0x384-3ac */
+	uint crc_cpu_softrst_ctrl1;	/* _CPU_SOFTRST_CTRL1_0,    0x384 */
+	uint crc_cpu_softrst_ctrl2;	/* _CPU_SOFTRST_CTRL2_0,    0x388 */
+	uint crc_reserved33[9];		/* _reserved_33,        0x38c-3ac */
 	uint crc_clk_src_vw[TEGRA_CLK_SOURCES_VW]; /* _G3D2_0..., 0x3b0-0x42c */
 	/* _RST_DEV_V/W_SET_0 0x430 ~ 0x43c */
 	struct clk_set_clr crc_rst_dev_ex_vw[TEGRA_CLK_REGS_VW];

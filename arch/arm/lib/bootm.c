@@ -222,6 +222,11 @@ static int bootm_linux_fdt(int machid, bootm_headers_t *images)
 
 	fdt_initrd(*of_flat_tree, *initrd_start, *initrd_end, 1);
 
+#ifdef CONFIG_OF_BOARD_SETUP
+	/* Call the board-specific fixup routine */
+        ft_board_setup(*of_flat_tree, gd->bd);
+#endif
+
 	announce_and_cleanup();
 
 	kernel_entry(0, machid, *of_flat_tree);
