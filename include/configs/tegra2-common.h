@@ -210,10 +210,6 @@
 #ifdef CONFIG_TEGRA2_LP0
 #define TEGRA_LP0_ADDR			0x1C406000
 #define TEGRA_LP0_SIZE			0x2000
-#define TEGRA_LP0_VEC \
-	"lp0_vec=" QUOTE(TEGRA_LP0_SIZE) "@" QUOTE(TEGRA_LP0_ADDR) " "
-#else
-#define TEGRA_LP0_VEC
 #endif
 
 #ifndef CONFIG_EXTRA_BOOTARGS
@@ -232,7 +228,6 @@
 	"extra_bootargs=" CONFIG_EXTRA_BOOTARGS \
 	"platform_extras=" TEGRA2_SYSMEM"\0" \
 	"videospec=tegrafb\0" \
-	"lp0_args=" TEGRA_LP0_VEC "\0" \
 	"mmcdev=" TEGRA2_MMC_DEFAULT_DEVICE "\0" \
 	"pn=" TEGRA_DEFAULT_ROOT_PART "\0" \
 	"forcegpt=" TEGRA_DEFAULT_FORCE_GPT "\0" \

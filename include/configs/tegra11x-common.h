@@ -218,10 +218,6 @@
 #ifdef CONFIG_TEGRA2_LP0
 #define TEGRA_LP0_ADDR			0xbdffd000
 #define TEGRA_LP0_SIZE			SZ_8K
-#define TEGRA_LP0_VEC \
-	"lp0_vec=" QUOTE(TEGRA_LP0_SIZE) "@" QUOTE(TEGRA_LP0_ADDR) " "
-#else
-#define TEGRA_LP0_VEC
 #endif
 
 /* Environment information */
@@ -243,7 +239,6 @@
 		"no_console_suspend=1 " \
 		CONFIG_EXTRA_BOOTARGS \
 	"videospec=tegrafb\0" \
-	"lp0_args=" TEGRA_LP0_VEC "\0" \
 	"mmcdev=" TEGRA_MMC_DEFAULT_DEVICE "\0" \
 	"dev_extras=\0" \
 	\

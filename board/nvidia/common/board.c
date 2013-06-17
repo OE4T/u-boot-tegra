@@ -772,8 +772,9 @@ u32 get_minor_rev(void)
 #ifdef	CONFIG_MISC_INIT_R
 int misc_init_r(void)
 {
+	char buf[255];
 #if defined(CONFIG_TEGRA3) || defined(CONFIG_TEGRA11X)
-	char buf[255], *s, *maxptr;
+	char *s, *maxptr;
 
 	/*
 	 * We need to differentiate between T30 and T33 by passing
@@ -796,6 +797,15 @@ int misc_init_r(void)
 			}
 		}
 	}
+#endif
+#ifdef CONFIG_TEGRA2_LP0
+#ifdef CONFIG_L4T
+	sprintf(buf, "0x%08x@0x%08x", TEGRA_LP0_SIZE, TEGRA_LP0_ADDR);
+	setenv("lp0_vec", buf);
+#else
+	sprintf(buf, "lp0_vec=0x%08x@0x%08x", TEGRA_LP0_SIZE, TEGRA_LP0_ADDR);
+	setenv("lp0_args", buf);
+#endif
 #endif
 	return 0;
 }
