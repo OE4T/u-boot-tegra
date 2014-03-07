@@ -21,7 +21,7 @@
 
 void wb_start(void)
 {
-	struct pmux_tri_ctlr *pmt = (struct pmux_tri_ctlr *)NV_PA_APB_MISC_BASE;
+	u32 *cfg_ctl = (u32 *)(NV_PA_APB_MISC_BASE + 0x24);
 	struct pmc_ctlr *pmc = (struct pmc_ctlr *)NV_PA_PMC_BASE;
 	struct flow_ctlr *flow = (struct flow_ctlr *)NV_PA_FLOW_BASE;
 	struct clk_rst_ctlr *clkrst =
@@ -33,7 +33,7 @@ void wb_start(void)
 	u32 reg;
 
 	/* enable JTAG & TBE */
-	writel(CONFIG_CTL_TBE | CONFIG_CTL_JTAG, &pmt->pmt_cfg_ctl);
+	writel(CONFIG_CTL_TBE | CONFIG_CTL_JTAG, cfg_ctl);
 
 	/* Are we running where we're supposed to be? */
 	asm volatile (

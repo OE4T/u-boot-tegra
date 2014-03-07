@@ -19,10 +19,10 @@
 
 void spl_board_init(void)
 {
-	struct pmux_tri_ctlr *pmt = (struct pmux_tri_ctlr *)NV_PA_APB_MISC_BASE;
+	u32 *cfg_ctl = (u32 *)(NV_PA_APB_MISC_BASE + 0x24);
 
 	/* enable JTAG */
-	writel(0xC0, &pmt->pmt_cfg_ctl);
+	writel(0xC0, cfg_ctl);
 
 	board_init_uart_f();
 

@@ -122,7 +122,7 @@ int warmboot_save_sdram_params(void)
 {
 	u32 ram_code;
 	struct sdram_params sdram;
-	struct pmux_tri_ctlr *pmt = (struct pmux_tri_ctlr *)NV_PA_APB_MISC_BASE;
+	u32 *strap_opt_a = (u32 *)(NV_PA_APB_MISC_BASE + 8);
 	struct pmc_ctlr *pmc = (struct pmc_ctlr *)NV_PA_PMC_BASE;
 	struct apb_misc_gp_ctlr *gp =
 			(struct apb_misc_gp_ctlr *)NV_PA_APB_MISC_GP_BASE;
@@ -135,8 +135,7 @@ int warmboot_save_sdram_params(void)
 	union fbio_spare_reg fbio_spare;
 
 	/* get ram code that is used as index to array sdram_params in BCT */
-	ram_code = (readl(&pmt->pmt_strap_opt_a) >>
-			STRAP_OPT_A_RAM_CODE_SHIFT) & 3;
+	ram_code = (readl(strap_opt_a) >> STRAP_OPT_A_RAM_CODE_SHIFT) & 3;
 	memcpy(&sdram,
 	       (char *)((struct sdram_params *)SDRAM_PARAMS_BASE + ram_code),
 	       sizeof(sdram));
