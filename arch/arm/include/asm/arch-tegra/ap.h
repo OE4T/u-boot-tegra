@@ -65,3 +65,6 @@ int tegra_get_sku_info(void);
 
 /* Do any chip-specific cache config */
 void config_cache(void);
+
+/* Do chip-specific vpr config */
+void config_vpr(void);
