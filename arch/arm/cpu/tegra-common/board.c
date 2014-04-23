@@ -14,6 +14,7 @@
 #include <asm/arch-tegra/pmc.h>
 #include <asm/arch-tegra/sys_proto.h>
 #include <asm/arch-tegra/warmboot.h>
+#include <asm/arch-tegra/mc.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -34,11 +35,20 @@ enum {
 
 unsigned int query_sdram_size(void)
 {
-	struct pmc_ctlr *const pmc = (struct pmc_ctlr *)NV_PA_PMC_BASE;
 	u32 reg;
+
+#if defined(CONFIG_TEGRA_USE_EMC_DRAM_SIZE)
+	struct mc_ctlr *const mc = (struct mc_ctlr *)NV_PA_MC_BASE;
+
+	reg = readl(&mc->mc_emem_cfg);		/* EMEM_SIZE_MB */
+	debug("mc->mc_emem_cfg (MEM_SIZE_MB) = 0x%08x\n", reg);
+	reg <<= 20;				/* get into ODMDATA position */
+#else
+	struct pmc_ctlr *const pmc = (struct pmc_ctlr *)NV_PA_PMC_BASE;
 
 	reg = readl(&pmc->pmc_scratch20);
 	debug("pmc->pmc_scratch20 (ODMData) = 0x%08x\n", reg);
+#endif
 
 #if defined(CONFIG_TEGRA20)
 	/* bits 30:28 in OdmData are used for RAM size on T20  */

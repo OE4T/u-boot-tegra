@@ -12,6 +12,9 @@
 
 #include "tegra124-common.h"
 
+/* Use memory controller SDRAM size instead of ODMDATA */
+#define CONFIG_TEGRA_USE_EMC_DRAM_SIZE
+
 /* Enable fdt support for Jetson TK1. Flash the image in u-boot-dtb.bin */
 #define CONFIG_DEFAULT_DEVICE_TREE	tegra124-jetson-tk1
 #define CONFIG_OF_CONTROL
