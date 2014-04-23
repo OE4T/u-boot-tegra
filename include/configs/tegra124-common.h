@@ -76,4 +76,10 @@
 #define CONFIG_USB_EHCI_TXFIFO_THRESH	0x10
 #define CONFIG_SYS_USB_EHCI_MAX_ROOT_PORTS 1
 
+#ifdef CONFIG_TEGRA_LP0
+#define TEGRA_LP0_ADDR                  0xF46FF000
+#define TEGRA_LP0_SIZE                  0x2000
+#define TEGRA_LP0_ALIGN                 0x10
+#endif
+
 #endif /* _TEGRA124_COMMON_H_ */

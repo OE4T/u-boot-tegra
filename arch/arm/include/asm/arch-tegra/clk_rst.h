@@ -208,12 +208,43 @@ struct clk_rst_ctlr {
 	uint crc_clk_src_x[TEGRA_CLK_SOURCES_X]; /* XUSB, etc, 0x600-0x678 */
 };
 
+#define TEGRA_DEV_L			0
+#define TEGRA_DEV_H			1
+#define TEGRA_DEV_U			2
+#define TEGRA_DEV_V			0
+#define TEGRA_DEV_W			1
+
+#define SIMPLE_PLLX		(CLOCK_ID_XCPU - CLOCK_ID_FIRST_SIMPLE)
+
+/* Bits to enable/reset modules */
+#define CLK_ENB_CPU			(1 << 0)
+#define SWR_TRIG_SYS_RST		(1 << 2)
+#define SWR_CSITE_RST			(1 << 9)
+#define CLK_ENB_CSITE			(1 << 9)
+
+/* CRC_SUPER_CCLK_DIVIDER_0 0x24 */
+#define SUPER_CDIV_ENB_ENABLE		(1 << 31)
+
+/* CLK_RST_CONTROLLER_MISC_CLK_ENB 0x48 */
+#define EN_PPSB_STOPCLK			(1 << 0)
+
 /* CLK_RST_CONTROLLER_CLK_CPU_CMPLX_0 */
 #define CPU3_CLK_STP_SHIFT	11
 #define CPU2_CLK_STP_SHIFT	10
 #define CPU1_CLK_STP_SHIFT	9
 #define CPU0_CLK_STP_SHIFT	8
 #define CPU0_CLK_STP_MASK	(1U << CPU0_CLK_STP_SHIFT)
+
+/* CRC_OSC_CTRL_0 0x50 */
+#define OSC_CTRL_OSC_FREQ		(0xf << 28)
+#define OSC_CTRL_OSC_FREQ_SHIFT		28
+#define OSC_FREQ_OSC13			0	/* 13.0MHz */
+#define OSC_FREQ_OSC19P2		4	/* 19.2MHz */
+#define OSC_FREQ_OSC12			8	/* 12.0MHz */
+#define OSC_FREQ_OSC26			12	/* 26.0MHz */
+#define OSC_FREQ_OSC16P8		1	/* 16.8MHz */
+#define OSC_FREQ_OSC38P4		5	/* 38.4MHz */
+#define OSC_FREQ_OSC48			9	/* 48.0MHz */
 
 /* CLK_RST_CONTROLLER_PLLx_BASE_0 */
 #define PLL_BYPASS_SHIFT	31
@@ -289,6 +320,26 @@ enum {
 #define PLLP_OUT4_RSTN_DIS	(1 << 16)
 #define PLLP_OUT4_RSTN_EN	(0 << 16)
 #define PLLP_OUT4_CLKEN		(1 << 17)
+
+/* CRC_PLLP_MISC_0 0xac */
+#define PLLP_MISC_PLLP_CPCON_8		(8 << 8)
+#define PLLP_MISC_PLLP_LOCK_ENABLE	(1 << 18)
+
+/* CRC_PLLU_BASE_0 0xc0 */
+#define PLLU_BYPASS_ENABLE		(1 << 31)
+#define PLLU_ENABLE_ENABLE		(1 << 30)
+#define PLLU_REF_DIS_REF_DISABLE	(1 << 29)
+#define PLLU_OVERRIDE_ENABLE		(1 << 24)
+
+/* CRC_PLLU_MISC_0 0xcc */
+#define PLLU_LOCK_ENABLE_ENABLE		(1 << 22)
+
+/* PLLX_BASE_0 0xe0 */
+#define PLLX_BASE_PLLX_ENABLE		(1 << 30)
+
+/* CLK_RST_CONTROLLER_PLLX_MISC_3 */
+#define PLLX_IDDQ_SHIFT			3
+#define PLLX_IDDQ_MASK			(1U << PLLX_IDDQ_SHIFT)
 
 /* CLK_RST_CONTROLLER_UTMIP_PLL_CFG1_0 */
 #define PLLU_POWERDOWN		(1 << 16)

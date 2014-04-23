@@ -165,9 +165,6 @@ int board_init(void)
 #ifdef CONFIG_TEGRA_LP0
 	/* save Sdram params to PMC 2, 4, and 24 for WB0 */
 	warmboot_save_sdram_params();
-
-	/* prepare the WB code to LP0 location */
-	warmboot_prepare_code(TEGRA_LP0_ADDR, TEGRA_LP0_SIZE);
 #endif
 
 	return 0;
@@ -202,6 +199,12 @@ int board_late_init(void)
 	/* Make sure we finish initing the LCD */
 	tegra_lcd_check_next_stage(gd->fdt_blob, 1);
 #endif
+
+#ifdef CONFIG_TEGRA_LP0
+	/* prepare the WB code to LP0 location */
+	warmboot_prepare_code(TEGRA_LP0_ADDR, TEGRA_LP0_SIZE);
+#endif
+
 	return 0;
 }
 

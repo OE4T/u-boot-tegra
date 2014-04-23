@@ -10,7 +10,15 @@
 
 #include <linux/sizes.h>
 
+/* LP0 suspend / resume */
+#define CONFIG_TEGRA_LP0
+#define CONFIG_AES
+
 #include "tegra124-common.h"
+
+#ifdef CONFIG_TEGRA_LP0
+#define CONFIG_TEGRA124_LP0
+#endif
 
 /* Use memory controller SDRAM size instead of ODMDATA */
 #define CONFIG_TEGRA_USE_EMC_DRAM_SIZE
@@ -30,6 +38,7 @@
 #define CONFIG_SYS_NS16550_COM1		NV_PA_APB_UARTD_BASE
 
 #define CONFIG_BOARD_EARLY_INIT_F
+#define CONFIG_BOARD_LATE_INIT
 
 /* I2C */
 #define CONFIG_SYS_I2C_TEGRA
