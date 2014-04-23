@@ -9,6 +9,10 @@
 
 #include <linux/sizes.h>
 
+/* LP0 suspend / resume */
+#define CONFIG_TEGRA_LP0
+#define CONFIG_AES
+
 #include "tegra124-common.h"
 
 #define CONFIG_SERIAL_TAG

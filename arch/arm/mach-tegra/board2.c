@@ -165,9 +165,6 @@ int board_init(void)
 #ifdef CONFIG_TEGRA_LP0
 	/* save Sdram params to PMC 2, 4, and 24 for WB0 */
 	warmboot_save_sdram_params();
-
-	/* prepare the WB code to LP0 location */
-	warmboot_prepare_code(TEGRA_LP0_ADDR, TEGRA_LP0_SIZE);
 #endif
 	return nvidia_board_init();
 }
@@ -220,6 +217,11 @@ int board_late_init(void)
 	}
 #endif
 	start_cpu_fan();
+
+#ifdef CONFIG_TEGRA_LP0
+	/* prepare the WB code to LP0 location */
+	warmboot_prepare_code(TEGRA_LP0_ADDR, TEGRA_LP0_SIZE);
+#endif
 
 	return 0;
 }

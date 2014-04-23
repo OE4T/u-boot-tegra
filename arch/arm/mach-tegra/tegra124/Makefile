@@ -17,3 +17,13 @@ obj-y	+= ../xusb-padctl-common.o
 ifndef CONFIG_SPL_BUILD
 obj-$(CONFIG_ARMV7_NONSEC) += psci.o
 endif
+
+# The AVP is ARMv4T architecture so we must use special compiler
+# flags for any startup files it might use.
+CFLAGS_warmboot_avp.o = -march=armv4t -U__LINUX_ARM_ARCH__ \
+        -D__LINUX_ARM_ARCH__=4
+
+obj-$(CONFIG_TEGRA_LP0) += crypto.o
+obj-$(CONFIG_TEGRA_LP0) += t1x4_warmboot.o
+obj-$(CONFIG_TEGRA_LP0) += warmboot.o
+obj-$(CONFIG_TEGRA_LP0) += warmboot_avp.o

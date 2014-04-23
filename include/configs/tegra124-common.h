@@ -67,4 +67,10 @@
 /* GPU needs setup */
 #define CONFIG_TEGRA_GPU
 
+#ifdef CONFIG_TEGRA_LP0
+#define TEGRA_LP0_ADDR                  0xF46FF000
+#define TEGRA_LP0_SIZE                  0x2000
+#define TEGRA_LP0_ALIGN                 0x10
+#endif
+
 #endif /* _TEGRA124_COMMON_H_ */
