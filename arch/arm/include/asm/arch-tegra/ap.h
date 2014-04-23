@@ -28,6 +28,7 @@
 
 /* AP base physical address of internal SRAM */
 #define NV_PA_BASE_SRAM		0x40000000
+#define NV_PA_BASE_SRAM_SIZE    0x20000
 
 #define EXCEP_VECTOR_CPU_RESET_VECTOR	(NV_PA_EVP_BASE + 0x100)
 #define CSITE_CPU_DBG0_LAR		(NV_PA_CSITE_BASE + 0x10FB0)

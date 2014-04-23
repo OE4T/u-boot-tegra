@@ -13,6 +13,10 @@
 /* enable PMIC */
 #define CONFIG_AS3722_POWER
 
+/* LP0 suspend / resume */
+#define CONFIG_TEGRA_LP0
+#define CONFIG_AES
+
 #include "tegra124-common.h"
 
 /* High-level configuration options */
