@@ -217,7 +217,9 @@ static int do_mmcops(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			return 1;
 		}
 
-		mmc_init(mmc);
+		if (mmc_init(mmc));
+			return 1;
+
 		if (part != -1) {
 			int ret;
 			if (mmc->part_config == MMCPART_NOAVAILABLE) {
