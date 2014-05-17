@@ -44,6 +44,7 @@
 #include <power/as3722.h>
 #include <i2c.h>
 #include <spi.h>
+#include <fdt_support.h>
 #include "emc.h"
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -274,3 +275,150 @@ void pad_init_mmc(struct mmc_host *host)
 #endif	/* T30 */
 }
 #endif	/* MMC */
+
+#ifdef CONFIG_SERIAL_TAG
+void get_board_serial(struct tag_serialnr *serialnr)
+{
+	int ret;
+	struct udevice *dev;
+
+	/* pass board id to kernel */
+	serialnr->high = CONFIG_TEGRA_SERIAL_HIGH;
+	serialnr->low = CONFIG_TEGRA_SERIAL_LOW;
+	/* TODO: use FDT */
+
+	debug("Config file serialnr->high = %08X, ->low = %08X\n",
+	      serialnr->high, serialnr->low);
+
+	/*
+	 * Check if we can read the EEPROM serial number
+	 *  and if so, use it instead.
+	 */
+
+#if !defined(CONFIG_SERIAL_EEPROM)
+	debug("No serial EEPROM onboard, using default values\n");
+	return;
+#else
+	uchar data_buffer[NUM_SERIAL_ID_BYTES];
+
+	ret = i2c_get_chip_for_busnum(EEPROM_I2C_BUS, EEPROM_I2C_ADDRESS, 1,
+				      &dev);
+	if (ret) {
+		debug("%s: Cannot find EEPROM I2C chip\n", __func__);
+		return;
+	}
+
+	if (dm_i2c_read(dev, EEPROM_SERIAL_OFFSET, data_buffer,
+			NUM_SERIAL_ID_BYTES)) {
+		printf("%s: I2C read of bus %d chip %d addr %d failed!\n",
+		       __func__, EEPROM_I2C_BUS, EEPROM_I2C_ADDRESS,
+		       EEPROM_SERIAL_OFFSET);
+	} else {
+#ifdef DEBUG
+		int i;
+		printf("get_board_serial: Got ");
+		for (i = 0; i < NUM_SERIAL_ID_BYTES; i++)
+			printf("%02X:", data_buffer[i]);
+		printf("\n");
+#endif
+		serialnr->high = data_buffer[2];
+		serialnr->high |= (u32)data_buffer[3] << 8;
+		serialnr->high |= (u32)data_buffer[0] << 16;
+		serialnr->high |= (u32)data_buffer[1] << 24;
+
+		serialnr->low = data_buffer[7];
+		serialnr->low |= (u32)data_buffer[6] << 8;
+		serialnr->low |= (u32)data_buffer[5] << 16;
+		serialnr->low |= (u32)data_buffer[4] << 24;
+
+		debug("SEEPROM serialnr->high = %08X, ->low = %08X\n",
+		      serialnr->high, serialnr->low);
+	}
+#endif	/* SERIAL_EEPROM */
+}
+
+#ifdef CONFIG_OF_BOARD_SETUP
+int fdt_serial_tag_setup(void *blob, bd_t *bd)
+{
+	struct tag_serialnr serialnr;
+	int offset, ret;
+	u32 val;
+
+	offset = fdt_path_offset(blob, "/chosen/proc-board");
+	if (offset < 0) {
+		int chosen = fdt_path_offset(blob, "/chosen");
+		offset = fdt_add_subnode(blob, chosen, "proc-board");
+		if (offset < 0) {
+			printf("ERROR: add node /chosen/proc-board: %s.\n",
+			       fdt_strerror(offset));
+			return offset;
+		}
+	}
+
+	get_board_serial(&serialnr);
+
+	val = serialnr.high >> 16;
+	val = cpu_to_fdt32(val);
+	ret = fdt_setprop(blob, offset, "id", &val, sizeof(val));
+	if (ret < 0) {
+		printf("ERROR: could not update id property %s.\n",
+		       fdt_strerror(ret));
+		return ret;
+	}
+
+	val = serialnr.high & 0xFFFF;
+	val = cpu_to_fdt32(val);
+	ret = fdt_setprop(blob, offset, "sku", &val, sizeof(val));
+	if (ret < 0) {
+		printf("ERROR: could not update sku property %s.\n",
+		       fdt_strerror(ret));
+		return ret;
+	}
+
+	val = serialnr.low >> 24;
+	val = cpu_to_fdt32(val);
+	ret = fdt_setprop(blob, offset, "fab", &val, sizeof(val));
+	if (ret < 0) {
+		printf("ERROR: could not update fab property %s.\n",
+		       fdt_strerror(ret));
+		return ret;
+	}
+
+	val = (serialnr.low >> 16) & 0xFF;
+	val = cpu_to_fdt32(val);
+	ret = fdt_setprop(blob, offset, "major_revision", &val, sizeof(val));
+	if (ret < 0) {
+		printf("ERROR: could not update major_revision property %s.\n",
+		       fdt_strerror(ret));
+		return ret;
+	}
+
+	val = (serialnr.low >> 8) & 0xFF;
+	val = cpu_to_fdt32(val);
+	ret = fdt_setprop(blob, offset, "minor_revision", &val, sizeof(val));
+	if (ret < 0) {
+		printf("ERROR: could not update minor_revision property %s.\n",
+		       fdt_strerror(ret));
+		return ret;
+	}
+
+	return 0;
+}
+#endif  /* OF_BOARD_SETUP */
+#endif	/* SERIAL_TAG */
+
+#ifdef CONFIG_OF_BOARD_SETUP
+int ft_board_setup(void *blob, bd_t *bd)
+{
+	int ret;
+
+	/* Overwrite DT file with right board info properties */
+#ifdef CONFIG_SERIAL_TAG
+	ret = fdt_serial_tag_setup(blob, bd);
+	if (ret)
+		return ret;
+#endif	/* SERIAL_TAG */
+
+	return 0;
+}
+#endif  /* OF_BOARD_SETUP */
