@@ -11,6 +11,17 @@
 
 #include "tegra124-common.h"
 
+#define CONFIG_SERIAL_TAG
+#define CONFIG_TEGRA_SERIAL_HIGH	0x01770000
+#define CONFIG_TEGRA_SERIAL_LOW		0x034200FF
+
+/* The following are used to retrieve the board id from an eeprom */
+#define CONFIG_SERIAL_EEPROM
+#define EEPROM_I2C_BUS         1
+#define EEPROM_I2C_ADDRESS     0x56
+#define EEPROM_SERIAL_OFFSET   0x04
+#define NUM_SERIAL_ID_BYTES    8
+
 /* High-level configuration options */
 #define CONFIG_TEGRA_BOARD_STRING	"NVIDIA Jetson TK1"
 

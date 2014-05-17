@@ -7,6 +7,7 @@
 #include <common.h>
 #include <dm.h>
 #include <errno.h>
+#include <i2c.h>
 #include <ns16550.h>
 #include <usb.h>
 #include <asm/io.h>
@@ -344,3 +345,138 @@ ulong board_get_usable_ram_top(ulong total_size)
 {
 	return CONFIG_SYS_SDRAM_BASE + usable_ram_size_below_4g();
 }
+
+#ifdef CONFIG_SERIAL_TAG
+void get_board_serial(unsigned long *serial_high, unsigned long *serial_low)
+{
+	/* pass board id to kernel */
+	*serial_high = CONFIG_TEGRA_SERIAL_HIGH;
+	*serial_low = CONFIG_TEGRA_SERIAL_LOW;
+	/* TODO: use FDT */
+
+	debug("Config file *serial_high = %08lX, ->low = %08lX\n",
+		*serial_high, *serial_low);
+
+	/*
+	 * Check if we can read the EEPROM serial number
+	 *  and if so, use it instead.
+	 */
+
+#if !defined(CONFIG_SERIAL_EEPROM)
+	debug("No serial EEPROM onboard, using default values\n");
+	return;
+#else
+	int ret;
+	struct udevice *dev;
+	uchar data_buffer[NUM_SERIAL_ID_BYTES];
+
+	ret = i2c_get_chip_for_busnum(EEPROM_I2C_BUS, EEPROM_I2C_ADDRESS, 1,
+				      &dev);
+	if (ret) {
+		printf("%s: Cannot find ID EEPROM bus/chip\n", __func__);
+		return;
+	}
+	ret = dm_i2c_read(dev, EEPROM_SERIAL_OFFSET, data_buffer,
+			  NUM_SERIAL_ID_BYTES);
+	if (ret) {
+		printf("ID EEPROM read failed: %d\n", ret);
+		return;
+	}
+
+#ifdef DEBUG
+	int i;
+	printf("get_board_serial: Got ");
+	for (i = 0; i < NUM_SERIAL_ID_BYTES; i++)
+		printf("%02X:", data_buffer[i]);
+	printf("\n");
+#endif
+
+	*serial_high = data_buffer[2];
+	*serial_high |= (u32)data_buffer[3] << 8;
+	*serial_high |= (u32)data_buffer[0] << 16;
+	*serial_high |= (u32)data_buffer[1] << 24;
+
+	*serial_low = data_buffer[7];
+	*serial_low |= (u32)data_buffer[6] << 8;
+	*serial_low |= (u32)data_buffer[5] << 16;
+	*serial_low |= (u32)data_buffer[4] << 24;
+
+	debug("SEEPROM *serial_high = %08lX, ->low = %08lX\n",
+		*serial_high, *serial_low);
+#endif /* SERIAL_EEPROM */
+}
+
+#ifdef CONFIG_OF_BOARD_SETUP
+void fdt_serial_tag_setup(void *blob, bd_t *bd)
+{
+	unsigned long serial_high;
+	unsigned long serial_low;
+	int offset, ret;
+	u32 val;
+
+	offset = fdt_path_offset(blob, "/chosen/board_info");
+	if (offset < 0) {
+		int chosen = fdt_path_offset(blob, "/chosen");
+		offset = fdt_add_subnode(blob, chosen, "board_info");
+		if (offset < 0) {
+			printf("ERROR: add node /chosen/board_info: %s.\n",
+				fdt_strerror(offset));
+			return;
+		}
+	}
+
+	get_board_serial(&serial_high, &serial_low);
+
+	val = serial_high >> 16;
+	val = cpu_to_fdt32(val);
+	ret = fdt_setprop(blob, offset, "id", &val, sizeof(val));
+	if (ret < 0)
+		printf("ERROR: could not update id property %s.\n",
+			fdt_strerror(ret));
+
+	val = serial_high & 0xFFFF;
+	val = cpu_to_fdt32(val);
+	ret = fdt_setprop(blob, offset, "sku", &val, sizeof(val));
+	if (ret < 0)
+		printf("ERROR: could not update sku property %s.\n",
+			fdt_strerror(ret));
+
+	val = (serial_low >> 16) & 0xFF;
+	val = cpu_to_fdt32(val);
+	ret = fdt_setprop(blob, offset, "fab", &val, sizeof(val));
+	if (ret < 0)
+		printf("ERROR: could not update fab property %s.\n",
+			fdt_strerror(ret));
+
+	val = (serial_low >> 24) + 'A';
+	val = cpu_to_fdt32(val);
+	ret = fdt_setprop(blob, offset, "major_revision", &val, sizeof(val));
+	if (ret < 0)
+		printf("ERROR: could not update major_revision property %s.\n",
+			fdt_strerror(ret));
+
+	val = (serial_low >> 8) & 0xFF;
+	val = cpu_to_fdt32(val);
+	ret = fdt_setprop(blob, offset, "minor_revision", &val, sizeof(val));
+	if (ret < 0)
+		printf("ERROR: could not update minor_revision property %s.\n",
+			fdt_strerror(ret));
+
+	ret = fdt_setprop(blob, offset, "name", CONFIG_TEGRA_BOARD_STRING,
+				strlen(CONFIG_TEGRA_BOARD_STRING));
+	if (ret < 0)
+		printf("ERROR: could not update name property %s.\n",
+			fdt_strerror(ret));
+}
+#endif  /* OF_BOARD_SETUP */
+#endif	/* SERIAL_TAG */
+
+#ifdef CONFIG_OF_BOARD_SETUP
+void ft_board_setup(void *blob, bd_t *bd)
+{
+	/* Overwrite DT file with right board info properties */
+#ifdef CONFIG_SERIAL_TAG
+	fdt_serial_tag_setup(blob, bd);
+#endif	/* SERIAL_TAG */
+}
+#endif  /* OF_BOARD_SETUP */
