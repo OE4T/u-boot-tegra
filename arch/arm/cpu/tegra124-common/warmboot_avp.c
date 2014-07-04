@@ -40,6 +40,7 @@ void wb_start(void)
 	u32 divm;
 	u32 divn;
 	u32 cpcon, lfcon;
+	u32 ram_repair_timeout = 500; /*usec*/
 
 	/* Are we running where we're supposed to be? */
 	asm volatile (
@@ -245,6 +246,8 @@ void wb_start(void)
 	reg = readl(&mc->mc_video_protect_size_mb);
 	reg = readl(&mc->mc_video_protect_reg_ctrl);
 
+	/* ram re-repair cluster0*/
+	clrbits_le32(&flow->ram_repair, RAM_REPAIR_BYPASS_EN);
 	/*
 	 * Reprogram PMC_CPUPWRGOOD_TIMER register:
 	 *
@@ -298,6 +301,15 @@ void wb_start(void)
 			while (readl(&pmc->pmc_clamp_status) & reg)
 				;
 		}
+		/* Ram Repair cluster 1 */
+		reg = readl(&flow->ram_repair_cluster1) | RAM_REPAIR_REQ;
+		writel(reg, &flow->ram_repair_cluster1);
+		/* Wait for completion (status == 0) */
+		do {
+			udelay(1);
+			reg = readl(&flow->ram_repair_cluster1);
+		} while (!(reg & RAM_REPAIR_STS) && ram_repair_timeout--)
+			;
 	} else {
 		/* FastCPU */
 		reg = PWRGATE_STATUS_CRAIL_ENABLE;
@@ -314,7 +326,6 @@ void wb_start(void)
 			while (readl(&pmc->pmc_clamp_status) & reg)
 				;
 		}
-
 		reg = PWRGATE_STATUS_C0NC_ENABLE;
 		reg_1 = PWRGATE_TOGGLE_PARTID_C0NC | PWRGATE_TOGGLE_START;
 		if (!(readl(&pmc->pmc_pwrgate_status) & reg)) {

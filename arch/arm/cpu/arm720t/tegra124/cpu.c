@@ -115,8 +115,34 @@ void tegra124_init_clocks(void)
 	struct clk_rst_ctlr *clkrst =
 			(struct clk_rst_ctlr *)NV_PA_CLK_RST_BASE;
 	u32 val;
-
+	u32 ram_repair_timeout = 500; /*usec*/
 	debug("tegra124_init_clocks entry\n");
+
+	/* Request SW trigerred RAM repair by setting req  bit*/
+	/* cluster 0 */
+	setbits_le32(&flow->ram_repair, RAM_REPAIR_REQ);
+	/* Wait for completion (status == 0) */
+	do {
+		udelay(1);
+		val = readl(&flow->ram_repair);
+	} while (!(val & RAM_REPAIR_STS) && ram_repair_timeout--)
+		;
+
+	if (ram_repair_timeout == 0)
+		debug("Ram Repair cluster0 failed\n");
+
+	/* cluster 1 */
+	ram_repair_timeout = 500;
+	setbits_le32(&flow->ram_repair_cluster1, RAM_REPAIR_REQ);
+	/* Wait for completion (status == 0) */
+	do {
+		udelay(1);
+		val = readl(&flow->ram_repair_cluster1);
+	} while (!(val & RAM_REPAIR_STS) && ram_repair_timeout--)
+		;
+
+	if (ram_repair_timeout == 0)
+		debug("Ram Repair cluster1 failed\n");
 
 	/* Set active CPU cluster to G */
 	clrbits_le32(&flow->cluster_control, 1);
