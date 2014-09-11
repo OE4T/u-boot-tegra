@@ -46,6 +46,8 @@
 #define CONFIG_CMD_ECHO
 #define CONFIG_CMD_CACHE
 
+#define CONFIG_SYS_GENERIC_BOARD
+
 #define CONFIG_ENV_VARS_UBOOT_CONFIG
 #ifndef CONFIG_SPL_BUILD
 #define CONFIG_ROOTPATH		"/opt/eldk"
@@ -137,7 +139,6 @@
 #define CONFIG_SYS_I2C_OMAP24XX
 
 /* Defines for SPL */
-#define CONFIG_SPL
 #define CONFIG_SPL_FRAMEWORK
 #define CONFIG_SPL_TEXT_BASE		0x402F0400
 #define CONFIG_SPL_MAX_SIZE		(101 * 1024)
@@ -265,6 +266,7 @@
 #define CONFIG_DFU_NAND
 #define CONFIG_CMD_DFU
 #define CONFIG_SYS_DFU_DATA_BUF_SIZE	(1 << 20)
+#define DFU_MANIFEST_POLL_TIMEOUT	25000
 
 #endif /* CONFIG_SPL_BUILD */
 
@@ -357,7 +359,7 @@
 
 #define CONFIG_COMMON_ENV_SETTINGS \
 	"verify=no \0" \
-	"project_dir=systemone\0" \
+	"project_dir=targetdir\0" \
 	"upgrade_available=0\0" \
 	"altbootcmd=run bootcmd\0" \
 	"bootlimit=3\0" \
@@ -401,7 +403,11 @@
 	"dfu_args=run bootargs_defaults;" \
 		"setenv bootargs ${bootargs} ;" \
 		"mtdparts default; " \
-		"dfu 0 nand 0; \0" \
+		"led dfu 1;" \
+		"led stat 0;" \
+		"dfu 0 nand 0;" \
+		"led dfu 0;" \
+		"led stat 1;\0" \
 		"dfu_alt_info=" DFU_ALT_INFO_NAND "\0" \
 	"net_args=run bootargs_defaults;" \
 		"mtdparts default;" \

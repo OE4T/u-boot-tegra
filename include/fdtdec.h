@@ -40,6 +40,27 @@ struct fdt_memory {
 	fdt_addr_t end;
 };
 
+/*
+ * Information about a resource. start is the first address of the resource
+ * and end is the last address (inclusive). The length of the resource will
+ * be equal to: end - start + 1.
+ */
+struct fdt_resource {
+	fdt_addr_t start;
+	fdt_addr_t end;
+};
+
+/**
+ * Compute the size of a resource.
+ *
+ * @param res	the resource to operate on
+ * @return the size of the resource
+ */
+static inline fdt_size_t fdt_resource_size(const struct fdt_resource *res)
+{
+	return res->end - res->start + 1;
+}
+
 /**
  * Compat types that we know about and for which we might have drivers.
  * Each is named COMPAT_<dir>_<filename> where <dir> is the directory
@@ -65,6 +86,11 @@ enum fdt_compat_id {
 	COMPAT_NVIDIA_TEGRA20_SFLASH,	/* Tegra 2 SPI flash controller */
 	COMPAT_NVIDIA_TEGRA20_SLINK,	/* Tegra 2 SPI SLINK controller */
 	COMPAT_NVIDIA_TEGRA114_SPI,	/* Tegra 114 SPI controller */
+	COMPAT_NVIDIA_TEGRA124_PCIE,	/* Tegra 124 PCIe controller */
+	COMPAT_NVIDIA_TEGRA30_PCIE,	/* Tegra 30 PCIe controller */
+	COMPAT_NVIDIA_TEGRA20_PCIE,	/* Tegra 20 PCIe controller */
+	COMPAT_NVIDIA_TEGRA124_XUSB_PADCTL,
+					/* Tegra124 XUSB pad controller */
 	COMPAT_SMSC_LAN9215,		/* SMSC 10/100 Ethernet LAN9215 */
 	COMPAT_SAMSUNG_EXYNOS5_SROMC,	/* Exynos5 SROMC */
 	COMPAT_SAMSUNG_S3C2440_I2C,	/* Exynos I2C Controller */
@@ -79,8 +105,10 @@ enum fdt_compat_id {
 	COMPAT_SAMSUNG_EXYNOS5_USB3_PHY,/* Exynos phy controller for usb3.0 */
 	COMPAT_SAMSUNG_EXYNOS_TMU,	/* Exynos TMU */
 	COMPAT_SAMSUNG_EXYNOS_FIMD,	/* Exynos Display controller */
+	COMPAT_SAMSUNG_EXYNOS_MIPI_DSI,	/* Exynos mipi dsi */
 	COMPAT_SAMSUNG_EXYNOS5_DP,	/* Exynos Display port controller */
-	COMPAT_SAMSUNG_EXYNOS5_DWMMC,	/* Exynos5 DWMMC controller */
+	COMPAT_SAMSUNG_EXYNOS_DWMMC,	/* Exynos DWMMC controller */
+	COMPAT_SAMSUNG_EXYNOS_MMC,	/* Exynos MMC controller */
 	COMPAT_SAMSUNG_EXYNOS_SERIAL,	/* Exynos UART */
 	COMPAT_MAXIM_MAX77686_PMIC,	/* MAX77686 PMIC */
 	COMPAT_GENERIC_SPI_FLASH,	/* Generic SPI Flash chip */
@@ -88,6 +116,11 @@ enum fdt_compat_id {
 	COMPAT_INFINEON_SLB9635_TPM,	/* Infineon SLB9635 TPM */
 	COMPAT_INFINEON_SLB9645_TPM,	/* Infineon SLB9645 TPM */
 	COMPAT_SAMSUNG_EXYNOS5_I2C,	/* Exynos5 High Speed I2C Controller */
+	COMPAT_SANDBOX_HOST_EMULATION,	/* Sandbox emulation of a function */
+	COMPAT_SANDBOX_LCD_SDL,		/* Sandbox LCD emulation with SDL */
+	COMPAT_TI_TPS65090,		/* Texas Instrument TPS65090 */
+	COMPAT_NXP_PTN3460,		/* NXP PTN3460 DP/LVDS bridge */
+	COMPAT_AMS_AS3722,		/* AMS AS3722 PMIC */
 
 	COMPAT_COUNT,
 };
@@ -339,6 +372,35 @@ int fdtdec_find_aliases_for_id(const void *blob, const char *name,
 int fdtdec_add_aliases_for_id(const void *blob, const char *name,
 			enum fdt_compat_id id, int *node_list, int maxcount);
 
+/**
+ * Get the alias sequence number of a node
+ *
+ * This works out whether a node is pointed to by an alias, and if so, the
+ * sequence number of that alias. Aliases are of the form <base><num> where
+ * <num> is the sequence number. For example spi2 would be sequence number
+ * 2.
+ *
+ * @param blob		Device tree blob (if NULL, then error is returned)
+ * @param base		Base name for alias (before the underscore)
+ * @param node		Node to look up
+ * @param seqp		This is set to the sequence number if one is found,
+ *			but otherwise the value is left alone
+ * @return 0 if a sequence was found, -ve if not
+ */
+int fdtdec_get_alias_seq(const void *blob, const char *base, int node,
+			 int *seqp);
+
+/**
+ * Get the offset of the given alias node
+ *
+ * This looks up an alias in /aliases then finds the offset of that node.
+ *
+ * @param blob		Device tree blob (if NULL, then error is returned)
+ * @param name		Alias name, e.g. "console"
+ * @return Node offset referred to by that alias, or -ve FDT_ERR_...
+ */
+int fdtdec_get_alias_node(const void *blob, const char *name);
+
 /*
  * Get the name for a compatible ID
  *
@@ -530,4 +592,64 @@ const u8 *fdtdec_locate_byte_array(const void *blob, int node,
  */
 int fdtdec_decode_region(const void *blob, int node,
 		const char *prop_name, void **ptrp, size_t *size);
+
+/* A flash map entry, containing an offset and length */
+struct fmap_entry {
+	uint32_t offset;
+	uint32_t length;
+};
+
+/**
+ * Read a flash entry from the fdt
+ *
+ * @param blob		FDT blob
+ * @param node		Offset of node to read
+ * @param name		Name of node being read
+ * @param entry		Place to put offset and size of this node
+ * @return 0 if ok, -ve on error
+ */
+int fdtdec_read_fmap_entry(const void *blob, int node, const char *name,
+			   struct fmap_entry *entry);
+
+/**
+ * Obtain an indexed resource from a device property.
+ *
+ * @param fdt		FDT blob
+ * @param node		node to examine
+ * @param property	name of the property to parse
+ * @param index		index of the resource to retrieve
+ * @param res		returns the resource
+ * @return 0 if ok, negative on error
+ */
+int fdt_get_resource(const void *fdt, int node, const char *property,
+		     unsigned int index, struct fdt_resource *res);
+
+/**
+ * Obtain a named resource from a device property.
+ *
+ * Look up the index of the name in a list of strings and return the resource
+ * at that index.
+ *
+ * @param fdt		FDT blob
+ * @param node		node to examine
+ * @param property	name of the property to parse
+ * @param prop_names	name of the property containing the list of names
+ * @param name		the name of the entry to look up
+ * @param res		returns the resource
+ */
+int fdt_get_named_resource(const void *fdt, int node, const char *property,
+			   const char *prop_names, const char *name,
+			   struct fdt_resource *res);
+
+/**
+ * Look at the reg property of a device node that represents a PCI device
+ * and parse the bus, device and function number from it.
+ *
+ * @param fdt		FDT blob
+ * @param node		node to examine
+ * @param bdf		returns bus, device, function triplet
+ * @return 0 if ok, negative on error
+ */
+int fdtdec_pci_get_bdf(const void *fdt, int node, int *bdf);
+
 #endif

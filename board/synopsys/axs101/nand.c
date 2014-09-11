@@ -62,8 +62,10 @@ struct nand_bd {
 	uint32_t buffer_ptr1;	/* DES3 */
 };
 
-#define NAND_REG_WRITE(r, v)	writel(v, CONFIG_SYS_NAND_BASE + r)
-#define NAND_REG_READ(r)	readl(CONFIG_SYS_NAND_BASE + r)
+#define NAND_REG_WRITE(r, v)	\
+	writel(v, (volatile void __iomem *)(CONFIG_SYS_NAND_BASE + r))
+#define NAND_REG_READ(r)		\
+	readl((const volatile void __iomem *)(CONFIG_SYS_NAND_BASE + r))
 
 static struct nand_bd *bd;	/* DMA buffer descriptors	*/
 
@@ -107,6 +109,10 @@ static void axs101_nand_write_buf(struct mtd_info *mtd, const u_char *buf,
 	writel(bbstate.bounce_buffer, &bd->buffer_ptr0);
 	writel(0, &bd->buffer_ptr1);
 
+	/* Flush modified buffer descriptor */
+	flush_dcache_range((unsigned long)bd,
+			   (unsigned long)bd + sizeof(struct nand_bd));
+
 	/* Issue "write" command */
 	NAND_REG_WRITE(AC_FIFO, B_CT_WRITE | B_WFR | B_IWC | B_LC | (len-1));
 
@@ -136,6 +142,10 @@ static void axs101_nand_read_buf(struct mtd_info *mtd, u_char *buf, int len)
 	writel(ALIGN(len, BUS_WIDTH) & BD_SIZES_BUFFER1_MASK, &bd->sizes);
 	writel(bbstate.bounce_buffer, &bd->buffer_ptr0);
 	writel(0, &bd->buffer_ptr1);
+
+	/* Flush modified buffer descriptor */
+	flush_dcache_range((unsigned long)bd,
+			   (unsigned long)bd + sizeof(struct nand_bd));
 
 	/* Issue "read" command */
 	NAND_REG_WRITE(AC_FIFO, B_CT_READ | B_WFR | B_IWC | B_LC | (len - 1));

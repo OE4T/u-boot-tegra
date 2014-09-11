@@ -55,6 +55,20 @@
 #define CONFIG_SYS_SPD_BUS_NUM		0
 #endif
 
+/**
+ * struct i2c_adapter - I2C adapter
+ * @init: initialize I2C adapter
+ * @probe: probe for a device on the I2C bus
+ * @read: read data from a device on the I2C bus
+ * @write: write data to a device on the I2C bus
+ * @set_bus_speed: configure the I2C bus speed
+ * @speed: current I2C bus speed
+ * @waitdelay:
+ * @slaveaddr: own address (when used as a slave)
+ * @init_done: flag to indicate whether or not the adapter has been initialized
+ * @hwadapnr: the hardware number of this adapter
+ * @name: name of this adapter
+ */
 struct i2c_adapter {
 	void		(*init)(struct i2c_adapter *adap, int speed,
 				int slaveaddr);
@@ -73,6 +87,16 @@ struct i2c_adapter {
 	int		init_done;
 	int		hwadapnr;
 	char		*name;
+};
+
+/**
+ * struct i2c_client - I2C slave
+ * @adapter: I2C adapter providing the slave's parent bus
+ * address: address of the I2C slave on the parent bus
+ */
+struct i2c_client {
+	struct i2c_adapter *adapter;
+	unsigned int address;
 };
 
 #define U_BOOT_I2C_MKENT_COMPLETE(_init, _probe, _read, _write, \
@@ -271,6 +295,78 @@ unsigned int i2c_get_bus_speed(void);
  * Adjusts I2C pointers after U-Boot is relocated to DRAM
  */
 void i2c_reloc_fixup(void);
+
+/*
+ * i2c_adapter_get() - get the I2C adapter associated with a given index
+ * @index: index of the I2C adapter
+ */
+struct i2c_adapter *i2c_adapter_get(unsigned int index);
+
+/*
+ * i2c_adapter_read() - read data from an I2C slave at a given address
+ * @adapter: I2C adapter
+ * @chip: address of the I2C slave to read from
+ * @address: address within the I2C slave to read from
+ * @alen: length of address
+ * @buffer: buffer to receive data from I2C slave
+ * @size: number of bytes to read
+ */
+int i2c_adapter_read(struct i2c_adapter *adapter, uint8_t chip,
+		     unsigned int address, size_t alen, void *buffer,
+		     size_t size);
+
+/*
+ * i2c_adapter_write() - write data to an I2C slave at a given address
+ * @adapter: I2C adapter
+ * @chip: address of the I2C slave to write to
+ * @address: address within the I2C slave to write to
+ * @alen: length of address
+ * @buffer: buffer containing the data to write
+ * @size: number of bytes to write
+ *
+ * Ideally the function would take a const void * buffer, but the underlying
+ * infrastructure doesn't properly propagate const and adding it here would
+ * cause a lot of build warnings.
+ */
+int i2c_adapter_write(struct i2c_adapter *adapter, uint8_t chip,
+		      unsigned int address, size_t alen, void *buffer,
+		      size_t size);
+
+/*
+ * i2c_client_init() - initialize an I2C slave
+ * @client: I2C slave
+ * @adapter: parent I2C adapter
+ * @address: address of I2C slave
+ */
+int i2c_client_init(struct i2c_client *client, struct i2c_adapter *adapter,
+		    uint8_t address);
+
+/*
+ * i2c_client_read() - read data from an I2C slave
+ * @client: I2C slave
+ * @address: address within the I2C slave to read from
+ * @alen: length of address
+ * @buffer: buffer to receive data from I2C slave
+ * @size: number of bytes to read
+ */
+int i2c_client_read(struct i2c_client *client, unsigned int address,
+		    size_t alen, void *buffer, size_t size);
+
+/*
+ * i2c_client_write() - write data to an I2C slave
+ * @client: I2C slave
+ * @address: address within the I2C slave to write to
+ * @alen: length of address
+ * @buffer: buffer containing the data to write
+ * @size: number of bytes to write
+ *
+ * Ideally the function would take a const void * buffer, but the underlying
+ * infrastructure doesn't properly propagate const and adding it here would
+ * cause a lot of build warnings.
+ */
+int i2c_client_write(struct i2c_client *client, unsigned int address,
+		     size_t alen, void *buffer, size_t size);
+
 #if defined(CONFIG_SYS_I2C_SOFT)
 void i2c_soft_init(void);
 void i2c_soft_active(void);

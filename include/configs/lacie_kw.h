@@ -41,7 +41,6 @@
  * High Level Configuration Options (easy to change)
  */
 #define CONFIG_FEROCEON_88FR131		/* CPU Core subversion */
-#define CONFIG_KIRKWOOD			/* SoC Family Name */
 /* SoC name */
 #if defined(CONFIG_NETSPACE_LITE_V2) || defined(CONFIG_NETSPACE_MINI_V2)
 #define CONFIG_KW88F6192
@@ -80,9 +79,9 @@
  * from the Network Space v2
  */
 #if defined(CONFIG_INETSPACE_V2)
-#define CONFIG_SYS_KWD_CONFIG $(SRCTREE)/$(CONFIG_BOARDDIR)/kwbimage-is2.cfg
+#define CONFIG_SYS_KWD_CONFIG $(CONFIG_BOARDDIR)/kwbimage-is2.cfg
 #elif defined(CONFIG_NETSPACE_LITE_V2) || defined(CONFIG_NETSPACE_MINI_V2)
-#define CONFIG_SYS_KWD_CONFIG $(SRCTREE)/$(CONFIG_BOARDDIR)/kwbimage-ns2l.cfg
+#define CONFIG_SYS_KWD_CONFIG $(CONFIG_BOARDDIR)/kwbimage-ns2l.cfg
 #endif
 
 /*

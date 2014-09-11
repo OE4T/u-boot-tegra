@@ -21,6 +21,9 @@
 
 #include "tegra30-common.h"
 
+/* VDD core PMIC */
+#define CONFIG_TEGRA_VDD_CORE_TPS62361B_SET3
+
 /* Enable fdt support for Cardhu. Flash the image in u-boot-dtb.bin */
 #define CONFIG_DEFAULT_DEVICE_TREE	tegra30-cardhu
 #define CONFIG_OF_CONTROL
@@ -84,6 +87,16 @@
 /* USB networking support */
 #define CONFIG_USB_HOST_ETHER
 #define CONFIG_USB_ETHER_ASIX
+
+/* PCI host support */
+#define CONFIG_PCI
+#define CONFIG_PCI_TEGRA
+#define CONFIG_PCI_PNP
+#define CONFIG_CMD_PCI
+#define CONFIG_CMD_PCI_ENUM
+
+/* PCI networking support */
+#define CONFIG_RTL8169
 
 /* General networking support */
 #define CONFIG_CMD_NET

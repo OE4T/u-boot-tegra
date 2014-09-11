@@ -14,10 +14,12 @@
  * High Level Configuration Options
  */
 #define CONFIG_ARMCORTEXA9		/* This is an ARM V7 CPU core */
-#define CONFIG_TEGRA			/* which is a Tegra generic machine */
 #define CONFIG_SYS_L2CACHE_OFF		/* No L2 cache */
 
 #include <asm/arch/tegra.h>		/* get chip and board defs */
+
+#define CONFIG_DM
+#define CONFIG_CMD_DM
 
 #define CONFIG_SYS_TIMER_RATE		1000000
 #define CONFIG_SYS_TIMER_COUNTER	NV_PA_TMRUS_BASE
@@ -38,6 +40,7 @@
  * Size of malloc() pool
  */
 #define CONFIG_SYS_MALLOC_LEN		(4 << 20)	/* 4MB  */
+#define CONFIG_SYS_NONCACHED_MEMORY	(1 << 20)	/* 1 MiB */
 
 /*
  * NS16550 Configuration
@@ -46,6 +49,13 @@
 #define CONFIG_SYS_NS16550_SERIAL
 #define CONFIG_SYS_NS16550_REG_SIZE	(-4)
 #define CONFIG_SYS_NS16550_CLK		V_NS16550_CLK
+
+/*
+ * Common HW configuration.
+ * If this varies between SoCs later, move to tegraNN-common.h
+ * Note: This is number of devices, not max device ID.
+ */
+#define CONFIG_SYS_MMC_MAX_DEVICE 4
 
 /*
  * select serial console configuration
@@ -121,7 +131,6 @@
 #define CONFIG_CMD_ENTERRCM
 
 /* Defines for SPL */
-#define CONFIG_SPL
 #define CONFIG_SPL_FRAMEWORK
 #define CONFIG_SPL_RAM_DEVICE
 #define CONFIG_SPL_BOARD_INIT

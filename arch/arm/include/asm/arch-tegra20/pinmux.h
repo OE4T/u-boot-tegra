@@ -166,6 +166,7 @@ enum pmux_pingrp {
  * purely a convenience. The translation is done through a table search.
  */
 enum pmux_func {
+	PMUX_FUNC_DEFAULT,
 	PMUX_FUNC_AHB_CLK,
 	PMUX_FUNC_APB_CLK,
 	PMUX_FUNC_AUDIO_SYNC,
@@ -225,11 +226,11 @@ enum pmux_func {
 	PMUX_FUNC_VI,
 	PMUX_FUNC_VI_SENSOR_CLK,
 	PMUX_FUNC_XIO,
+	PMUX_FUNC_RSVD1,
+	PMUX_FUNC_RSVD2,
+	PMUX_FUNC_RSVD3,
+	PMUX_FUNC_RSVD4,
 	PMUX_FUNC_COUNT,
-	PMUX_FUNC_RSVD1 = 0x8000,
-	PMUX_FUNC_RSVD2 = 0x8001,
-	PMUX_FUNC_RSVD3 = 0x8002,
-	PMUX_FUNC_RSVD4 = 0x8003,
 };
 
 #include <asm/arch-tegra/pinmux.h>

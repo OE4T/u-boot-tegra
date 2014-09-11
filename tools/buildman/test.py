@@ -136,10 +136,10 @@ class TestBuild(unittest.TestCase):
         build.do_make = self.Make
         board_selected = self.boards.GetSelectedDict()
 
-        #build.BuildCommits(self.commits, board_selected, False)
-        build.BuildBoards(self.commits, board_selected, False, False)
-        build.ShowSummary(self.commits, board_selected, True, False,
-                          False, False)
+        build.BuildBoards(self.commits, board_selected, keep_outputs=False,
+                          verbose=False)
+        build.SetDisplayOptions(show_errors=True);
+        build.ShowSummary(self.commits, board_selected)
 
     def _testGit(self):
         """Test basic builder operation by building a branch"""
@@ -164,6 +164,54 @@ class TestBuild(unittest.TestCase):
         options.keep_outputs = False
         args = ['tegra20']
         control.DoBuildman(options, args)
+
+    def testBoardSingle(self):
+        """Test single board selection"""
+        self.assertEqual(self.boards.SelectBoards(['sandbox']),
+                         {'all': 1, 'sandbox': 1})
+
+    def testBoardArch(self):
+        """Test single board selection"""
+        self.assertEqual(self.boards.SelectBoards(['arm']),
+                         {'all': 2, 'arm': 2})
+
+    def testBoardArchSingle(self):
+        """Test single board selection"""
+        self.assertEqual(self.boards.SelectBoards(['arm sandbox']),
+                         {'all': 3, 'arm': 2, 'sandbox' : 1})
+
+    def testBoardArchSingleMultiWord(self):
+        """Test single board selection"""
+        self.assertEqual(self.boards.SelectBoards(['arm', 'sandbox']),
+                         {'all': 3, 'arm': 2, 'sandbox' : 1})
+
+    def testBoardSingleAnd(self):
+        """Test single board selection"""
+        self.assertEqual(self.boards.SelectBoards(['Tester & arm']),
+                         {'all': 2, 'Tester&arm': 2})
+
+    def testBoardTwoAnd(self):
+        """Test single board selection"""
+        self.assertEqual(self.boards.SelectBoards(['Tester', '&', 'arm',
+                                                   'Tester' '&', 'powerpc',
+                                                   'sandbox']),
+                         {'all': 5, 'Tester&powerpc': 2, 'Tester&arm': 2,
+                          'sandbox' : 1})
+
+    def testBoardAll(self):
+        """Test single board selection"""
+        self.assertEqual(self.boards.SelectBoards([]), {'all': 5})
+
+    def testBoardRegularExpression(self):
+        """Test single board selection"""
+        self.assertEqual(self.boards.SelectBoards(['T.*r&^Po']),
+                         {'T.*r&^Po': 2, 'all': 2})
+
+    def testBoardDuplicate(self):
+        """Test single board selection"""
+        self.assertEqual(self.boards.SelectBoards(['sandbox sandbox',
+                                                   'sandbox']),
+                         {'all': 1, 'sandbox': 1})
 
 if __name__ == "__main__":
     unittest.main()

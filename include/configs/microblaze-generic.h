@@ -12,7 +12,6 @@
 #include "../board/xilinx/microblaze-generic/xparameters.h"
 
 /* MicroBlaze CPU */
-#define	CONFIG_MICROBLAZE	1
 #define	MICROBLAZE_V5		1
 
 /* Open Firmware DTS */
@@ -71,7 +70,7 @@
 
 /* ethernet */
 #undef CONFIG_SYS_ENET
-#if defined(XILINX_EMACLITE_BASEADDR)
+#if defined(XILINX_EMACLITE_BASEADDR) || defined(CONFIG_OF_CONTROL)
 # define CONFIG_XILINX_EMACLITE	1
 # define CONFIG_SYS_ENET
 #endif
@@ -448,7 +447,6 @@
 #endif
 
 /* SPL part */
-#define CONFIG_SPL
 #define CONFIG_CMD_SPL
 #define CONFIG_SPL_FRAMEWORK
 #define CONFIG_SPL_LIBCOMMON_SUPPORT

@@ -1,6 +1,6 @@
 /*
  * Copyright 2011 Freescale Semiconductor, Inc.
- *	Andy Fleming <afleming@freescale.com>
+ *	Andy Fleming <afleming@gmail.com>
  *
  * SPDX-License-Identifier:	GPL-2.0+
  *
@@ -233,6 +233,8 @@ int phy_realtek_init(void);
 int phy_smsc_init(void);
 int phy_teranetics_init(void);
 int phy_vitesse_init(void);
+
+int board_phy_config(struct phy_device *phydev);
 
 /* PHY UIDs for various PHYs that are referenced in external code */
 #define PHY_UID_TN2020	0x00a19410

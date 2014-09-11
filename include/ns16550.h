@@ -64,8 +64,6 @@ struct NS16550 {
 	UART_REG(uasr);		/* F */
 	UART_REG(scr);		/* 10*/
 	UART_REG(ssr);		/* 11*/
-	UART_REG(reg12);	/* 12*/
-	UART_REG(osc_12m_sel);	/* 13*/
 #endif
 };
 
@@ -100,6 +98,7 @@ typedef struct NS16550 *NS16550_t;
 #define UART_MCR_OUT1	0x04		/* Out 1 */
 #define UART_MCR_OUT2	0x08		/* Out 2 */
 #define UART_MCR_LOOP	0x10		/* Enable loopback test mode */
+#define UART_MCR_AFE	0x20		/* Enable auto-RTS/CTS */
 
 #define UART_MCR_DMA_EN	0x04
 #define UART_MCR_TX_DFR	0x08
@@ -162,11 +161,6 @@ typedef struct NS16550 *NS16550_t;
 #define UART_IER_RLSI	0x04	/* Enable receiver line status interrupt */
 #define UART_IER_THRI	0x02	/* Enable Transmitter holding register int. */
 #define UART_IER_RDI	0x01	/* Enable receiver data interrupt */
-
-
-#ifdef CONFIG_OMAP1510
-#define OSC_12M_SEL	0x01	/* selects 6.5 * current clk div */
-#endif
 
 /* useful defaults for LCR */
 #define UART_LCR_8N1	0x03

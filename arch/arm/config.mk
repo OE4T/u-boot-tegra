@@ -5,10 +5,6 @@
 # SPDX-License-Identifier:	GPL-2.0+
 #
 
-ifeq ($(CROSS_COMPILE),)
-CROSS_COMPILE := arm-linux-
-endif
-
 ifndef CONFIG_STANDALONE_LOAD_ADDR
 ifneq ($(CONFIG_OMAP_COMMON),)
 CONFIG_STANDALONE_LOAD_ADDR = 0x80300000
@@ -26,7 +22,7 @@ PLATFORM_RELFLAGS += $(call cc-option, -msoft-float) \
 # Support generic board on ARM
 __HAVE_ARCH_GENERIC_BOARD := y
 
-PLATFORM_CPPFLAGS += -DCONFIG_ARM -D__ARM__
+PLATFORM_CPPFLAGS += -D__ARM__
 
 # Choose between ARM/Thumb instruction sets
 ifeq ($(CONFIG_SYS_THUMB_BUILD),y)
@@ -117,7 +113,11 @@ endif
 ifdef CONFIG_ARM64
 OBJCOPYFLAGS += -j .text -j .rodata -j .data -j .u_boot_list -j .rela.dyn
 else
-OBJCOPYFLAGS += -j .text -j .rodata -j .hash -j .data -j .got.plt -j .u_boot_list -j .rel.dyn
+OBJCOPYFLAGS += -j .text -j .secure_text -j .rodata -j .hash -j .data -j .got.plt -j .u_boot_list -j .rel.dyn
+endif
+
+ifdef CONFIG_OF_EMBED
+OBJCOPYFLAGS += -j .dtb.init.rodata
 endif
 
 ifneq ($(CONFIG_IMX_CONFIG),)
@@ -126,6 +126,10 @@ ifndef CONFIG_SPL_BUILD
 ALL-y += SPL
 endif
 else
+ifeq ($(CONFIG_OF_SEPARATE),y)
+ALL-y += u-boot-dtb.imx
+else
 ALL-y += u-boot.imx
+endif
 endif
 endif

@@ -1,0 +1,32 @@
+if TARGET_AM335X_EVM
+
+config SYS_CPU
+	string
+	default "armv7"
+
+config SYS_BOARD
+	string
+	default "am335x"
+
+config SYS_VENDOR
+	string
+	default "ti"
+
+config SYS_SOC
+	string
+	default "am33xx"
+
+config SYS_CONFIG_NAME
+	string
+	default "am335x_evm"
+
+config CONS_INDEX
+	int "UART used for console"
+	default 1
+	help
+	  The AM335x SoC has a total of 6 UARTs (UART0 to UART5 as referenced
+	  in documentation, etc) available to it.  Depending on your specific
+	  board you may want something other than UART0 as for example the IDK
+	  uses UART3 so enter 4 here.
+
+endif

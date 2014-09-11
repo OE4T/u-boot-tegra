@@ -26,8 +26,6 @@ void lcd_enable(void);
 void lcd_setcolreg(ushort regno, ushort red, ushort green, ushort blue);
 void lcd_initcolregs(void);
 
-int lcd_getfgcolor(void);
-
 /* gunzip_bmp used if CONFIG_VIDEO_BMP_GZIP */
 struct bmp_image *gunzip_bmp(unsigned long addr, unsigned long *lenp,
 			     void **alloc_addr);
@@ -258,10 +256,6 @@ extern vidinfo_t panel_info;
 
 /* Video functions */
 
-#if defined(CONFIG_RBC823)
-void	lcd_disable(void);
-#endif
-
 void	lcd_putc(const char c);
 void	lcd_puts(const char *s);
 void	lcd_printf(const char *fmt, ...);
@@ -313,6 +307,9 @@ int lcd_get_size(int *line_length);
 int lcd_dt_simplefb_add_node(void *blob);
 int lcd_dt_simplefb_enable_existing_node(void *blob);
 
+/* Update the LCD / flush the cache */
+void lcd_sync(void);
+
 /************************************************************************/
 /* ** BITMAP DISPLAY SUPPORT						*/
 /************************************************************************/
@@ -334,7 +331,7 @@ int lcd_dt_simplefb_enable_existing_node(void *blob);
 #define LCD_COLOR4	2
 #define LCD_COLOR8	3
 #define LCD_COLOR16	4
-
+#define LCD_COLOR32	5
 /*----------------------------------------------------------------------*/
 #if defined(CONFIG_LCD_INFO_BELOW_LOGO)
 # define LCD_INFO_X		0
@@ -384,6 +381,21 @@ int lcd_dt_simplefb_enable_existing_node(void *blob);
 # define CONSOLE_COLOR_CYAN	6
 # define CONSOLE_COLOR_GREY	14
 # define CONSOLE_COLOR_WHITE	15	/* Must remain last / highest	*/
+
+#elif LCD_BPP == LCD_COLOR32
+/*
+ * 32bpp color definitions
+ */
+# define CONSOLE_COLOR_RED	0x00ff0000
+# define CONSOLE_COLOR_GREEN	0x0000ff00
+# define CONSOLE_COLOR_YELLOW	0x00ffff00
+# define CONSOLE_COLOR_BLUE	0x000000ff
+# define CONSOLE_COLOR_MAGENTA	0x00ff00ff
+# define CONSOLE_COLOR_CYAN	0x0000ffff
+# define CONSOLE_COLOR_GREY	0x00aaaaaa
+# define CONSOLE_COLOR_BLACK	0x00000000
+# define CONSOLE_COLOR_WHITE	0x00ffffff	/* Must remain last / highest*/
+# define NBYTES(bit_code)	(NBITS(bit_code) >> 3)
 
 #else
 

@@ -4,6 +4,7 @@
  */
 
 #include <common.h>
+#include <dm/root.h>
 #include <os.h>
 #include <asm/state.h>
 
@@ -12,6 +13,9 @@ DECLARE_GLOBAL_DATA_PTR;
 void reset_cpu(ulong ignored)
 {
 	if (state_uninit())
+		os_exit(2);
+
+	if (dm_uninit())
 		os_exit(2);
 
 	/* This is considered normal termination for now */
@@ -58,7 +62,7 @@ void *map_physmem(phys_addr_t paddr, unsigned long len, unsigned long flags)
 	return (void *)(gd->arch.ram_buf + paddr);
 }
 
-phys_addr_t map_to_sysmem(void *ptr)
+phys_addr_t map_to_sysmem(const void *ptr)
 {
 	return (u8 *)ptr - gd->arch.ram_buf;
 }

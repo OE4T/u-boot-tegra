@@ -14,6 +14,7 @@
 #include <linux/compiler.h>
 #include <version.h>
 #include <environment.h>
+#include <dm.h>
 #include <fdtdec.h>
 #include <fs.h>
 #if defined(CONFIG_CMD_IDE)
@@ -33,17 +34,18 @@
 #ifdef CONFIG_MPC5xxx
 #include <mpc5xxx.h>
 #endif
+#if (defined(CONFIG_MPC86xx) || defined(CONFIG_E500))
+#include <asm/mp.h>
+#endif
 
 #include <os.h>
 #include <post.h>
 #include <spi.h>
+#include <status_led.h>
 #include <trace.h>
 #include <watchdog.h>
 #include <asm/errno.h>
 #include <asm/io.h>
-#ifdef CONFIG_MP
-#include <asm/mp.h>
-#endif
 #include <asm/sections.h>
 #ifdef CONFIG_X86
 #include <asm/init_helpers.h>
@@ -52,6 +54,7 @@
 #ifdef CONFIG_SANDBOX
 #include <asm/state.h>
 #endif
+#include <dm/root.h>
 #include <linux/compiler.h>
 
 /*
@@ -78,25 +81,15 @@ DECLARE_GLOBAL_DATA_PTR;
  ************************************************************************
  * May be supplied by boards if desired
  */
-inline void __coloured_LED_init(void) {}
-void coloured_LED_init(void)
-	__attribute__((weak, alias("__coloured_LED_init")));
-inline void __red_led_on(void) {}
-void red_led_on(void) __attribute__((weak, alias("__red_led_on")));
-inline void __red_led_off(void) {}
-void red_led_off(void) __attribute__((weak, alias("__red_led_off")));
-inline void __green_led_on(void) {}
-void green_led_on(void) __attribute__((weak, alias("__green_led_on")));
-inline void __green_led_off(void) {}
-void green_led_off(void) __attribute__((weak, alias("__green_led_off")));
-inline void __yellow_led_on(void) {}
-void yellow_led_on(void) __attribute__((weak, alias("__yellow_led_on")));
-inline void __yellow_led_off(void) {}
-void yellow_led_off(void) __attribute__((weak, alias("__yellow_led_off")));
-inline void __blue_led_on(void) {}
-void blue_led_on(void) __attribute__((weak, alias("__blue_led_on")));
-inline void __blue_led_off(void) {}
-void blue_led_off(void) __attribute__((weak, alias("__blue_led_off")));
+__weak void coloured_LED_init(void) {}
+__weak void red_led_on(void) {}
+__weak void red_led_off(void) {}
+__weak void green_led_on(void) {}
+__weak void green_led_off(void) {}
+__weak void yellow_led_on(void) {}
+__weak void yellow_led_off(void) {}
+__weak void blue_led_on(void) {}
+__weak void blue_led_off(void) {}
 
 /*
  * Why is gd allocated a register? Prior to reloc it might be better to
@@ -113,9 +106,14 @@ void blue_led_off(void) __attribute__((weak, alias("__blue_led_off")));
  * Could the CONFIG_SPL_BUILD infection become a flag in gd?
  */
 
-#if defined(CONFIG_WATCHDOG)
+#if defined(CONFIG_WATCHDOG) || defined(CONFIG_HW_WATCHDOG)
 static int init_func_watchdog_init(void)
 {
+# if defined(CONFIG_HW_WATCHDOG) && (defined(CONFIG_BLACKFIN) || \
+	defined(CONFIG_M68K) || defined(CONFIG_MICROBLAZE) || \
+	defined(CONFIG_SH))
+	hw_watchdog_init();
+# endif
 	puts("       Watchdog enabled\n");
 	WATCHDOG_RESET();
 
@@ -153,7 +151,11 @@ static int display_text_info(void)
 	bss_end = (ulong)&__bss_end;
 
 	debug("U-Boot code: %08X -> %08lX  BSS: -> %08lX\n",
+#ifdef CONFIG_SYS_TEXT_BASE
 	      CONFIG_SYS_TEXT_BASE, bss_start, bss_end);
+#else
+	      CONFIG_SYS_MONITOR_BASE, bss_start, bss_end);
+#endif
 #endif
 
 #ifdef CONFIG_MODEM_SUPPORT
@@ -173,7 +175,7 @@ static int announce_dram_init(void)
 	return 0;
 }
 
-#ifdef CONFIG_PPC
+#if defined(CONFIG_MIPS) || defined(CONFIG_PPC)
 static int init_func_ram(void)
 {
 #ifdef	CONFIG_BOARD_TYPES
@@ -194,7 +196,7 @@ static int init_func_ram(void)
 
 static int show_dram_config(void)
 {
-	ulong size;
+	unsigned long long size;
 
 #ifdef CONFIG_NR_DRAM_BANKS
 	int i;
@@ -268,6 +270,8 @@ static int setup_mon_len(void)
 	gd->mon_len = (ulong)&__bss_end - (ulong)_start;
 #elif defined(CONFIG_SANDBOX)
 	gd->mon_len = (ulong)&_end - (ulong)_init;
+#elif defined(CONFIG_BLACKFIN) || defined(CONFIG_NIOS2)
+	gd->mon_len = CONFIG_SYS_MONITOR_LEN;
 #else
 	/* TODO: use (ulong)&__bss_end - (ulong)&__text_start; ? */
 	gd->mon_len = (ulong)&__bss_end - CONFIG_SYS_MONITOR_BASE;
@@ -282,45 +286,39 @@ __weak int arch_cpu_init(void)
 
 #ifdef CONFIG_OF_HOSTFILE
 
-#define CHECK(x)		err = (x); if (err) goto failed;
-
-/* Create an empty device tree blob */
-static int make_empty_fdt(void *fdt)
-{
-	int err;
-
-	CHECK(fdt_create(fdt, 256));
-	CHECK(fdt_finish_reservemap(fdt));
-	CHECK(fdt_begin_node(fdt, ""));
-	CHECK(fdt_end_node(fdt));
-	CHECK(fdt_finish(fdt));
-
-	return 0;
-failed:
-	printf("Unable to create empty FDT: %s\n", fdt_strerror(err));
-	return -EACCES;
-}
-
 static int read_fdt_from_file(void)
 {
 	struct sandbox_state *state = state_get_current();
+	const char *fname = state->fdt_fname;
 	void *blob;
-	int size;
+	ssize_t size;
 	int err;
+	int fd;
 
 	blob = map_sysmem(CONFIG_SYS_FDT_LOAD_ADDR, 0);
 	if (!state->fdt_fname) {
-		err = make_empty_fdt(blob);
+		err = fdt_create_empty_tree(blob, 256);
 		if (!err)
 			goto done;
-		return err;
+		printf("Unable to create empty FDT: %s\n", fdt_strerror(err));
+		return -EINVAL;
 	}
-	err = fs_set_blk_dev("host", NULL, FS_TYPE_SANDBOX);
-	if (err)
-		return err;
-	size = fs_read(state->fdt_fname, CONFIG_SYS_FDT_LOAD_ADDR, 0, 0);
-	if (size < 0)
+
+	size = os_get_filesize(fname);
+	if (size < 0) {
+		printf("Failed to file FDT file '%s'\n", fname);
+		return -ENOENT;
+	}
+	fd = os_open(fname, OS_O_RDONLY);
+	if (fd < 0) {
+		printf("Failed to open FDT file '%s'\n", fname);
+		return -EACCES;
+	}
+	if (os_read(fd, blob, size) != size) {
+		os_close(fd);
 		return -EIO;
+	}
+	os_close(fd);
 
 done:
 	gd->fdt_blob = blob;
@@ -394,7 +392,7 @@ static int setup_dest_addr(void)
 	gd->ram_top = board_get_usable_ram_top(gd->mon_len);
 	gd->relocaddr = gd->ram_top;
 	debug("Ram top: %08lX\n", (ulong)gd->ram_top);
-#if defined(CONFIG_MP) && (defined(CONFIG_MPC86xx) || defined(CONFIG_E500))
+#if (defined(CONFIG_MPC86xx) || defined(CONFIG_E500))
 	/*
 	 * We need to make sure the location we intend to put secondary core
 	 * boot code is reserved and not used by any part of u-boot
@@ -483,8 +481,9 @@ static int reserve_trace(void)
 	return 0;
 }
 
-#if defined(CONFIG_VIDEO) && (!defined(CONFIG_PPC) || defined(CONFIG_8xx)) \
-		&& !defined(CONFIG_ARM) && !defined(CONFIG_X86)
+#if defined(CONFIG_VIDEO) && (!defined(CONFIG_PPC) || defined(CONFIG_8xx)) && \
+		!defined(CONFIG_ARM) && !defined(CONFIG_X86) && \
+		!defined(CONFIG_BLACKFIN)
 static int reserve_video(void)
 {
 	/* reserve memory for video display (always full pages) */
@@ -529,11 +528,13 @@ static int reserve_malloc(void)
 /* (permanently) allocate a Board Info struct */
 static int reserve_board(void)
 {
-	gd->start_addr_sp -= sizeof(bd_t);
-	gd->bd = (bd_t *)map_sysmem(gd->start_addr_sp, sizeof(bd_t));
-	memset(gd->bd, '\0', sizeof(bd_t));
-	debug("Reserving %zu Bytes for Board Info at: %08lx\n",
-			sizeof(bd_t), gd->start_addr_sp);
+	if (!gd->bd) {
+		gd->start_addr_sp -= sizeof(bd_t);
+		gd->bd = (bd_t *)map_sysmem(gd->start_addr_sp, sizeof(bd_t));
+		memset(gd->bd, '\0', sizeof(bd_t));
+		debug("Reserving %zu Bytes for Board Info at: %08lx\n",
+		      sizeof(bd_t), gd->start_addr_sp);
+	}
 	return 0;
 }
 #endif
@@ -714,14 +715,6 @@ static int init_post(void)
 }
 #endif
 
-static int setup_baud_rate(void)
-{
-	/* Ick, can we get rid of this line? */
-	gd->bd->bi_baudrate = gd->baudrate;
-
-	return 0;
-}
-
 static int setup_dram_config(void)
 {
 	/* Ram is board specific, so move it to board code ... */
@@ -742,7 +735,9 @@ static int reloc_fdt(void)
 
 static int setup_reloc(void)
 {
+#ifdef CONFIG_SYS_TEXT_BASE
 	gd->reloc_off = gd->relocaddr - CONFIG_SYS_TEXT_BASE;
+#endif
 	memcpy(gd->new_gd, (char *)gd, sizeof(gd_t));
 
 	debug("Relocation Offset is: %08lx\n", gd->reloc_off);
@@ -790,6 +785,30 @@ static int mark_bootstage(void)
 	return 0;
 }
 
+static int initf_malloc(void)
+{
+#ifdef CONFIG_SYS_MALLOC_F_LEN
+	assert(gd->malloc_base);	/* Set up by crt0.S */
+	gd->malloc_limit = gd->malloc_base + CONFIG_SYS_MALLOC_F_LEN;
+	gd->malloc_ptr = 0;
+#endif
+
+	return 0;
+}
+
+static int initf_dm(void)
+{
+#if defined(CONFIG_DM) && defined(CONFIG_SYS_MALLOC_F_LEN)
+	int ret;
+
+	ret = dm_init_and_scan(true);
+	if (ret)
+		return ret;
+#endif
+
+	return 0;
+}
+
 static init_fnc_t init_sequence_f[] = {
 #ifdef CONFIG_SANDBOX
 	setup_ram_buf,
@@ -825,7 +844,7 @@ static init_fnc_t init_sequence_f[] = {
 	/* TODO: can we rename this to timer_init()? */
 	init_timebase,
 #endif
-#ifdef CONFIG_ARM
+#if defined(CONFIG_ARM) || defined(CONFIG_MIPS) || defined(CONFIG_BLACKFIN)
 	timer_init,		/* initialize timer */
 #endif
 #ifdef CONFIG_SYS_ALLOC_DPRAM
@@ -847,6 +866,8 @@ static init_fnc_t init_sequence_f[] = {
 	sdram_adjust_866,
 	init_timebase,
 #endif
+	initf_malloc,
+	initf_dm,
 	init_baud_rate,		/* initialze baudrate settings */
 	serial_init,		/* serial communications setup */
 	console_init_f,		/* stage 1 init of console */
@@ -895,7 +916,7 @@ static init_fnc_t init_sequence_f[] = {
 #ifdef CONFIG_ARM
 	dram_init,		/* configure available RAM banks */
 #endif
-#ifdef CONFIG_PPC
+#if defined(CONFIG_MIPS) || defined(CONFIG_PPC)
 	init_func_ram,
 #endif
 #ifdef CONFIG_POST
@@ -924,6 +945,10 @@ static init_fnc_t init_sequence_f[] = {
 	 *  - board info struct
 	 */
 	setup_dest_addr,
+#if defined(CONFIG_BLACKFIN) || defined(CONFIG_NIOS2)
+	/* Blackfin u-boot monitor should be on top of the ram */
+	reserve_uboot,
+#endif
 #if defined(CONFIG_LOGBUFFER) && !defined(CONFIG_ALT_LB_ADDR)
 	reserve_logbuffer,
 #endif
@@ -940,11 +965,14 @@ static init_fnc_t init_sequence_f[] = {
 #endif
 	reserve_trace,
 	/* TODO: Why the dependency on CONFIG_8xx? */
-#if defined(CONFIG_VIDEO) && (!defined(CONFIG_PPC) || defined(CONFIG_8xx)) \
-		&& !defined(CONFIG_ARM) && !defined(CONFIG_X86)
+#if defined(CONFIG_VIDEO) && (!defined(CONFIG_PPC) || defined(CONFIG_8xx)) && \
+		!defined(CONFIG_ARM) && !defined(CONFIG_X86) && \
+		!defined(CONFIG_BLACKFIN)
 	reserve_video,
 #endif
+#if !defined(CONFIG_BLACKFIN) && !defined(CONFIG_NIOS2)
 	reserve_uboot,
+#endif
 #ifndef CONFIG_SPL_BUILD
 	reserve_malloc,
 	reserve_board,
@@ -960,7 +988,6 @@ static init_fnc_t init_sequence_f[] = {
 	INIT_FUNC_WATCHDOG_RESET
 	setup_board_part2,
 #endif
-	setup_baud_rate,
 	display_new_sp,
 #ifdef CONFIG_SYS_EXTBDINFO
 	setup_board_extra,
@@ -976,20 +1003,22 @@ static init_fnc_t init_sequence_f[] = {
 
 void board_init_f(ulong boot_flags)
 {
-#ifndef CONFIG_X86
+#ifdef CONFIG_SYS_GENERIC_GLOBAL_DATA
+	/*
+	 * For some archtectures, global data is initialized and used before
+	 * calling this function. The data should be preserved. For others,
+	 * CONFIG_SYS_GENERIC_GLOBAL_DATA should be defined and use the stack
+	 * here to host global data until relocation.
+	 */
 	gd_t data;
 
 	gd = &data;
-#endif
 
 	/*
 	 * Clear global data before it is accessed at debug print
 	 * in initcall_run_list. Otherwise the debug print probably
 	 * get the wrong vaule of gd->have_console.
 	 */
-#if !defined(CONFIG_CPM2) && !defined(CONFIG_MPC512X) && \
-		!defined(CONFIG_MPC83xx) && !defined(CONFIG_MPC85xx) && \
-		!defined(CONFIG_MPC86xx) && !defined(CONFIG_X86)
 	zero_global_data();
 #endif
 

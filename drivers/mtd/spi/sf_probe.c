@@ -123,12 +123,11 @@ static struct spi_flash *spi_flash_validate_params(struct spi_slave *spi,
 		return NULL;
 	}
 
-	flash = malloc(sizeof(*flash));
+	flash = calloc(1, sizeof(*flash));
 	if (!flash) {
 		debug("SF: Failed to allocate spi_flash\n");
 		return NULL;
 	}
-	memset(flash, '\0', sizeof(*flash));
 
 	/* Assign spi data */
 	flash->spi = spi;
@@ -147,7 +146,21 @@ static struct spi_flash *spi_flash_validate_params(struct spi_slave *spi,
 
 	/* Compute the flash size */
 	flash->shift = (flash->dual_flash & SF_DUAL_PARALLEL_FLASH) ? 1 : 0;
-	flash->page_size = ((ext_jedec == 0x4d00) ? 512 : 256) << flash->shift;
+	/*
+	 * The Spansion S25FL032P and S25FL064P have 256b pages, yet use the
+	 * 0x4d00 Extended JEDEC code. The rest of the Spansion flashes with
+	 * the 0x4d00 Extended JEDEC code have 512b pages. All of the others
+	 * have 256b pages.
+	 */
+	if (ext_jedec == 0x4d00) {
+		if ((jedec == 0x0215) || (jedec == 0x216))
+			flash->page_size = 256;
+		else
+			flash->page_size = 512;
+	} else {
+		flash->page_size = 256;
+	}
+	flash->page_size <<= flash->shift;
 	flash->sector_size = params->sector_size << flash->shift;
 	flash->size = flash->sector_size * params->nr_sectors << flash->shift;
 #ifdef CONFIG_SF_DUAL_FLASH
@@ -183,16 +196,6 @@ static struct spi_flash *spi_flash_validate_params(struct spi_slave *spi,
 	else
 		/* Go for default supported write cmd */
 		flash->write_cmd = CMD_PAGE_PROGRAM;
-
-	/* Set the quad enable bit - only for quad commands */
-	if ((flash->read_cmd == CMD_READ_QUAD_OUTPUT_FAST) ||
-	    (flash->read_cmd == CMD_READ_QUAD_IO_FAST) ||
-	    (flash->write_cmd == CMD_QUAD_PAGE_PROGRAM)) {
-		if (spi_flash_set_qeb(flash, idcode[0])) {
-			debug("SF: Fail to set QEB for %02x\n", idcode[0]);
-			return NULL;
-		}
-	}
 
 	/* Read dummy_byte: dummy byte is determined based on the
 	 * dummy cycles of a particular command.
@@ -278,6 +281,34 @@ int spi_flash_decode_fdt(const void *blob, struct spi_flash *flash)
 }
 #endif /* CONFIG_OF_CONTROL */
 
+#ifdef CONFIG_SYS_SPI_ST_ENABLE_WP_PIN
+/* enable the W#/Vpp signal to disable writing to the status register */
+static int spi_enable_wp_pin(struct spi_flash *flash)
+{
+	u8 status;
+	int ret;
+
+	ret = spi_flash_cmd_read_status(flash, &status);
+	if (ret < 0)
+		return ret;
+
+	ret = spi_flash_cmd_write_status(flash, STATUS_SRWD);
+	if (ret < 0)
+		return ret;
+
+	ret = spi_flash_cmd_write_disable(flash);
+	if (ret < 0)
+		return ret;
+
+	return 0;
+}
+#else
+static int spi_enable_wp_pin(struct spi_flash *flash)
+{
+	return 0;
+}
+#endif
+
 static struct spi_flash *spi_flash_probe_slave(struct spi_slave *spi)
 {
 	struct spi_flash *flash = NULL;
@@ -314,6 +345,16 @@ static struct spi_flash *spi_flash_probe_slave(struct spi_slave *spi)
 	if (!flash)
 		goto err_read_id;
 
+	/* Set the quad enable bit - only for quad commands */
+	if ((flash->read_cmd == CMD_READ_QUAD_OUTPUT_FAST) ||
+	    (flash->read_cmd == CMD_READ_QUAD_IO_FAST) ||
+	    (flash->write_cmd == CMD_QUAD_PAGE_PROGRAM)) {
+		if (spi_flash_set_qeb(flash, idcode[0])) {
+			debug("SF: Fail to set QEB for %02x\n", idcode[0]);
+			return NULL;
+		}
+	}
+
 #ifdef CONFIG_OF_CONTROL
 	if (spi_flash_decode_fdt(gd->fdt_blob, flash)) {
 		debug("SF: FDT decode error\n");
@@ -338,6 +379,8 @@ static struct spi_flash *spi_flash_probe_slave(struct spi_slave *spi)
 		puts(" Full access #define CONFIG_SPI_FLASH_BAR\n");
 	}
 #endif
+	if (spi_enable_wp_pin(flash))
+		puts("Enable WP pin failed\n");
 
 	/* Release spi bus */
 	spi_release_bus(spi);

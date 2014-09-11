@@ -17,12 +17,9 @@
 /* Set TEXT in RAM */
 #define CONFIG_SYS_TEXT_BASE	0x82000000
 
-#define CONFIG_BOOT_INTERNAL
-
 /*
  * SPL
  */
-#define	CONFIG_SPL
 #define CONFIG_SPL_FRAMEWORK
 #define	CONFIG_SPL_LDSCRIPT	"arch/arm/cpu/arm1136/u-boot-spl.lds"
 #define	CONFIG_SPL_LIBCOMMON_SUPPORT

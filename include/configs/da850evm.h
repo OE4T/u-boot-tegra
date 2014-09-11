@@ -166,10 +166,10 @@
 /*
  * I2C Configuration
  */
-#define CONFIG_HARD_I2C
-#define CONFIG_DRIVER_DAVINCI_I2C
-#define CONFIG_SYS_I2C_SPEED		25000
-#define CONFIG_SYS_I2C_SLAVE		10 /* Bogus, master-only in U-Boot */
+#define CONFIG_SYS_I2C
+#define CONFIG_SYS_I2C_DAVINCI
+#define CONFIG_SYS_DAVINCI_I2C_SPEED		25000
+#define CONFIG_SYS_DAVINCI_I2C_SLAVE   10 /* Bogus, master-only in U-Boot */
 #define CONFIG_SYS_I2C_EXPANDER_ADDR   0x20
 
 /*
@@ -368,7 +368,6 @@
 
 #ifndef CONFIG_DIRECT_NOR_BOOT
 /* defines for SPL */
-#define CONFIG_SPL
 #define CONFIG_SPL_FRAMEWORK
 #define CONFIG_SPL_BOARD_INIT
 #define CONFIG_SYS_SPL_MALLOC_START	(CONFIG_SYS_TEXT_BASE - \
@@ -386,6 +385,7 @@
 #define CONFIG_SPL_STACK	0x8001ff00
 #define CONFIG_SPL_TEXT_BASE	0x80000000
 #define CONFIG_SPL_MAX_FOOTPRINT	32768
+#define CONFIG_SPL_PAD_TO	32768
 #endif
 
 /* Load U-Boot Image From MMC */

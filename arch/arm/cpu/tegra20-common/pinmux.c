@@ -282,7 +282,7 @@ enum pmux_pullid {
 #define DRVGRP(drvgrp) \
 	PINALL(drvgrp, RSVD1, RSVD2, RSVD3, RSVD4, MUXCTL_NONE, PUCTL_NONE)
 
-const struct pmux_pingrp_desc tegra20_pingroups[] = {
+static const struct pmux_pingrp_desc tegra20_pingroups[] = {
 	PIN(ATA,    IDE,       NAND,      GMI,       RSVD4),
 	PIN(ATB,    IDE,       NAND,      GMI,       SDIO4),
 	PIN(ATC,    IDE,       NAND,      GMI,       SDIO4),

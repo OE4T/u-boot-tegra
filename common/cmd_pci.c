@@ -14,6 +14,8 @@
  */
 
 #include <common.h>
+#include <bootretry.h>
+#include <cli.h>
 #include <command.h>
 #include <asm/processor.h>
 #include <asm/io.h>
@@ -40,11 +42,15 @@ void pci_header_show_brief(pci_dev_t dev);
  */
 void pciinfo(int BusNum, int ShortPCIListing)
 {
+	struct pci_controller *hose = pci_bus_to_hose(BusNum);
 	int Device;
 	int Function;
 	unsigned char HeaderType;
 	unsigned short VendorID;
 	pci_dev_t dev;
+
+	if (!hose)
+		return;
 
 	printf("Scanning PCI devices on bus %d\n", BusNum);
 
@@ -64,6 +70,9 @@ void pciinfo(int BusNum, int ShortPCIListing)
 				break;
 
 			dev = PCI_BDF(BusNum, Device, Function);
+
+			if (pci_skip_dev(hose, dev))
+				continue;
 
 			pci_read_config_word(dev, PCI_VENDOR_ID, &VendorID);
 			if ((VendorID == 0xFFFF) || (VendorID == 0x0000))
@@ -345,7 +354,7 @@ pci_cfg_modify (pci_dev_t bdf, ulong addr, ulong size, ulong value, int incrflag
 			printf(" %02x", val1);
 		}
 
-		nbytes = readline (" ? ");
+		nbytes = cli_readline(" ? ");
 		if (nbytes == 0 || (nbytes == 1 && console_buffer[0] == '-')) {
 			/* <CR> pressed as only input, don't modify current
 			 * location and move to next. "-" pressed will go back.
@@ -353,9 +362,8 @@ pci_cfg_modify (pci_dev_t bdf, ulong addr, ulong size, ulong value, int incrflag
 			if (incrflag)
 				addr += nbytes ? -size : size;
 			nbytes = 1;
-#ifdef CONFIG_BOOT_RETRY_TIME
-			reset_cmd_timeout(); /* good enough to not time out */
-#endif
+			/* good enough to not time out */
+			bootretry_reset_cmd_timeout();
 		}
 #ifdef CONFIG_BOOT_RETRY_TIME
 		else if (nbytes == -2) {
@@ -367,11 +375,9 @@ pci_cfg_modify (pci_dev_t bdf, ulong addr, ulong size, ulong value, int incrflag
 			i = simple_strtoul(console_buffer, &endp, 16);
 			nbytes = endp - console_buffer;
 			if (nbytes) {
-#ifdef CONFIG_BOOT_RETRY_TIME
 				/* good enough to not time out
 				 */
-				reset_cmd_timeout();
-#endif
+				bootretry_reset_cmd_timeout();
 				pci_cfg_write (bdf, addr, size, i);
 				if (incrflag)
 					addr += size;

@@ -11,8 +11,40 @@ import subprocess
 import sys
 import terminal
 
+import checkpatch
 import settings
 
+# True to use --no-decorate - we check this in Setup()
+use_no_decorate = True
+
+def LogCmd(commit_range, git_dir=None, oneline=False, reverse=False,
+           count=None):
+    """Create a command to perform a 'git log'
+
+    Args:
+        commit_range: Range expression to use for log, None for none
+        git_dir: Path to git repositiory (None to use default)
+        oneline: True to use --oneline, else False
+        reverse: True to reverse the log (--reverse)
+        count: Number of commits to list, or None for no limit
+    Return:
+        List containing command and arguments to run
+    """
+    cmd = ['git']
+    if git_dir:
+        cmd += ['--git-dir', git_dir]
+    cmd += ['log', '--no-color']
+    if oneline:
+        cmd.append('--oneline')
+    if use_no_decorate:
+        cmd.append('--no-decorate')
+    if reverse:
+        cmd.append('--reverse')
+    if count is not None:
+        cmd.append('-n%d' % count)
+    if commit_range:
+        cmd.append(commit_range)
+    return cmd
 
 def CountCommitsToBranch():
     """Returns number of commits between HEAD and the tracking branch.
@@ -23,8 +55,7 @@ def CountCommitsToBranch():
     Return:
         Number of patches that exist on top of the branch
     """
-    pipe = [['git', 'log', '--no-color', '--oneline', '--no-decorate',
-             '@{upstream}..'],
+    pipe = [LogCmd('@{upstream}..', oneline=True),
             ['wc', '-l']]
     stdout = command.RunPipe(pipe, capture=True, oneline=True).stdout
     patch_count = int(stdout)
@@ -86,8 +117,7 @@ def CountCommitsInBranch(git_dir, branch, include_upstream=False):
     range_expr = GetRangeInBranch(git_dir, branch, include_upstream)
     if not range_expr:
         return None
-    pipe = [['git', '--git-dir', git_dir, 'log', '--oneline', '--no-decorate',
-             range_expr],
+    pipe = [LogCmd(range_expr, git_dir=git_dir, oneline=True),
             ['wc', '-l']]
     result = command.RunPipe(pipe, capture=True, oneline=True)
     patch_count = int(result.stdout)
@@ -101,7 +131,7 @@ def CountCommits(commit_range):
     Return:
         Number of patches that exist on top of the branch
     """
-    pipe = [['git', 'log', '--oneline', '--no-decorate', commit_range],
+    pipe = [LogCmd(commit_range, oneline=True),
             ['wc', '-l']]
     stdout = command.RunPipe(pipe, capture=True, oneline=True).stdout
     patch_count = int(stdout)
@@ -193,6 +223,7 @@ def ApplyPatch(verbose, fname):
     Args:
         fname: filename of patch file to apply
     """
+    col = terminal.Color()
     cmd = ['git', 'am', fname]
     pipe = subprocess.Popen(cmd, stdout=subprocess.PIPE,
             stderr=subprocess.PIPE)
@@ -203,8 +234,8 @@ def ApplyPatch(verbose, fname):
             print line
         match = re_error.match(line)
         if match:
-            print GetWarningMsg('warning', match.group(1), int(match.group(2)),
-                    'Patch failed')
+            print checkpatch.GetWarningMsg(col, 'warning', match.group(1),
+                                           int(match.group(2)), 'Patch failed')
     return pipe.returncode == 0, stdout
 
 def ApplyPatches(verbose, args, start_point):
@@ -230,6 +261,10 @@ def ApplyPatches(verbose, args, start_point):
         print stdout
         return False
     old_head = stdout.splitlines()[0]
+    if old_head == 'undefined':
+        str = "Invalid HEAD '%s'" % stdout.strip()
+        print col.Color(col.RED, str)
+        return False
 
     # Checkout the required start point
     cmd = ['git', 'checkout', 'HEAD~%d' % start_point]
@@ -371,9 +406,14 @@ def EmailPatches(series, cover_fname, args, dry_run, raise_on_error, cc_fname,
     """
     to = BuildEmailList(series.get('to'), '--to', alias, raise_on_error)
     if not to:
-        print ("No recipient, please add something like this to a commit\n"
-            "Series-to: Fred Bloggs <f.blogs@napier.co.nz>")
-        return
+        git_config_to = command.Output('git', 'config', 'sendemail.to')
+        if not git_config_to:
+            print ("No recipient.\n"
+                   "Please add something like this to a commit\n"
+                   "Series-to: Fred Bloggs <f.blogs@napier.co.nz>\n"
+                   "Or do something like this\n"
+                   "git config sendemail.to u-boot@lists.denx.de")
+            return
     cc = BuildEmailList(series.get('cc'), '--cc', alias, raise_on_error)
     if self_only:
         to = BuildEmailList([os.getenv('USER')], '--to', alias, raise_on_error)
@@ -532,6 +572,9 @@ def Setup():
     alias_fname = GetAliasFile()
     if alias_fname:
         settings.ReadGitAliases(alias_fname)
+    cmd = LogCmd(None, count=0)
+    use_no_decorate = (command.RunPipe([cmd], raise_on_error=False)
+                       .return_code == 0)
 
 def GetHead():
     """Get the hash of the current HEAD

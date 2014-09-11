@@ -13,3 +13,4 @@ obj-y	+= clock.o
 obj-y	+= funcmux.o
 obj-y	+= pinmux.o
 obj-$(CONFIG_TEGRA_LP0) += warmboot.o warmboot_avp.o
+obj-y	+= xusb-padctl.o

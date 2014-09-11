@@ -18,7 +18,6 @@
 
 /* High Level Configuration Options */
 #define CONFIG_OMAP			/* in a TI OMAP core */
-#define CONFIG_OMAP34XX			/* which is a 34XX */
 #define CONFIG_OMAP_COMMON
 
 #define CONFIG_MACH_TYPE		MACH_TYPE_TRICORDER
@@ -34,6 +33,8 @@
 
 #include <asm/arch/cpu.h>		/* get chip and board defs */
 #include <asm/arch/omap3.h>
+
+#define CONFIG_SYS_GENERIC_BOARD
 
 /* Display CPU and Board information */
 #define CONFIG_DISPLAY_CPUINFO
@@ -62,6 +63,9 @@
 
 /* GPIO support */
 #define CONFIG_OMAP_GPIO
+
+/* GPIO banks */
+#define CONFIG_OMAP3_GPIO_2		/* GPIO32..63 are in GPIO bank 2 */
 
 /* LED support */
 #define CONFIG_STATUS_LED
@@ -312,8 +316,6 @@
 #define PHYS_SDRAM_2			OMAP34XX_SDRC_CS1
 
 /* NAND and environment organization  */
-#define PISMO1_NAND_SIZE		GPMC_SIZE_128M
-
 #define CONFIG_SYS_MONITOR_LEN		(256 << 10)	/* Reserve 2 sectors */
 
 #define CONFIG_SYS_SDRAM_BASE		PHYS_SDRAM_1
@@ -328,7 +330,6 @@
 #define CONFIG_SYS_SRAM_SIZE		0x10000
 
 /* Defines for SPL */
-#define CONFIG_SPL
 #define CONFIG_SPL_FRAMEWORK
 #define CONFIG_SPL_NAND_SIMPLE
 
@@ -365,11 +366,12 @@
 #define CONFIG_SYS_NAND_OOBSIZE		64
 #define CONFIG_SYS_NAND_BLOCK_SIZE	(128*1024)
 #define CONFIG_SYS_NAND_BAD_BLOCK_POS	NAND_LARGE_BADBLOCK_POS
-#define CONFIG_SYS_NAND_ECCPOS		{12, 13, 14, 15, 16, 17, 18, 19, 20,\
-			21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33,\
-			34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46,\
-			47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59,\
-			60, 61, 62, 63}
+#define CONFIG_SYS_NAND_ECCPOS		{2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, \
+					 13, 14, 16, 17, 18, 19, 20, 21, 22, \
+					 23, 24, 25, 26, 27, 28, 30, 31, 32, \
+					 33, 34, 35, 36, 37, 38, 39, 40, 41, \
+					 42, 44, 45, 46, 47, 48, 49, 50, 51, \
+					 52, 53, 54, 55, 56}
 
 #define CONFIG_SYS_NAND_ECCSIZE		512
 #define CONFIG_SYS_NAND_ECCBYTES	13

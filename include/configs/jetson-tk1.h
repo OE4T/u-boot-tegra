@@ -14,6 +14,9 @@
 #define CONFIG_TEGRA_LP0
 #define CONFIG_AES
 
+/* enable PMIC */
+#define CONFIG_AS3722_POWER
+
 #include "tegra124-common.h"
 
 #ifdef CONFIG_TEGRA_LP0
@@ -88,6 +91,7 @@
 /* USB Host support */
 #define CONFIG_USB_EHCI
 #define CONFIG_USB_EHCI_TEGRA
+#define CONFIG_USB_MAX_CONTROLLER_COUNT	2
 #define CONFIG_USB_STORAGE
 #define CONFIG_CMD_USB
 
@@ -95,10 +99,21 @@
 #define CONFIG_USB_HOST_ETHER
 #define CONFIG_USB_ETHER_ASIX
 
+/* PCI host support */
+#define CONFIG_PCI
+#define CONFIG_PCI_TEGRA
+#define CONFIG_PCI_PNP
+#define CONFIG_CMD_PCI
+#define CONFIG_CMD_PCI_ENUM
+
+/* PCI networking support */
+#define CONFIG_RTL8169
+
 /* General networking support */
 #define CONFIG_CMD_NET
 #define CONFIG_CMD_DHCP
 
+#include "tegra-common-usb-gadget.h"
 #include "tegra-common-post.h"
 
 #endif /* __CONFIG_H */

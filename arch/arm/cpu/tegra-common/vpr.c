@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2014, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -18,24 +18,18 @@
 
 #include <common.h>
 #include <asm/io.h>
-#include <asm/arch-tegra/ap.h>
-#include <asm/arch-tegra/mc.h>
-#include <asm/arch/gp_padctrl.h>
+#include <asm/arch/tegra.h>
+#include <asm/arch/mc.h>
 
 /* Configures VPR.  Right now, all we do is turn it off. */
 void config_vpr(void)
 {
-	struct apb_misc_gp_ctlr *gp =
-		(struct apb_misc_gp_ctlr *)NV_PA_APB_MISC_GP_BASE;
 	struct mc_ctlr *mc = (struct mc_ctlr *)NV_PA_MC_BASE;
-	u32 reg = 0;
 
-	/* VPR is only in T114 and T124 */
-	reg = (readl(&gp->hidrev) & HIDREV_CHIPID_MASK);
-	reg = (reg >> HIDREV_CHIPID_SHIFT) & 0xFF;
-	if ((reg == CHIPID_TEGRA114) || (reg == CHIPID_TEGRA124)) {
-		/* Turn off VPR */
-		writel(0x00000000, &mc->mc_video_protect_size_mb);
-		writel(0x00000001, &mc->mc_video_protect_reg_ctrl);
-	}
+	/* Turn VPR off */
+	writel(0, &mc->mc_video_protect_size_mb);
+	writel(TEGRA_MC_VIDEO_PROTECT_REG_WRITE_ACCESS_DISABLED,
+	       &mc->mc_video_protect_reg_ctrl);
+	/* read back to ensure the write went through */
+	readl(&mc->mc_video_protect_reg_ctrl);
 }

@@ -195,6 +195,9 @@ pci_dev_t pci_find_devices(struct pci_device_id *ids, int index)
 			     bdf < PCI_BDF(bus + 1, 0, 0);
 #endif
 			     bdf += PCI_BDF(0, 0, 1)) {
+				if (pci_skip_dev(hose, bdf))
+					continue;
+
 				if (!PCI_FUNC(bdf)) {
 					pci_read_config_byte(bdf,
 							     PCI_HEADER_TYPE,
@@ -323,7 +326,7 @@ int __pci_hose_bus_to_phys(struct pci_controller *hose,
 			continue;
 
 		if (bus_addr >= res->bus_start &&
-			bus_addr < res->bus_start + res->size) {
+			(bus_addr - res->bus_start) < res->size) {
 			*pa = (bus_addr - res->bus_start + res->phys_start);
 			return 0;
 		}
