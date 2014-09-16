@@ -104,19 +104,11 @@ static void remove_cpu_resets(void)
 	writel(reg, &clkrst->crc_rst_cpug_cmplx_clr);
 }
 
-/**
- * The Tegra124 requires some special clock initialization, including setting up
- * the DVC I2C, turning on MSELECT and selecting the G CPU cluster
- */
-void tegra124_init_clocks(void)
+static void tegra124_ram_repair(void)
 {
 	struct flow_ctlr *flow = (struct flow_ctlr *)NV_PA_FLOW_BASE;
-	struct pmc_ctlr *pmc = (struct pmc_ctlr *)NV_PA_PMC_BASE;
-	struct clk_rst_ctlr *clkrst =
-			(struct clk_rst_ctlr *)NV_PA_CLK_RST_BASE;
-	u32 val;
 	u32 ram_repair_timeout = 500; /*usec*/
-	debug("tegra124_init_clocks entry\n");
+	u32 val;
 
 	/* Request SW trigerred RAM repair by setting req  bit*/
 	/* cluster 0 */
@@ -143,6 +135,19 @@ void tegra124_init_clocks(void)
 
 	if (ram_repair_timeout == 0)
 		debug("Ram Repair cluster1 failed\n");
+}
+/**
+ * The Tegra124 requires some special clock initialization, including setting up
+ * the DVC I2C, turning on MSELECT and selecting the G CPU cluster
+ */
+void tegra124_init_clocks(void)
+{
+	struct flow_ctlr *flow = (struct flow_ctlr *)NV_PA_FLOW_BASE;
+	struct pmc_ctlr *pmc = (struct pmc_ctlr *)NV_PA_PMC_BASE;
+	struct clk_rst_ctlr *clkrst =
+			(struct clk_rst_ctlr *)NV_PA_CLK_RST_BASE;
+	u32 val;
+	debug("tegra124_init_clocks entry\n");
 
 	/* Set active CPU cluster to G */
 	clrbits_le32(&flow->cluster_control, 1);
@@ -287,5 +292,6 @@ void start_cpu(u32 reset_vector)
 	remove_cpu_resets();
 	writel(reset_vector, EXCEP_VECTOR_CPU_RESET_VECTOR);
 	powerup_cpus();
+	tegra124_ram_repair();
 	debug("start_cpu exit, should continue @ reset_vector\n");
 }
