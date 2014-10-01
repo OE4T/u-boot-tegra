@@ -348,14 +348,14 @@ void fdt_serial_tag_setup(void *blob, bd_t *bd)
 		printf("ERROR: could not update sku property %s.\n",
 			fdt_strerror(ret));
 
-	val = serialnr.low >> 24;
+	val = (serialnr.low >> 16) & 0xFF;
 	val = cpu_to_fdt32(val);
-	ret = fdt_setprop(blob, offset, "fab", &val, sizeof(val));
+	ret = fdt_setprop(blob, offset, "bom", &val, sizeof(val));
 	if (ret < 0)
-		printf("ERROR: could not update fab property %s.\n",
+		printf("ERROR: could not update bom property %s.\n",
 			fdt_strerror(ret));
 
-	val = (serialnr.low >> 16) & 0xFF;
+	val = (serialnr.low >> 24) + 'A';
 	val = cpu_to_fdt32(val);
 	ret = fdt_setprop(blob, offset, "major_revision", &val, sizeof(val));
 	if (ret < 0)
@@ -367,6 +367,12 @@ void fdt_serial_tag_setup(void *blob, bd_t *bd)
 	ret = fdt_setprop(blob, offset, "minor_revision", &val, sizeof(val));
 	if (ret < 0)
 		printf("ERROR: could not update minor_revision property %s.\n",
+			fdt_strerror(ret));
+
+	ret = fdt_setprop(blob, offset, "name", sysinfo.board_string,
+				strlen(sysinfo.board_string));
+	if (ret < 0)
+		printf("ERROR: could not update name property %s.\n",
 			fdt_strerror(ret));
 }
 #endif  /* OF_BOARD_SETUP */
