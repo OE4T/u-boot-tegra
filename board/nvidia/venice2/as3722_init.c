@@ -33,6 +33,20 @@ void pmic_enable_cpu_vdd(void)
 	debug("%s entry\n", __func__);
 
 	/* Don't need to set up VDD_CORE - already done - by OTP */
+#ifdef CONFIG_TARGET_JETSON_TK1
+	debug("%s: Setting VDD_CORE to 1.0V via AS3722 reg 0/4D\n", __func__);
+	/*
+	 * Bring up VDD_CORE via the AS3722 PMIC on the PWR I2C bus.
+	 * First set VDD to 1.0V, then enable the VDD regulator.
+	 */
+	tegra_i2c_ll_write_addr(AS3722_I2C_ADDR, 2);
+	tegra_i2c_ll_write_data(AS3722_SD1VOLTAGE_DATA, I2C_SEND_2_BYTES);
+	/*
+	 * Don't write SDCONTROL - it's already 0x7F, i.e. all SDs enabled.
+	 * tegra_i2c_ll_write_data(AS3722_SD1CONTROL_DATA, I2C_SEND_2_BYTES);
+	 */
+	udelay(10 * 1000);
+#endif
 
 	debug("%s: Setting VDD_CPU to 1.0V via AS3722 reg 0/4D\n", __func__);
 	/*
