@@ -16,6 +16,12 @@
 #include <asm/arch-tegra/sys_proto.h>
 #include <asm/arch-tegra/warmboot.h>
 
+/*
+ * FIXME: This definition should move to include/linux/kernel.h
+ * after sync up with upstream.
+ */
+#define U32_MAX		((u32)~0U)
+
 DECLARE_GLOBAL_DATA_PTR;
 
 enum {
