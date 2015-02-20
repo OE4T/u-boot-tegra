@@ -61,6 +61,7 @@ __weak void pin_mux_usb(void) {}
 __weak void pin_mux_spi(void) {}
 __weak void gpio_early_init_uart(void) {}
 __weak void pin_mux_display(void) {}
+__weak void start_cpu_fan(void) {}
 
 #if defined(CONFIG_TEGRA_NAND)
 __weak void pin_mux_nand(void)
@@ -231,6 +232,8 @@ int board_late_init(void)
 		setenv("cpu_ns_mode", "");
 	}
 #endif
+	start_cpu_fan();
+
 	return 0;
 }
 
