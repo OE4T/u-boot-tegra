@@ -26,7 +26,7 @@
 /*-----------------------------------------------------------------------
  * Physical Memory Map
  */
-#define CONFIG_SYS_TEXT_BASE	0x83D8E000
+#define CONFIG_SYS_TEXT_BASE	0x83D90000
 
 /*
  * Memory layout for where various images get loaded by boot scripts:
