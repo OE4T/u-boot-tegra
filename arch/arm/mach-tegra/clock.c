@@ -82,7 +82,7 @@ static struct clk_pll *get_pll(enum clock_id clkid)
 
 	assert(clock_id_is_pll(clkid));
 	if (clkid >= (enum clock_id)TEGRA_CLK_PLLS) {
-		debug("%s: Invalid PLL\n", __func__);
+		debug("%s: Invalid PLL %d\n", __func__, clkid);
 		return NULL;
 	}
 	return &clkrst->crc_pll[clkid];
@@ -122,8 +122,11 @@ int clock_ll_read_pll(enum clock_id clkid, u32 *divm, u32 *divn,
 unsigned long clock_start_pll(enum clock_id clkid, u32 divm, u32 divn,
 		u32 divp, u32 cpcon, u32 lfcon)
 {
-	struct clk_pll *pll = get_pll(clkid);
+	struct clk_pll *pll = NULL;
 	u32 misc_data, data;
+
+	if (clkid < (enum clock_id)TEGRA_CLK_PLLS)
+		pll = get_pll(clkid);
 
 	/*
 	 * We cheat by treating all PLL (except PLLU) in the same fashion.
