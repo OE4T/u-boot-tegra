@@ -77,11 +77,6 @@
 #ifdef CONFIG_TEGRA_LP0
 #define TEGRA_LP0_ADDR			0x1C406000
 #define TEGRA_LP0_SIZE			0x2000
-#define TEGRA_LP0_VEC \
-	"lp0_vec=" __stringify(TEGRA_LP0_SIZE)  \
-	"@" __stringify(TEGRA_LP0_ADDR) " "
-#else
-#define TEGRA_LP0_VEC
 #endif
 
 /*

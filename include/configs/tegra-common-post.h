@@ -46,6 +46,14 @@
 	"stderr=serial" STDOUT_LCD "\0" \
 	""
 
+#ifdef TEGRA_LP0_ADDR
+#define TEGRA_LP0_SETTINGS \
+	"lp0_vec=" __stringify(TEGRA_LP0_SIZE) "@" \
+		__stringify(TEGRA_LP0_ADDR) "\0"
+#else
+#define TEGRA_LP0_SETTINGS
+#endif
+
 #ifndef BOARD_EXTRA_ENV_SETTINGS
 #define BOARD_EXTRA_ENV_SETTINGS
 #endif
@@ -54,6 +62,7 @@
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	TEGRA_DEVICE_SETTINGS \
+	TEGRA_LP0_SETTINGS \
 	MEM_LAYOUT_ENV_SETTINGS \
 	"fdt_high=ffffffff\0" \
 	"initrd_high=ffffffff\0" \
