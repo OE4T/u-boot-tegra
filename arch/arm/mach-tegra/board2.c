@@ -338,26 +338,24 @@ void get_board_serial(struct tag_serialnr *serialnr)
 }
 
 #ifdef CONFIG_OF_BOARD_SETUP
-int fdt_serial_tag_setup(void *blob, bd_t *bd)
+int fdt_serial_tag_setup_one(void *blob, const struct tag_serialnr *serialnr,
+	const char *nodepath, const char *nodename)
 {
-	struct tag_serialnr serialnr;
 	int offset, ret;
 	u32 val;
 
-	offset = fdt_path_offset(blob, "/chosen/proc-board");
+	offset = fdt_path_offset(blob, nodepath);
 	if (offset < 0) {
 		int chosen = fdt_path_offset(blob, "/chosen");
-		offset = fdt_add_subnode(blob, chosen, "proc-board");
+		offset = fdt_add_subnode(blob, chosen, nodename);
 		if (offset < 0) {
-			printf("ERROR: add node /chosen/proc-board: %s.\n",
-			       fdt_strerror(offset));
+			printf("ERROR: add node %s: %s.\n",
+			       nodepath, fdt_strerror(offset));
 			return offset;
 		}
 	}
 
-	get_board_serial(&serialnr);
-
-	val = serialnr.high >> 16;
+	val = serialnr->high >> 16;
 	val = cpu_to_fdt32(val);
 	ret = fdt_setprop(blob, offset, "id", &val, sizeof(val));
 	if (ret < 0) {
@@ -366,7 +364,7 @@ int fdt_serial_tag_setup(void *blob, bd_t *bd)
 		return ret;
 	}
 
-	val = serialnr.high & 0xFFFF;
+	val = serialnr->high & 0xFFFF;
 	val = cpu_to_fdt32(val);
 	ret = fdt_setprop(blob, offset, "sku", &val, sizeof(val));
 	if (ret < 0) {
@@ -375,7 +373,7 @@ int fdt_serial_tag_setup(void *blob, bd_t *bd)
 		return ret;
 	}
 
-	val = serialnr.low >> 24;
+	val = serialnr->low >> 24;
 	val = cpu_to_fdt32(val);
 	ret = fdt_setprop(blob, offset, "fab", &val, sizeof(val));
 	if (ret < 0) {
@@ -384,7 +382,7 @@ int fdt_serial_tag_setup(void *blob, bd_t *bd)
 		return ret;
 	}
 
-	val = (serialnr.low >> 16) & 0xFF;
+	val = (serialnr->low >> 16) & 0xFF;
 	val = cpu_to_fdt32(val);
 	ret = fdt_setprop(blob, offset, "major_revision", &val, sizeof(val));
 	if (ret < 0) {
@@ -393,7 +391,7 @@ int fdt_serial_tag_setup(void *blob, bd_t *bd)
 		return ret;
 	}
 
-	val = (serialnr.low >> 8) & 0xFF;
+	val = (serialnr->low >> 8) & 0xFF;
 	val = cpu_to_fdt32(val);
 	ret = fdt_setprop(blob, offset, "minor_revision", &val, sizeof(val));
 	if (ret < 0) {
@@ -401,6 +399,25 @@ int fdt_serial_tag_setup(void *blob, bd_t *bd)
 		       fdt_strerror(ret));
 		return ret;
 	}
+
+	return 0;
+}
+
+int fdt_serial_tag_setup(void *blob, bd_t *bd)
+{
+	struct tag_serialnr serialnr;
+	int ret;
+
+	get_board_serial(&serialnr);
+
+	ret = fdt_serial_tag_setup_one(blob, &serialnr, "/chosen/proc-board",
+				       "proc-board");
+	if (ret)
+		return ret;
+	ret = fdt_serial_tag_setup_one(blob, &serialnr, "/chosen/pmu-board",
+				       "pmu-board");
+	if (ret)
+		return ret;
 
 	return 0;
 }
