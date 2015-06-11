@@ -425,9 +425,28 @@ int fdt_serial_tag_setup(void *blob, bd_t *bd)
 #endif	/* SERIAL_TAG */
 
 #ifdef CONFIG_OF_BOARD_SETUP
+int ft_remove_firmware_nodes(void *blob)
+{
+	int offset;
+
+	offset = fdt_path_offset(blob, "/firmware");
+	if (offset >= 0)
+		fdt_del_node(blob, offset);
+
+	offset = fdt_path_offset(blob, "/psci");
+	if (offset >= 0)
+		fdt_del_node(blob, offset);
+
+	return 0;
+}
+
 int ft_board_setup(void *blob, bd_t *bd)
 {
 	int ret;
+
+	ret = ft_remove_firmware_nodes(blob);
+	if (ret)
+		return ret;
 
 	/* Overwrite DT file with right board info properties */
 #ifdef CONFIG_SERIAL_TAG
