@@ -350,9 +350,9 @@ void fdt_serial_tag_setup(void *blob, bd_t *bd)
 
 	val = (serialnr.low >> 16) & 0xFF;
 	val = cpu_to_fdt32(val);
-	ret = fdt_setprop(blob, offset, "bom", &val, sizeof(val));
+	ret = fdt_setprop(blob, offset, "fab", &val, sizeof(val));
 	if (ret < 0)
-		printf("ERROR: could not update bom property %s.\n",
+		printf("ERROR: could not update fab property %s.\n",
 			fdt_strerror(ret));
 
 	val = (serialnr.low >> 24) + 'A';
