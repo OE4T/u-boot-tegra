@@ -458,3 +458,19 @@ int ft_board_setup(void *blob, bd_t *bd)
 	return 0;
 }
 #endif  /* OF_BOARD_SETUP */
+
+#ifdef CONFIG_ARM64
+/*
+ * Most hardware on 64-bit Tegra is still restricted to DMA to the lower
+ * 32-bits of the physical address space. Cap the maximum usable RAM area
+ * at 4 GiB to avoid DMA buffers from being allocated beyond the 32-bit
+ * boundary that most devices can address.
+ */
+ulong board_get_usable_ram_top(ulong total_size)
+{
+	if (gd->ram_top > 0x100000000)
+		return 0x100000000;
+
+	return gd->ram_top;
+}
+#endif
