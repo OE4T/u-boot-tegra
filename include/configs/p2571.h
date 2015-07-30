@@ -22,7 +22,6 @@
 /* Board-specific serial config */
 #define CONFIG_SERIAL_MULTI
 #define CONFIG_TEGRA_ENABLE_UARTA
-#define CONFIG_SYS_NS16550_COM1		NV_PA_APB_UARTA_BASE
 
 /* I2C */
 #define CONFIG_SYS_I2C_TEGRA
@@ -53,7 +52,7 @@
 /* USB2.0 Host support */
 #define CONFIG_USB_EHCI
 #define CONFIG_USB_EHCI_TEGRA
-#define CONFIG_USB_MAX_CONTROLLER_COUNT	2
+#define CONFIG_USB_MAX_CONTROLLER_COUNT	1
 #define CONFIG_USB_STORAGE
 #define CONFIG_CMD_USB
 
@@ -65,10 +64,6 @@
 #define CONFIG_CMD_NET
 #define CONFIG_CMD_DHCP
 
-/*
- * TODO(twarren@nvidia.com) - add tegra-common-usb-gadget.h back
- * breaks 64-bit build in ci_udc.c
- */
 #include "tegra-common-usb-gadget.h"
 #include "tegra-common-post.h"
 
