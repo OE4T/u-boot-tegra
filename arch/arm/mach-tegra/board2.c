@@ -433,7 +433,7 @@ int fdt_serial_tag_setup(void *blob, bd_t *bd)
 #endif  /* OF_BOARD_SETUP */
 #endif	/* SERIAL_TAG */
 
-#ifdef CONFIG_OF_BOARD_SETUP
+#ifdef CONFIG_OF_REMOVE_FIRMWARE_NODES
 int ft_remove_firmware_nodes(void *blob)
 {
 	int offset;
@@ -448,14 +448,18 @@ int ft_remove_firmware_nodes(void *blob)
 
 	return 0;
 }
+#endif
 
+#ifdef CONFIG_OF_BOARD_SETUP
 int ft_board_setup(void *blob, bd_t *bd)
 {
 	int ret;
 
+#ifdef CONFIG_OF_REMOVE_FIRMWARE_NODES
 	ret = ft_remove_firmware_nodes(blob);
 	if (ret)
 		return ret;
+#endif
 
 	/* Overwrite DT file with right board info properties */
 #ifdef CONFIG_SERIAL_TAG

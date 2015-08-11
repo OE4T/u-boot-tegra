@@ -25,6 +25,7 @@
 #define CONFIG_SERIAL_TAG
 #define CONFIG_TEGRA_SERIAL_HIGH	0x01770000
 #define CONFIG_TEGRA_SERIAL_LOW		0x034200FF
+#define CONFIG_OF_REMOVE_FIRMWARE_NODES
 
 /* The following are used to retrieve the board id from an eeprom */
 #define CONFIG_SERIAL_EEPROM
