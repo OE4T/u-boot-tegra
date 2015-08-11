@@ -5,6 +5,7 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
+#include <stdlib.h>
 #include <common.h>
 #include <dm.h>
 #include <errno.h>
@@ -450,6 +451,142 @@ int ft_remove_firmware_nodes(void *blob)
 }
 #endif
 
+#ifdef CONFIG_OF_COPY_NODES
+#define fdt_for_each_property(fdt, prop, parent)		\
+	for (prop = fdt_first_property_offset(fdt, parent);	\
+	     prop >= 0;						\
+	     prop = fdt_next_property_offset(fdt, prop))
+
+int fdt_copy_node_content(void *blob_src, int ofs_src, void *blob_dst,
+		int ofs_dst, int indent)
+{
+	int ofs_src_child, ofs_dst_child;
+
+	/*
+	 * FIXME: This doesn't remove properties or nodes in the destination
+	 * that are not present in the source. For the nodes we care about
+	 * right now, this is not an issue.
+	 */
+
+	fdt_for_each_property(blob_src, ofs_src_child, ofs_src) {
+		const char *prop;
+		const char *name;
+		int len, ret;
+
+		prop = fdt_getprop_by_offset(blob_src, ofs_src_child, &name,
+					     &len);
+		debug("%*scopy prop: %s\n", indent, "", name);
+
+		ret = fdt_setprop(blob_dst, ofs_dst, name, prop, len);
+		if (ret < 0) {
+			printf("Can't create DT prop %s to copy\n", name);
+			return ret;
+		}
+	}
+
+	fdt_for_each_subnode(blob_src, ofs_src_child, ofs_src) {
+		const char *name;
+
+		name = fdt_get_name(blob_src, ofs_src_child, NULL);
+		debug("%*scopy node: %s\n", indent, "", name);
+
+		ofs_dst_child = fdt_subnode_offset(blob_dst, ofs_dst, name);
+		if (ofs_dst_child < 0) {
+			debug("%*s(creating it in dst)\n", indent, "");
+			ofs_dst_child = fdt_add_subnode(blob_dst, ofs_dst,
+							name);
+			if (ofs_dst_child < 0) {
+				printf("Can't create DT node %s to copy\n", name);
+				return ofs_dst_child;
+			}
+		}
+
+		fdt_copy_node_content(blob_src, ofs_src_child, blob_dst,
+				      ofs_dst_child, indent + 2);
+	}
+
+	return 0;
+}
+
+int ft_copy_node(void *blob_src, void *blob_dst, const char *nodename)
+{
+	int ofs_dst_mc, ofs_src_mc;
+	int ret;
+
+	ofs_dst_mc = fdt_path_offset(blob_dst, nodename);
+	if (ofs_dst_mc < 0) {
+		ofs_dst_mc = fdt_add_subnode(blob_dst, 0, nodename);
+		if (ofs_dst_mc < 0) {
+			printf("Can't create DT node %s to copy\n", nodename);
+			return ofs_dst_mc;
+		}
+	} else {
+		if (!fdtdec_get_is_enabled(blob_dst, ofs_dst_mc)) {
+			printf("DT node %s disabled in dst; skipping copy\n",
+			       nodename);
+			return 0;
+		}
+	}
+
+	ofs_src_mc = fdt_path_offset(blob_src, nodename);
+	if (ofs_src_mc < 0) {
+		printf("DT node %s missing in source; can't copy\n",
+		       nodename);
+		return 0;
+	}
+
+	ret = fdt_copy_node_content(blob_src, ofs_src_mc, blob_dst,
+				    ofs_dst_mc, 2);
+	if (ret < 0)
+		return ret;
+
+	return 0;
+}
+
+int ft_copy_nodes(void *blob_dst)
+{
+	char *src_addr_s;
+	ulong src_addr;
+	char *node_names, *tmp, *node_name;
+	int ret;
+
+	src_addr_s = getenv("fdt_copy_src_addr");
+	if (!src_addr_s)
+		return 0;
+	src_addr = simple_strtoul(src_addr_s, NULL, 16);
+
+	node_names = getenv("fdt_copy_node_names");
+	if (!node_names)
+		return 0;
+	node_names = strdup(node_names);
+	if (!node_names) {
+		printf("%s:strdup failed", __func__);
+		ret = -1;
+		goto out;
+	}
+
+	tmp = node_names;
+	while (true) {
+		node_name = strsep(&tmp, ":");
+		if (!node_name)
+			break;
+		debug("node to copy: %s\n", node_name);
+		ret = ft_copy_node((void *)src_addr, blob_dst, node_name);
+		if (ret < 0) {
+			ret = -1;
+			goto out;
+		}
+	}
+
+	ret = 0;
+
+out:
+	free(node_names);
+
+	return ret;
+}
+#endif
+
 #ifdef CONFIG_OF_BOARD_SETUP
 int ft_board_setup(void *blob, bd_t *bd)
 {
@@ -467,6 +604,12 @@ int ft_board_setup(void *blob, bd_t *bd)
 	if (ret)
 		return ret;
 #endif	/* SERIAL_TAG */
+
+#ifdef CONFIG_OF_COPY_NODES
+	ret = ft_copy_nodes(blob);
+	if (ret)
+		return ret;
+#endif
 
 	return 0;
 }
