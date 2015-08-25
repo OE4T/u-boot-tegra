@@ -13,6 +13,7 @@
 #include <asm/io.h>
 #include <fdt_support.h>
 #include "cpu.h"
+#include "ft_board_info.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -391,9 +392,64 @@ static int ft_nvtboot_bpmp_carveout(void *blob)
 	return 0;
 }
 
+static const struct {
+	char *nodepath;
+	char *nodename;
+	const board_info *bi;
+} board_info_nodes[] = {
+	{
+		"/proc/proc-board",
+		"proc-board",
+		&nvtboot_boot_arg.proc_board_details
+	},
+	{
+		"/pmu/pmu-board",
+		"pmu-board",
+		&nvtboot_boot_arg.pmu_board_details
+	},
+	{
+		"/display/display-board",
+		"display-board",
+		&nvtboot_boot_arg.display_board_details
+	},
+};
+
+static int ft_nvtboot_board_info(void *blob)
+{
+	int i;
+	struct ft_board_info bi;
+	int ret;
+
+	for (i = 0; i < ARRAY_SIZE(board_info_nodes); i++) {
+		bi.id = board_info_nodes[i].bi->board_id;
+		bi.sku = board_info_nodes[i].bi->sku;
+		bi.fab = board_info_nodes[i].bi->fab;
+		bi.major = board_info_nodes[i].bi->revision;
+		bi.minor = board_info_nodes[i].bi->minor_revision;
+
+		ret = ft_board_info_set(blob, &bi,
+					board_info_nodes[i].nodepath,
+					board_info_nodes[i].nodename);
+		if (ret)
+			return ret;
+	}
+
+	return 0;
+}
+
 int ft_nvtboot(void *blob)
 {
-	return ft_nvtboot_bpmp_carveout(blob);
+	int ret;
+
+	ret = ft_nvtboot_bpmp_carveout(blob);
+	if (ret)
+		return ret;
+
+	ret = ft_nvtboot_board_info(blob);
+	if (ret)
+		return ret;
+
+	return 0;
 }
 
 void board_cleanup_before_linux(void)
