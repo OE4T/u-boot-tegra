@@ -1,5 +1,5 @@
 /*
- *  (C) Copyright 2010,2011
+ *  (C) Copyright 2010,2011,2015
  *  NVIDIA Corporation <www.nvidia.com>
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -48,6 +48,7 @@
 #include <spi.h>
 #include <fdt_support.h>
 #include "emc.h"
+#include "nvtboot.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -194,6 +195,10 @@ void gpio_early_init(void) __attribute__((weak, alias("__gpio_early_init")));
 
 int board_early_init_f(void)
 {
+#ifdef CONFIG_NVTBOOT
+	nvtboot_init();
+#endif
+
 	/* Do any special system timer/TSC setup */
 #if defined(CONFIG_TEGRA_SUPPORT_NON_SECURE)
 	if (!tegra_cpu_is_non_secure())
@@ -616,6 +621,7 @@ int ft_board_setup(void *blob, bd_t *bd)
 }
 #endif  /* OF_BOARD_SETUP */
 
+#ifndef CONFIG_NVTBOOT
 /*
  * In some SW environments, a memory carve-out exists to house a secure
  * monitor, a trusted OS, and/or various statically allocated media buffers.
@@ -731,3 +737,4 @@ ulong board_get_usable_ram_top(ulong total_size)
 {
 	return CONFIG_SYS_SDRAM_BASE + usable_ram_size_below_4g();
 }
+#endif

@@ -55,6 +55,21 @@ config USE_PRIVATE_LIBGCC
 config SPL_DM
 	default y
 
+config NVTBOOT
+	bool "Support being chain-loaded from nvtboot"
+	help
+	  nvtboot is a bootloader for NVIDIA Tegra platforms. Its purpose is
+	  to perform OS-independent system configuration. Among other things,
+	  nvtboot may boot a secure OS and set up various memory carve-outs.
+	  Once nvtboot has completed execution, it typically chain-loads a
+	  use-case-specific bootloader. When doing so, it passes on various
+	  configuration information (such as RAM carve-out locations and
+	  sizes) via an in-RAM data structure, pointed at by a CPU register.
+
+	  Enabling this option allows U-Boot to support being chain-loaded by
+	  nvtboot. This involves e.g. parsing the data structure passed on by
+	  nvtboot.
+
 source "arch/arm/mach-tegra/tegra20/Kconfig"
 source "arch/arm/mach-tegra/tegra30/Kconfig"
 source "arch/arm/mach-tegra/tegra114/Kconfig"
