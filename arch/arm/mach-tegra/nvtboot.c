@@ -8,8 +8,11 @@
 
 #include <stdlib.h>
 #include <common.h>
+#include <asm/arch/clock.h>
+#include <asm/arch-tegra/ap.h>
+#include <asm/io.h>
 #include <fdt_support.h>
-#include "nvtboot.h"
+#include "cpu.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -391,4 +394,15 @@ static int ft_nvtboot_bpmp_carveout(void *blob)
 int ft_nvtboot(void *blob)
 {
 	return ft_nvtboot_bpmp_carveout(blob);
+}
+
+void board_cleanup_before_linux(void)
+{
+	carveout_info *ci;
+
+	/* Set BPMP-FW base as BPMP-processor reset vector */
+	ci = &nvtboot_boot_arg.params.car_info[MEM_LAYOUT_BPMPFW];
+	writel((ci->base + 0x100), EXCEP_VECTOR_COP_RESET_VECTOR);
+	reset_periph(PERIPH_ID_COP, 2);
+	writel(0, FLOW_CTLR_HALT_COP_EVENTS);
 }

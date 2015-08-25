@@ -16,6 +16,8 @@
 #include <asm/system.h>
 #include <linux/compiler.h>
 
+void __weak board_cleanup_before_linux(void){}
+
 int cleanup_before_linux(void)
 {
 	/*
@@ -24,6 +26,9 @@ int cleanup_before_linux(void)
 	 *
 	 * disable interrupt and turn off caches etc ...
 	 */
+
+	board_cleanup_before_linux();
+
 	disable_interrupts();
 
 	/*
