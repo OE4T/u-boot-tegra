@@ -36,7 +36,7 @@ enum {
 
 static bool from_spl __attribute__ ((section(".data")));
 
-#ifndef CONFIG_SPL_BUILD
+#if !defined(CONFIG_SPL_BUILD) && !defined(CONFIG_TEGRA210)
 void save_boot_params(u32 r0, u32 r1, u32 r2, u32 r3)
 {
 	from_spl = r0 != UBOOT_NOT_LOADED_FROM_SPL;
