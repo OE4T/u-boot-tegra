@@ -233,6 +233,9 @@ int board_late_init(void)
 	}
 #endif
 	start_cpu_fan();
+#if defined(CONFIG_TEGRA210)
+	nvtboot_init_late();
+#endif
 
 	return 0;
 }

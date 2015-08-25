@@ -7,6 +7,9 @@
 #include <common.h>
 #include <asm/arch-tegra/gpu.h>
 #include "dt-edit.h"
+#ifdef CONFIG_TEGRA210
+#include "tegra210/nvtboot.h"
+#endif
 
 /*
  * This function is called right before the kernel is booted. "blob" is the
@@ -35,6 +38,9 @@ int ft_system_setup(void *blob, bd_t *bd)
 	fdt_copy_env_proplist(blob);
 	fdt_del_env_nodelist(blob);
 	fdt_del_env_proplist(blob);
+#ifdef CONFIG_TEGRA210
+	ft_nvtboot(blob);
+#endif
 
 	return 0;
 }
