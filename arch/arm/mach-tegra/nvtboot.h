@@ -12,5 +12,7 @@
 #include <stdlib.h>
 
 void nvtboot_init(void);
+void nvtboot_init_late(void);
+int ft_nvtboot(void *blob);
 
 #endif

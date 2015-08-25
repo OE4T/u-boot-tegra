@@ -240,6 +240,9 @@ int board_late_init(void)
 	}
 #endif
 	start_cpu_fan();
+#if defined(CONFIG_NVTBOOT)
+	nvtboot_init_late();
+#endif
 
 	return 0;
 }
@@ -613,6 +616,12 @@ int ft_board_setup(void *blob, bd_t *bd)
 
 #ifdef CONFIG_OF_COPY_NODES
 	ret = ft_copy_nodes(blob);
+	if (ret)
+		return ret;
+#endif
+
+#ifdef CONFIG_NVTBOOT
+	ret = ft_nvtboot(blob);
 	if (ret)
 		return ret;
 #endif

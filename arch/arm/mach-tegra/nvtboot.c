@@ -8,6 +8,7 @@
 
 #include <stdlib.h>
 #include <common.h>
+#include <fdt_support.h>
 #include "nvtboot.h"
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -338,4 +339,56 @@ ulong board_get_usable_ram_top(ulong total_size)
 	ci = &nvtboot_boot_arg.params.car_info[MEM_LAYOUT_PRIMARY];
 
 	return (ci->base + ci->size) & ~(SZ_2M - 1);
+}
+
+void nvtboot_init_late(void)
+{
+	carveout_info *ci;
+	char buf[40];
+
+	ci = &nvtboot_boot_arg.params.car_info[MEM_LAYOUT_LP0];
+	snprintf(buf, sizeof(buf), "0x%llx@0x%llx", ci->size, ci->base);
+	setenv("lp0_vec", buf);
+
+	ci = &nvtboot_boot_arg.params.car_info[MEM_LAYOUT_NVDUMPER];
+	snprintf(buf, sizeof(buf), "0x%llx", ci->base);
+	setenv("nvdumper_reserved", buf);
+}
+
+static int ft_nvtboot_bpmp_carveout(void *blob)
+{
+	int offset, ret;
+	carveout_info *ci;
+	u32 val;
+
+	offset = fdt_path_offset(blob, "/bpmp");
+	if (offset < 0) {
+		/* No bpmp node? We simply don't need to update it */
+		return 0;
+	}
+
+	ci = &nvtboot_boot_arg.params.car_info[MEM_LAYOUT_BPMPFW];
+
+	val = cpu_to_fdt32(ci->base);
+	ret = fdt_setprop(blob, offset, "carveout-start", &val, sizeof(val));
+	if (ret < 0) {
+		printf("ERROR: could not update /bpmp/carveout-start property %s.\n",
+		       fdt_strerror(ret));
+		return ret;
+	}
+
+	val = cpu_to_fdt32(ci->size);
+	ret = fdt_setprop(blob, offset, "carveout-size", &val, sizeof(val));
+	if (ret < 0) {
+		printf("ERROR: could not update /bpmp/carveout-size property %s.\n",
+		       fdt_strerror(ret));
+		return ret;
+	}
+
+	return 0;
+}
+
+int ft_nvtboot(void *blob)
+{
+	return ft_nvtboot_bpmp_carveout(blob);
 }
