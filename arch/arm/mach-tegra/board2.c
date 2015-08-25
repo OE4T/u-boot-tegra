@@ -48,6 +48,7 @@
 #include <spi.h>
 #include <fdt_support.h>
 #include "emc.h"
+#include "ft_board_info.h"
 #include "nvtboot.h"
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -295,6 +296,66 @@ void pad_init_mmc(struct mmc_host *host)
 }
 #endif	/* MMC */
 
+int ft_board_info_set(void *blob, const struct ft_board_info *bi,
+	const char *nodepath, const char *nodename)
+{
+	int offset, ret;
+	u32 val;
+
+	offset = fdt_path_offset(blob, nodepath);
+	if (offset < 0) {
+		int chosen = fdt_path_offset(blob, "/chosen");
+		offset = fdt_add_subnode(blob, chosen, nodename);
+		if (offset < 0) {
+			printf("ERROR: add node %s: %s.\n",
+			       nodepath, fdt_strerror(offset));
+			return offset;
+		}
+	}
+
+	val = cpu_to_fdt32(bi->id);
+	ret = fdt_setprop(blob, offset, "id", &val, sizeof(val));
+	if (ret < 0) {
+		printf("ERROR: could not update id property %s.\n",
+		       fdt_strerror(ret));
+		return ret;
+	}
+
+	val = cpu_to_fdt32(bi->sku);
+	ret = fdt_setprop(blob, offset, "sku", &val, sizeof(val));
+	if (ret < 0) {
+		printf("ERROR: could not update sku property %s.\n",
+		       fdt_strerror(ret));
+		return ret;
+	}
+
+	val = cpu_to_fdt32(bi->fab);
+	ret = fdt_setprop(blob, offset, "fab", &val, sizeof(val));
+	if (ret < 0) {
+		printf("ERROR: could not update fab property %s.\n",
+		       fdt_strerror(ret));
+		return ret;
+	}
+
+	val = cpu_to_fdt32(bi->major);
+	ret = fdt_setprop(blob, offset, "major_revision", &val, sizeof(val));
+	if (ret < 0) {
+		printf("ERROR: could not update major_revision property %s.\n",
+		       fdt_strerror(ret));
+		return ret;
+	}
+
+	val = cpu_to_fdt32(bi->minor);
+	ret = fdt_setprop(blob, offset, "minor_revision", &val, sizeof(val));
+	if (ret < 0) {
+		printf("ERROR: could not update minor_revision property %s.\n",
+		       fdt_strerror(ret));
+		return ret;
+	}
+
+	return 0;
+}
+
 #ifdef CONFIG_SERIAL_TAG
 void get_board_serial(struct tag_serialnr *serialnr)
 {
@@ -357,84 +418,24 @@ void get_board_serial(struct tag_serialnr *serialnr)
 }
 
 #ifdef CONFIG_OF_BOARD_SETUP
-int fdt_serial_tag_setup_one(void *blob, const struct tag_serialnr *serialnr,
-	const char *nodepath, const char *nodename)
-{
-	int offset, ret;
-	u32 val;
-
-	offset = fdt_path_offset(blob, nodepath);
-	if (offset < 0) {
-		int chosen = fdt_path_offset(blob, "/chosen");
-		offset = fdt_add_subnode(blob, chosen, nodename);
-		if (offset < 0) {
-			printf("ERROR: add node %s: %s.\n",
-			       nodepath, fdt_strerror(offset));
-			return offset;
-		}
-	}
-
-	val = serialnr->high >> 16;
-	val = cpu_to_fdt32(val);
-	ret = fdt_setprop(blob, offset, "id", &val, sizeof(val));
-	if (ret < 0) {
-		printf("ERROR: could not update id property %s.\n",
-		       fdt_strerror(ret));
-		return ret;
-	}
-
-	val = serialnr->high & 0xFFFF;
-	val = cpu_to_fdt32(val);
-	ret = fdt_setprop(blob, offset, "sku", &val, sizeof(val));
-	if (ret < 0) {
-		printf("ERROR: could not update sku property %s.\n",
-		       fdt_strerror(ret));
-		return ret;
-	}
-
-	val = serialnr->low >> 24;
-	val = cpu_to_fdt32(val);
-	ret = fdt_setprop(blob, offset, "fab", &val, sizeof(val));
-	if (ret < 0) {
-		printf("ERROR: could not update fab property %s.\n",
-		       fdt_strerror(ret));
-		return ret;
-	}
-
-	val = (serialnr->low >> 16) & 0xFF;
-	val = cpu_to_fdt32(val);
-	ret = fdt_setprop(blob, offset, "major_revision", &val, sizeof(val));
-	if (ret < 0) {
-		printf("ERROR: could not update major_revision property %s.\n",
-		       fdt_strerror(ret));
-		return ret;
-	}
-
-	val = (serialnr->low >> 8) & 0xFF;
-	val = cpu_to_fdt32(val);
-	ret = fdt_setprop(blob, offset, "minor_revision", &val, sizeof(val));
-	if (ret < 0) {
-		printf("ERROR: could not update minor_revision property %s.\n",
-		       fdt_strerror(ret));
-		return ret;
-	}
-
-	return 0;
-}
-
 int fdt_serial_tag_setup(void *blob, bd_t *bd)
 {
 	struct tag_serialnr serialnr;
+	struct ft_board_info bi;
 	int ret;
 
 	get_board_serial(&serialnr);
 
-	ret = fdt_serial_tag_setup_one(blob, &serialnr, "/chosen/proc-board",
-				       "proc-board");
+	bi.id = serialnr.high >> 16;
+	bi.sku = serialnr.high & 0xffff;
+	bi.fab = serialnr.low >> 24;
+	bi.major = (serialnr.low >> 16) & 0xff;
+	bi.minor = (serialnr.low >> 8) & 0xff;
+
+	ret = ft_board_info_set(blob, &bi, "/chosen/proc-board", "proc-board");
 	if (ret)
 		return ret;
-	ret = fdt_serial_tag_setup_one(blob, &serialnr, "/chosen/pmu-board",
-				       "pmu-board");
+	ret = ft_board_info_set(blob, &bi, "/chosen/pmu-board", "pmu-board");
 	if (ret)
 		return ret;
 
