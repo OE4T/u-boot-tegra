@@ -43,6 +43,11 @@ _bss_end_ofs:
 	.quad	__bss_end - _start
 
 reset:
+	/* Allow the board to save important registers */
+	b	save_boot_params
+.globl	save_boot_params_ret
+save_boot_params_ret:
+
 	/*
 	 * Could be EL3/EL2/EL1, Initial State:
 	 * Little Endian, MMU Disabled, i/dCache Disabled
@@ -223,3 +228,7 @@ ENTRY(c_runtime_cpu_setup)
 
 	ret
 ENDPROC(c_runtime_cpu_setup)
+
+WEAK(save_boot_params)
+	b	save_boot_params_ret	/* back to my caller */
+ENDPROC(save_boot_params)
