@@ -12,14 +12,15 @@
  * Size of malloc() pool
  */
 #ifdef CONFIG_DFU_FUNCTION
-#define CONFIG_SYS_MALLOC_LEN		((4 << 20) + \
-						CONFIG_SYS_DFU_DATA_BUF_SIZE)
+#define CONFIG_SYS_MALLOC_LEN	(SZ_4M + \
+					CONFIG_SYS_DFU_DATA_BUF_SIZE + \
+					CONFIG_SYS_DFU_MAX_FILE_SIZE)
 #else
-#define CONFIG_SYS_MALLOC_LEN		(4 << 20)	/* 4MB  */
+#define CONFIG_SYS_MALLOC_LEN		SZ_4M
 #endif
 
 #ifndef CONFIG_ARM64
-#define CONFIG_SYS_NONCACHED_MEMORY	(1 << 20)	/* 1 MiB */
+#define CONFIG_SYS_NONCACHED_MEMORY	SZ_1M
 #endif
 
 #ifndef CONFIG_SPL_BUILD
