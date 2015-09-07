@@ -597,7 +597,7 @@ out:
 }
 #endif
 
-#ifdef CONFIG_OF_ADD_CHOSEN_MAC_ADDRS
+#ifdef CONFIG_NV_BOARD_ID_EEPROM
 struct __attribute__((__packed__)) eeprom_ver_1 {
 	uint16_t version;
 	uint16_t size;
@@ -632,6 +632,8 @@ struct __attribute__((__packed__)) eeprom_ver_1 {
 	uint8_t checksum;
 };
 
+static struct eeprom_ver_1 eeprom_buf;
+
 static uint8_t nv_brdid_eeprom_crc_iter(uint8_t data, uint8_t crc)
 {
 	uint8_t i;
@@ -659,22 +661,10 @@ static bool nv_brdid_eeprom_crc_ok(uint8_t *data, uint32_t size)
 	return data[size - 1] == crc;
 }
 
-int ft_add_chosen_mac_addrs(void *blob)
+static int nv_brdinfo_eeprom_read(void)
 {
-	struct eeprom_ver_1 eeprom_buf;
-	char mac_str[6 * 3];
-	int ret, chosen, i;
+	int ret;
 	struct udevice *dev;
-	struct {
-		const char *prop;
-		uint8_t *data;
-	} macs[] = {
-		{ "nvidia,wifi-mac", eeprom_buf.cust_wifi_mac },
-		{ "nvidia,bluetooth-mac", eeprom_buf.cust_bt_mac },
-		{ "nvidia,ethernet-mac", eeprom_buf.cust_eth_mac },
-	};
-	const uint8_t zero_mac[6] = {0};
-	const uint8_t ones_mac[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
 	ret = i2c_get_chip_for_busnum(EEPROM_I2C_BUS, EEPROM_I2C_ADDRESS, 1,
 				      &dev);
@@ -697,6 +687,29 @@ int ft_add_chosen_mac_addrs(void *blob)
 		printf("ERROR: Board ID EEPROM CRC check failure\n");
 		goto print_warning;
 	}
+
+	return ret;
+
+print_warning:
+	printf("WARNING: failed to read board EEPROM\n");
+	return ret;
+}
+
+#ifdef CONFIG_OF_ADD_CHOSEN_MAC_ADDRS
+int ft_add_chosen_mac_addrs(void *blob)
+{
+	char mac_str[6 * 3];
+	int ret, chosen, i;
+	struct {
+		const char *prop;
+		uint8_t *data;
+	} macs[] = {
+		{ "nvidia,wifi-mac", eeprom_buf.cust_wifi_mac },
+		{ "nvidia,bluetooth-mac", eeprom_buf.cust_bt_mac },
+		{ "nvidia,ethernet-mac", eeprom_buf.cust_eth_mac },
+	};
+	const uint8_t zero_mac[6] = {0};
+	const uint8_t ones_mac[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
 #define PACK(a, b, c, d) ((a) | ((b) << 8) | ((c) << 16) | ((d) << 24))
 	if (eeprom_buf.cust_block_sig != PACK('N', 'V', 'C', 'B')) {
@@ -753,6 +766,7 @@ print_warning:
 	return 0;
 }
 #endif
+#endif
 
 #ifdef CONFIG_OF_BOARD_SETUP
 int ft_board_setup(void *blob, bd_t *bd)
@@ -784,10 +798,14 @@ int ft_board_setup(void *blob, bd_t *bd)
 		return ret;
 #endif
 
+#ifdef CONFIG_NV_BOARD_ID_EEPROM
+	ret = nv_brdinfo_eeprom_read();
+	/* Board should continue to boot even if EEPROM read fails */
+	if (!ret) {
 #ifdef CONFIG_OF_ADD_CHOSEN_MAC_ADDRS
-	ret = ft_add_chosen_mac_addrs(blob);
-	if (ret)
-		return ret;
+		ft_add_chosen_mac_addrs(blob);
+#endif
+	}
 #endif
 
 	return 0;
