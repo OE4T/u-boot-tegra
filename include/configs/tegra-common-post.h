@@ -8,6 +8,21 @@
 #ifndef __TEGRA_COMMON_POST_H
 #define __TEGRA_COMMON_POST_H
 
+/*
+ * Size of malloc() pool
+ */
+#ifdef CONFIG_DFU_FUNCTION
+#define CONFIG_SYS_MALLOC_LEN	(SZ_4M + \
+					CONFIG_SYS_DFU_DATA_BUF_SIZE + \
+					CONFIG_SYS_DFU_MAX_FILE_SIZE)
+#else
+#define CONFIG_SYS_MALLOC_LEN		SZ_4M
+#endif
+
+#ifndef CONFIG_ARM64
+#define CONFIG_SYS_NONCACHED_MEMORY	SZ_1M
+#endif
+
 #ifndef CONFIG_SPL_BUILD
 #define BOOT_TARGET_DEVICES(func) \
 	func(MMC, mmc, 1) \

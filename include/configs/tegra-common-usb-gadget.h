@@ -24,7 +24,8 @@
 #define CONFIG_CMD_USB_MASS_STORAGE
 /* DFU protocol */
 #define CONFIG_DFU_FUNCTION
-#define CONFIG_SYS_DFU_DATA_BUF_SIZE (1 * 1024 * 1024)
+#define CONFIG_SYS_DFU_DATA_BUF_SIZE SZ_1M
+#define CONFIG_SYS_DFU_MAX_FILE_SIZE SZ_32M
 #define CONFIG_CMD_DFU
 #ifdef CONFIG_MMC
 #define CONFIG_DFU_MMC
@@ -32,6 +33,7 @@
 #ifdef CONFIG_SPI_FLASH
 #define CONFIG_DFU_SF
 #endif
+#define CONFIG_DFU_RAM
 #endif
 
 #endif /* _TEGRA_COMMON_USB_GADGET_H_ */
