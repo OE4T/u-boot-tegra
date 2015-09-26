@@ -597,6 +597,163 @@ out:
 }
 #endif
 
+#ifdef CONFIG_OF_ADD_CHOSEN_MAC_ADDRS
+struct __attribute__((__packed__)) eeprom_ver_1 {
+	uint16_t version;
+	uint16_t size;
+	uint16_t board_no;
+	uint16_t sku;
+	uint8_t fab;
+	uint8_t rev;
+	uint8_t minor_rev;
+	uint8_t mem_type;
+	uint8_t pwr_cfg;
+	uint8_t misc_cfg;
+	uint8_t modem_cfg;
+	uint8_t touch_cfg;
+	uint8_t disp_cfg;
+	uint8_t rework_lvl;
+	uint16_t sno;
+	uint8_t assetf1[30];
+	uint8_t wifi_mac[6];
+	uint8_t bt_mac[6];
+	uint8_t second_wifi_mac[6];
+	uint8_t eth_mac[6];
+	uint8_t assetf2[15];
+	uint8_t reserved[61];
+	uint32_t cust_block_sig;
+	uint16_t cust_block_len;
+	uint16_t cust_type_sig;
+	uint16_t cust_ver;
+	uint8_t cust_wifi_mac[6];
+	uint8_t cust_bt_mac[6];
+	uint8_t cust_eth_mac[6];
+	uint8_t cust_reserved[77];
+	uint8_t checksum;
+};
+
+static uint8_t nv_brdid_eeprom_crc_iter(uint8_t data, uint8_t crc)
+{
+	uint8_t i;
+	uint8_t odd;
+
+	for (i = 0; i < 8; i++) {
+		odd = (data ^ crc) & 1;
+		crc >>= 1;
+		data >>= 1;
+		if (odd)
+			crc ^= 0x8c;
+	}
+
+	return crc;
+}
+
+static bool nv_brdid_eeprom_crc_ok(uint8_t *data, uint32_t size)
+{
+	uint32_t i;
+	uint8_t crc = 0;
+
+	for (i = 0; i < size - 1; i++)
+		crc = nv_brdid_eeprom_crc_iter(data[i], crc);
+
+	return data[size - 1] == crc;
+}
+
+int ft_add_chosen_mac_addrs(void *blob)
+{
+	struct eeprom_ver_1 eeprom_buf;
+	char mac_str[6 * 3];
+	int ret, chosen, i;
+	struct udevice *dev;
+	struct {
+		const char *prop;
+		uint8_t *data;
+	} macs[] = {
+		{ "nvidia,wifi-mac", eeprom_buf.cust_wifi_mac },
+		{ "nvidia,bluetooth-mac", eeprom_buf.cust_bt_mac },
+		{ "nvidia,ethernet-mac", eeprom_buf.cust_eth_mac },
+	};
+	const uint8_t zero_mac[6] = {0};
+	const uint8_t ones_mac[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+
+	ret = i2c_get_chip_for_busnum(EEPROM_I2C_BUS, EEPROM_I2C_ADDRESS, 1,
+				      &dev);
+	if (ret) {
+		printf("ERROR: Cannot get board ID EEPROM I2C chip\n");
+		goto print_warning;
+	}
+
+	if (dm_i2c_read(dev, 0, (void *)&eeprom_buf, sizeof(eeprom_buf))) {
+		printf("ERROR: Cannot read board ID EEPROM\n");
+		goto print_warning;
+	}
+
+	if (eeprom_buf.version != 1) {
+		printf("ERROR: Board ID EEPROM version != 1\n");
+		goto print_warning;
+	}
+
+	if (!nv_brdid_eeprom_crc_ok((void *)&eeprom_buf, sizeof(eeprom_buf))) {
+		printf("ERROR: Board ID EEPROM CRC check failure\n");
+		goto print_warning;
+	}
+
+#define PACK(a, b, c, d) ((a) | ((b) << 8) | ((c) << 16) | ((d) << 24))
+	if (eeprom_buf.cust_block_sig != PACK('N', 'V', 'C', 'B')) {
+		printf("ERROR: Board ID EEPROM bad cust_block_sig\n");
+		goto print_warning;
+	}
+
+	if (eeprom_buf.cust_block_len != 0x001c) {
+		printf("ERROR: Board ID EEPROM bad cust_block_len\n");
+		goto print_warning;
+	}
+
+	if (eeprom_buf.cust_type_sig != PACK('M', '1', 0, 0)) {
+		printf("ERROR: Board ID EEPROM bad cust_type_sig\n");
+		goto print_warning;
+	}
+#undef PACK
+
+	if (eeprom_buf.cust_ver != 0) {
+		printf("ERROR: Board ID EEPROM bad cust_ver\n");
+		goto print_warning;
+	}
+
+	chosen = fdt_path_offset(blob, "/chosen");
+	if (chosen < 0) {
+		chosen = fdt_add_subnode(blob, 0, "/chosen");
+		if (chosen < 0) {
+			printf("ERROR: cannot add /chosen node to DT\n");
+			goto print_warning;
+		}
+	}
+
+	for (i = 0; i < ARRAY_SIZE(macs); i++) {
+		if (!memcmp(macs[i].data, zero_mac, sizeof(zero_mac)))
+			continue;
+		if (!memcmp(macs[i].data, zero_mac, sizeof(ones_mac)))
+			continue;
+		snprintf(mac_str, sizeof(mac_str),
+			 "%02x:%02x:%02x:%02x:%02x:%02x",
+			 macs[i].data[5], macs[i].data[4], macs[i].data[3],
+			 macs[i].data[2], macs[i].data[1], macs[i].data[0]);
+		ret = fdt_setprop(blob, chosen, macs[i].prop, mac_str,
+				  sizeof(mac_str));
+		if (ret < 0)
+			printf("ERROR: could not set /chosen/%s property\n",
+			       macs[i].prop);
+	}
+
+	return 0;
+
+print_warning:
+	printf("WARNING: not setting /chosen MAC address props\n");
+	/* Don't return an error, so the kernel still boots */
+	return 0;
+}
+#endif
+
 #ifdef CONFIG_OF_BOARD_SETUP
 int ft_board_setup(void *blob, bd_t *bd)
 {
@@ -623,6 +780,12 @@ int ft_board_setup(void *blob, bd_t *bd)
 
 #ifdef CONFIG_NVTBOOT
 	ret = ft_nvtboot(blob);
+	if (ret)
+		return ret;
+#endif
+
+#ifdef CONFIG_OF_ADD_CHOSEN_MAC_ADDRS
+	ret = ft_add_chosen_mac_addrs(blob);
 	if (ret)
 		return ret;
 #endif

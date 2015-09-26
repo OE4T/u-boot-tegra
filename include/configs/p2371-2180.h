@@ -12,6 +12,11 @@
 
 #include "tegra210-common.h"
 
+/* Parse the board ID EEPROM and update DT */
+#define CONFIG_OF_ADD_CHOSEN_MAC_ADDRS
+#define EEPROM_I2C_BUS		3
+#define EEPROM_I2C_ADDRESS	0x50
+
 /* High-level configuration options */
 #define V_PROMPT			"Tegra210 (P2371-2180) # "
 #define CONFIG_TEGRA_BOARD_STRING	"NVIDIA P2371-2180"
@@ -57,7 +62,6 @@
 #define CONFIG_USB_ETHER_ASIX
 
 /* General networking support */
-#define CONFIG_CMD_NET
 #define CONFIG_CMD_DHCP
 
 #include "tegra-common-usb-gadget.h"
