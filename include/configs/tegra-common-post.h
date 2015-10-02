@@ -19,9 +19,7 @@
 #define CONFIG_SYS_MALLOC_LEN		SZ_4M
 #endif
 
-#ifndef CONFIG_ARM64
 #define CONFIG_SYS_NONCACHED_MEMORY	SZ_1M
-#endif
 
 #ifndef CONFIG_SPL_BUILD
 #define BOOT_TARGET_DEVICES(func) \
