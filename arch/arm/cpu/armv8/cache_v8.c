@@ -23,7 +23,7 @@ void set_pgtable_section(u64 *page_table, u64 index, u64 section,
 }
 
 /* to activate the MMU we need to set up virtual memory */
-static void mmu_setup(void)
+__weak void mmu_setup(void)
 {
 	bd_t *bd = gd->bd;
 	u64 *page_table = (u64 *)gd->arch.tlb_addr, i, j;
