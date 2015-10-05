@@ -25,7 +25,7 @@ obj-$(CONFIG_NVTBOOT) += nvtboot_ll.o
 obj-$(CONFIG_NVTBOOT) += nvtboot.o
 obj-y += pinmux-common.o
 obj-y += powergate.o
-obj-y += xusb-padctl.o
+obj-y += xusb-padctl-dummy.o
 obj-$(CONFIG_DISPLAY_CPUINFO) += sys_info.o
 #TCW Fix this to use a common config switch (CONFIG_LOCK_VPR?)
 obj-$(CONFIG_TEGRA124) += vpr.o
