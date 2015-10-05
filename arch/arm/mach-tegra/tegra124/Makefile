@@ -19,6 +19,7 @@ obj-$(CONFIG_TEGRA_LP0) += t1x4_warmboot.o
 obj-$(CONFIG_TEGRA_LP0) += warmboot.o
 obj-$(CONFIG_TEGRA_LP0) += warmboot_avp.o
 obj-y	+= xusb-padctl.o
+obj-y	+= ../xusb-padctl-common.o
 
 ifndef CONFIG_SPL_BUILD
 obj-$(CONFIG_ARMV7_NONSEC) += psci.o
