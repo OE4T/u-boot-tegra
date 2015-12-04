@@ -64,9 +64,9 @@ void scsi_ident_cpy (unsigned char *dest, unsigned char *src, unsigned int len);
 
 static int scsi_read_capacity(ccb *pccb, lbaint_t *capacity,
 			      unsigned long *blksz);
-static ulong scsi_read(int device, lbaint_t blknr, lbaint_t blkcnt,
-		       void *buffer);
-static ulong scsi_write(int device, lbaint_t blknr,
+static ulong scsi_read(block_dev_desc_t *block_dev, lbaint_t blknr,
+		       lbaint_t blkcnt, void *buffer);
+static ulong scsi_write(block_dev_desc_t *block_dev, lbaint_t blknr,
 			lbaint_t blkcnt, const void *buffer);
 
 
@@ -332,7 +332,8 @@ int do_scsi (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 				ulong n;
 				printf ("\nSCSI read: device %d block # %ld, count %ld ... ",
 						scsi_curr_dev, blk, cnt);
-				n = scsi_read(scsi_curr_dev, blk, cnt, (ulong *)addr);
+				n = scsi_read(&scsi_dev_desc[scsi_curr_dev],
+					      blk, cnt, (ulong *)addr);
 				printf ("%ld blocks read: %s\n",n,(n==cnt) ? "OK" : "ERROR");
 				return 0;
 			} else if (strcmp(argv[1], "write") == 0) {
@@ -343,8 +344,8 @@ int do_scsi (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 				printf("\nSCSI write: device %d block # %ld, "
 				       "count %ld ... ",
 				       scsi_curr_dev, blk, cnt);
-				n = scsi_write(scsi_curr_dev, blk, cnt,
-					       (ulong *)addr);
+				n = scsi_write(&scsi_dev_desc[scsi_curr_dev],
+					       blk, cnt, (ulong *)addr);
 				printf("%ld blocks written: %s\n", n,
 				       (n == cnt) ? "OK" : "ERROR");
 				return 0;
@@ -359,9 +360,10 @@ int do_scsi (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 #define SCSI_MAX_READ_BLK 0xFFFF /* almost the maximum amount of the scsi_ext command.. */
 
-static ulong scsi_read(int device, lbaint_t blknr, lbaint_t blkcnt,
-		       void *buffer)
+static ulong scsi_read(block_dev_desc_t *block_dev, lbaint_t blknr,
+		       lbaint_t blkcnt, void *buffer)
 {
+	int device = block_dev->dev;
 	lbaint_t start, blks;
 	uintptr_t buf_addr;
 	unsigned short smallblks;
@@ -415,9 +417,10 @@ static ulong scsi_read(int device, lbaint_t blknr, lbaint_t blkcnt,
 /* Almost the maximum amount of the scsi_ext command.. */
 #define SCSI_MAX_WRITE_BLK 0xFFFF
 
-static ulong scsi_write(int device, lbaint_t blknr,
+static ulong scsi_write(block_dev_desc_t *block_dev, lbaint_t blknr,
 			lbaint_t blkcnt, const void *buffer)
 {
+	int device = block_dev->dev;
 	lbaint_t start, blks;
 	uintptr_t buf_addr;
 	unsigned short smallblks;

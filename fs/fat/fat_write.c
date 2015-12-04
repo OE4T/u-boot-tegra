@@ -39,7 +39,7 @@ static int disk_write(__u32 block, __u32 nr_blocks, void *buf)
 		return -1;
 	}
 
-	return cur_dev->block_write(cur_dev->dev,
+	return cur_dev->block_write(cur_dev,
 			cur_part_info.start + block, nr_blocks,	buf);
 }
 

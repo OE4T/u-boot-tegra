@@ -230,8 +230,7 @@ int gzwrite(unsigned char *src, int len,
 			gzwrite_progress(iteration++,
 					 totalfilled,
 					 szexpected);
-			blocks_written = dev->block_write(dev->dev,
-							  outblock,
+			blocks_written = dev->block_write(dev, outblock,
 							  writeblocks,
 							  writebuf);
 			outblock += blocks_written;

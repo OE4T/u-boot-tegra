@@ -744,7 +744,7 @@ static int do_usb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			printf("\nUSB read: device %d block # %ld, count %ld"
 				" ... ", usb_stor_curr_dev, blk, cnt);
 			stor_dev = usb_stor_get_dev(usb_stor_curr_dev);
-			n = stor_dev->block_read(usb_stor_curr_dev, blk, cnt,
+			n = stor_dev->block_read(stor_dev, blk, cnt,
 						 (ulong *)addr);
 			printf("%ld blocks read: %s\n", n,
 				(n == cnt) ? "OK" : "ERROR");
@@ -766,7 +766,7 @@ static int do_usb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			printf("\nUSB write: device %d block # %ld, count %ld"
 				" ... ", usb_stor_curr_dev, blk, cnt);
 			stor_dev = usb_stor_get_dev(usb_stor_curr_dev);
-			n = stor_dev->block_write(usb_stor_curr_dev, blk, cnt,
+			n = stor_dev->block_write(stor_dev, blk, cnt,
 						(ulong *)addr);
 			printf("%ld blocks write: %s\n", n,
 				(n == cnt) ? "OK" : "ERROR");

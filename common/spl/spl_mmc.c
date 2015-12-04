@@ -25,7 +25,7 @@ static int mmc_load_image_raw_sector(struct mmc *mmc, unsigned long sector)
 					 sizeof(struct image_header));
 
 	/* read image header to find the image size & load address */
-	count = mmc->block_dev.block_read(0, sector, 1, header);
+	count = mmc->block_dev.block_read(&mmc->block_dev, sector, 1, header);
 	if (count == 0)
 		goto end;
 
@@ -39,8 +39,9 @@ static int mmc_load_image_raw_sector(struct mmc *mmc, unsigned long sector)
 			     mmc->read_bl_len;
 
 	/* Read the header too to avoid extra memcpy */
-	count = mmc->block_dev.block_read(0, sector, image_size_sectors,
-					  (void *) spl_image.load_addr);
+	count = mmc->block_dev.block_read(&mmc->block_dev, sector,
+					  image_size_sectors,
+					  (void *)(ulong)spl_image.load_addr);
 
 end:
 #ifdef CONFIG_SPL_LIBCOMMON_SUPPORT
@@ -77,7 +78,7 @@ static int mmc_load_image_raw_os(struct mmc *mmc)
 {
 	unsigned long count;
 
-	count = mmc->block_dev.block_read(0,
+	count = mmc->block_dev.block_read(&mmc->block_dev,
 		CONFIG_SYS_MMCSD_RAW_MODE_ARGS_SECTOR,
 		CONFIG_SYS_MMCSD_RAW_MODE_ARGS_SECTORS,
 		(void *) CONFIG_SYS_SPL_ARGS_ADDR);
