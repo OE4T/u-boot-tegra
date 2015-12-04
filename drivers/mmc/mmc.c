@@ -235,6 +235,7 @@ static ulong mmc_bread(block_dev_desc_t *block_dev, lbaint_t start,
 		       lbaint_t blkcnt, void *dst)
 {
 	int dev_num = block_dev->dev;
+	int err;
 	lbaint_t cur, blocks_todo = blkcnt;
 
 	if (blkcnt == 0)
@@ -242,6 +243,10 @@ static ulong mmc_bread(block_dev_desc_t *block_dev, lbaint_t start,
 
 	struct mmc *mmc = find_mmc_device(dev_num);
 	if (!mmc)
+		return 0;
+
+	err = mmc_select_hwpart(dev_num, block_dev->hwpart);
+	if (err < 0)
 		return 0;
 
 	if ((start + blkcnt) > mmc->block_dev.lba) {
@@ -574,7 +579,7 @@ int mmc_select_hwpart(int dev_num, int hwpart)
 	if (!mmc)
 		return -ENODEV;
 
-	if (mmc->part_num == hwpart)
+	if (mmc->block_dev.hwpart == hwpart)
 		return 0;
 
 	if (mmc->part_config == MMCPART_NOAVAILABLE) {
@@ -585,8 +590,6 @@ int mmc_select_hwpart(int dev_num, int hwpart)
 	ret = mmc_switch_part(dev_num, hwpart);
 	if (ret)
 		return ret;
-
-	mmc->part_num = hwpart;
 
 	return 0;
 }
@@ -608,8 +611,10 @@ int mmc_switch_part(int dev_num, unsigned int part_num)
 	 * Set the capacity if the switch succeeded or was intended
 	 * to return to representing the raw device.
 	 */
-	if ((ret == 0) || ((ret == -ENODEV) && (part_num == 0)))
+	if ((ret == 0) || ((ret == -ENODEV) && (part_num == 0))) {
 		ret = mmc_set_capacity(mmc, part_num);
+		mmc->block_dev.hwpart = part_num;
+	}
 
 	return ret;
 }
@@ -1319,7 +1324,7 @@ static int mmc_startup(struct mmc *mmc)
 		mmc->wr_rel_set = ext_csd[EXT_CSD_WR_REL_SET];
 	}
 
-	err = mmc_set_capacity(mmc, mmc->part_num);
+	err = mmc_set_capacity(mmc, mmc->block_dev.hwpart);
 	if (err)
 		return err;
 
@@ -1460,6 +1465,7 @@ static int mmc_startup(struct mmc *mmc)
 
 	/* fill in device description */
 	mmc->block_dev.lun = 0;
+	mmc->block_dev.hwpart = 0;
 	mmc->block_dev.type = 0;
 	mmc->block_dev.blksz = mmc->read_bl_len;
 	mmc->block_dev.log2blksz = LOG2(mmc->block_dev.blksz);
@@ -1617,7 +1623,7 @@ int mmc_start_init(struct mmc *mmc)
 		return err;
 
 	/* The internal partition reset to user partition(0) at every CMD0*/
-	mmc->part_num = 0;
+	mmc->block_dev.hwpart = 0;
 
 	/* Test for SD version 2 */
 	err = mmc_send_if_cond(mmc);

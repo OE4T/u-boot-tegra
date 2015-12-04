@@ -75,6 +75,10 @@ unsigned long mmc_berase(block_dev_desc_t *block_dev, lbaint_t start,
 	if (!mmc)
 		return -1;
 
+	err = mmc_select_hwpart(dev_num, block_dev->hwpart);
+	if (err < 0)
+		return -1;
+
 	if ((start % mmc->erase_grp_size) || (blkcnt % mmc->erase_grp_size))
 		printf("\n\nCaution! Your devices Erase group is 0x%x\n"
 		       "The erase range would be change to "
@@ -162,9 +166,14 @@ ulong mmc_bwrite(block_dev_desc_t *block_dev, lbaint_t start, lbaint_t blkcnt,
 {
 	int dev_num = block_dev->dev;
 	lbaint_t cur, blocks_todo = blkcnt;
+	int err;
 
 	struct mmc *mmc = find_mmc_device(dev_num);
 	if (!mmc)
+		return 0;
+
+	err = mmc_select_hwpart(dev_num, block_dev->hwpart);
+	if (err < 0)
 		return 0;
 
 	if (mmc_set_blocklen(mmc, mmc->write_bl_len))
