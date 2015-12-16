@@ -766,6 +766,55 @@ print_warning:
 	return 0;
 }
 #endif
+
+#ifdef CONFIG_OF_ADD_PLUGIN_MANAGER_IDS
+#define ASSET_F1_BOARD_ID_OFFSET	5
+#define ASSET_F1_BOARD_ID_LEN		13
+int ft_add_plugin_manager_ids(void *blob)
+{
+	int parent, offset;
+	char cvm_boardid[ASSET_F1_BOARD_ID_LEN+1] = { 0 };
+
+	parent = 0;
+	offset = fdt_path_offset(blob, "/chosen");
+	if (offset < 0) {
+		offset = fdt_add_subnode(blob, parent, "/chosen");
+		if (offset < 0)
+			goto print_warning;
+	}
+
+	parent = offset;
+	offset = fdt_path_offset(blob, "/chosen/plugin-manager");
+	if (offset < 0) {
+		offset = fdt_add_subnode(blob, parent, "plugin-manager");
+		if (offset < 0)
+			goto print_warning;
+	}
+
+	parent = offset;
+	offset = fdt_path_offset(blob, "/chosen/plugin-manager/ids");
+	if (offset < 0) {
+		offset = fdt_add_subnode(blob, parent, "ids");
+		if (offset < 0)
+			goto print_warning;
+	}
+
+	strncpy(cvm_boardid,
+		(const char *)&eeprom_buf.assetf1[ASSET_F1_BOARD_ID_OFFSET],
+		ASSET_F1_BOARD_ID_LEN);
+
+	debug("CPU Board-ID from EEPROM Asset Tracker1: %s\n", cvm_boardid);
+
+	fdt_setprop_string(blob, offset, cvm_boardid, "");
+
+	return 0;
+
+print_warning:
+	printf("ERROR: DT add node failed %s\n", fdt_strerror(offset));
+	/* Don't return an error, so the kernel still boots */
+	return 0;
+}
+#endif
 #endif
 
 #ifdef CONFIG_OF_BOARD_SETUP
@@ -804,6 +853,9 @@ int ft_board_setup(void *blob, bd_t *bd)
 	if (!ret) {
 #ifdef CONFIG_OF_ADD_CHOSEN_MAC_ADDRS
 		ft_add_chosen_mac_addrs(blob);
+#endif
+#ifdef CONFIG_OF_ADD_PLUGIN_MANAGER_IDS
+		ft_add_plugin_manager_ids(blob);
 #endif
 	}
 #endif

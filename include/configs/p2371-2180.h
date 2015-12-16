@@ -15,6 +15,7 @@
 /* Parse the board ID EEPROM and update DT */
 #define CONFIG_NV_BOARD_ID_EEPROM
 #define CONFIG_OF_ADD_CHOSEN_MAC_ADDRS
+#define CONFIG_OF_ADD_PLUGIN_MANAGER_IDS
 #define EEPROM_I2C_BUS		3
 #define EEPROM_I2C_ADDRESS	0x50
 
