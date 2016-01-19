@@ -13,7 +13,7 @@
 #include "tegra124-common.h"
 
 /* High-level configuration options */
-#define V_PROMPT			"Tegra124 (Venice2) # "
+#define CONFIG_SYS_PROMPT		"Tegra124 (Venice2) # "
 #define CONFIG_TEGRA_BOARD_STRING	"NVIDIA Venice2"
 
 /* Board-specific serial config */

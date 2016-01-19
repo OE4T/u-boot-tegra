@@ -36,7 +36,7 @@
 #endif
 
 /* High-level configuration options */
-#define V_PROMPT			"Tegra124 (Jetson TK1) # "
+#define CONFIG_SYS_PROMPT		"Tegra124 (Jetson TK1) # "
 #define CONFIG_TEGRA_BOARD_STRING	"NVIDIA Jetson TK1"
 
 /* Board-specific serial config */

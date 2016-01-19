@@ -11,7 +11,7 @@
 #include "tegra30-common.h"
 
 /* High-level configuration options */
-#define V_PROMPT			"Tegra30 (TEC-NG) # "
+#define CONFIG_SYS_PROMPT		"Tegra30 (TEC-NG) # "
 #define CONFIG_TEGRA_BOARD_STRING	"Avionic Design Tamonten™ NG Evaluation Carrier"
 
 /* Board-specific serial config */

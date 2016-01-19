@@ -20,7 +20,7 @@
 #define EEPROM_I2C_ADDRESS	0x50
 
 /* High-level configuration options */
-#define V_PROMPT			"Tegra210 (P2371-2180) # "
+#define CONFIG_SYS_PROMPT		"Tegra210 (P2371-2180) # "
 #define CONFIG_TEGRA_BOARD_STRING	"NVIDIA P2371-2180"
 
 /* Board-specific serial config */

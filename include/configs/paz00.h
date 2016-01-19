@@ -21,7 +21,7 @@
 #include "tegra20-common.h"
 
 /* High-level configuration options */
-#define V_PROMPT		"Tegra20 (Paz00) MOD # "
+#define CONFIG_SYS_PROMPT		"Tegra20 (Paz00) MOD # "
 #define CONFIG_TEGRA_BOARD_STRING	"Compal Paz00"
 
 /* Board-specific serial config */

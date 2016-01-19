@@ -13,7 +13,7 @@
 #include "tegra210-common.h"
 
 /* High-level configuration options */
-#define V_PROMPT			"Tegra210 (P2571) # "
+#define CONFIG_SYS_PROMPT		"Tegra210 (P2571) # "
 #define CONFIG_TEGRA_BOARD_STRING	"NVIDIA P2571"
 
 /* Board-specific serial config */
