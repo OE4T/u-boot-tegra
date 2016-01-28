@@ -77,6 +77,8 @@ static int dm_test_main(const char *test_name)
 	uts->priv = &_global_priv_dm_test_state;
 	struct unit_test *test;
 
+	uts->fail_count = 0;
+
 	/*
 	 * If we have no device tree, or it only has a root node, then these
 	 * tests clearly aren't going to work...
