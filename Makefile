@@ -560,10 +560,6 @@ else
 KBUILD_CFLAGS	+= -O2
 endif
 
-ifdef BUILD_TAG
-KBUILD_CFLAGS += -DBUILD_TAG='"$(BUILD_TAG)"'
-endif
-
 KBUILD_CFLAGS += $(call cc-option,-fno-stack-protector)
 
 KBUILD_CFLAGS	+= -g

@@ -59,6 +59,7 @@ obj-y += hashtable.o
 obj-y += errno.o
 obj-$(CONFIG_ERRNO_STR) += errno_str.o
 obj-y += display_options.o
+CFLAGS_display_options.o := $(if $(BUILD_TAG),-DBUILD_TAG='"$(BUILD_TAG)"')
 obj-$(CONFIG_BCH) += bch.o
 obj-y += crc32.o
 obj-y += ctype.o
