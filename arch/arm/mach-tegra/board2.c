@@ -1,5 +1,5 @@
 /*
- *  (C) Copyright 2010,2011,2015
+ *  (C) Copyright 2010,2011,2015-2016
  *  NVIDIA Corporation <www.nvidia.com>
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -605,6 +605,76 @@ out:
 }
 #endif
 
+#ifdef CONFIG_OF_REMOVE_PROPERTIES
+int ft_remove_property(void *blob, char *prop_name)
+{
+	char *tmp, *node_name;
+	int ofs, ret;
+
+	tmp = strrchr(prop_name, '/');
+	if (tmp) {
+		*tmp = 0;
+		node_name = prop_name;
+		if (!*node_name)
+			node_name = "/";
+		prop_name = tmp + 1;
+	} else {
+		node_name = "/";
+	}
+
+	debug("node: %s\n", node_name);
+	debug("prop: %s\n", prop_name);
+
+	ofs = fdt_path_offset(blob, node_name);
+	/* Node doesn't exist -> property can't exist -> it's removed! */
+	if (ofs == -FDT_ERR_NOTFOUND)
+		return 0;
+	if (ofs < 0)
+		return ofs;
+
+	ret = fdt_delprop(blob, ofs, prop_name);
+	if (ret == -FDT_ERR_NOTFOUND)
+		return 0;
+	return ret;
+}
+
+int ft_remove_properties(void *blob)
+{
+	char *prop_names, *tmp, *prop_name;
+	int ret;
+
+	prop_names = getenv("fdt_remove_property_names");
+	if (!prop_names)
+		return 0;
+	prop_names = strdup(prop_names);
+	if (!prop_names) {
+		printf("%s:strdup failed", __func__);
+		ret = -1;
+		goto out;
+	}
+
+	tmp = prop_names;
+	while (true) {
+		prop_name = strsep(&tmp, ":");
+		if (!prop_name)
+			break;
+		debug("prop to remove: %s\n", prop_name);
+		ret = ft_remove_property(blob, prop_name);
+		if (ret < 0) {
+			ret = -1;
+			goto out;
+		}
+	}
+
+	ret = 0;
+
+out:
+	free(prop_names);
+
+	return ret;
+}
+#endif
+
 #ifdef CONFIG_NV_BOARD_ID_EEPROM
 struct __attribute__((__packed__)) eeprom_ver_1 {
 	uint16_t version;
@@ -845,6 +915,12 @@ int ft_board_setup(void *blob, bd_t *bd)
 
 #ifdef CONFIG_OF_COPY_NODES
 	ret = ft_copy_nodes(blob);
+	if (ret)
+		return ret;
+#endif
+
+#ifdef CONFIG_OF_REMOVE_PROPERTIES
+	ret = ft_remove_properties(blob);
 	if (ret)
 		return ret;
 #endif
