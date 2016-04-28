@@ -1,7 +1,7 @@
 /*
  * NVIDIA Tegra I2C controller
  *
- * Copyright 2010-2011 NVIDIA Corporation
+ * Copyright 2010-2016 NVIDIA Corporation
  *
  * SPDX-License-Identifier:	GPL-2.0
  */
@@ -90,6 +90,57 @@ struct i2c_ctlr {
 	u32 reserved_2[4];		/* 40: */
 	struct i2c_control control;	/* 50 ~ 68 */
 	u32 clk_div;			/* 6C: I2C_I2C_CLOCK_DIVISOR */
+};
+
+/*
+ * Same basic reg structure as normal Tegra I2C, except based @ 0xC00,
+ * and each register is 16 byte-granular, i.e. CNFG is at 0xC00, but
+ * CMD_ADDR0 is at 0xC10 (0x04 << 2), STATUS is at 0xC70 (0x1C << 2), etc.
+ */
+struct i2c_vi_control {
+	u32 tx_fifo;			/* 140 */
+	u32 reserved0[3];
+	u32 rx_fifo;			/* 150 */
+	u32 reserved1[3];
+	u32 packet_status;		/* 160 */
+	u32 reserved2[3];
+	u32 fifo_control;		/* 170 */
+	u32 reserved3[3];
+	u32 fifo_status;		/* 180 */
+	u32 reserved4[3];
+	u32 int_mask;			/* 190 */
+	u32 reserved5[3];
+	u32 int_status;			/* 1A0 */
+};
+
+struct i2c_vi_ctlr {
+	u32 cnfg;			/* 00: I2C_I2C_CNFG */
+	u32 reserved0[3];
+	u32 cmd_addr0;			/* 10: I2C_I2C_CMD_ADDR0 */
+	u32 reserved1[3];
+	u32 cmd_addr1;			/* 20: I2C_I2C_CMD_DATA1 */
+	u32 reserved2[3];
+	u32 cmd_data1;			/* 30: I2C_I2C_CMD_DATA2 */
+	u32 reserved3[3];
+	u32 cmd_data2;			/* 40: DVC_I2C_CMD_DATA2 */
+	u32 reserved4[11];		/* 50 - 6C */
+	u32 status;			/* 70: I2C_I2C_STATUS */
+	u32 reserved5[3];
+	u32 sl_cnfg;			/* 80: I2C_I2C_SL_CNFG */
+	u32 reserved6[3];
+	u32 sl_rcvd;			/* 90: I2C_I2C_SL_RCVD */
+	u32 reserved7[3];
+	u32 sl_status;			/* A0: I2C_I2C_SL_STATUS */
+	u32 reserved8[3];
+	u32 sl_addr1;			/* B0: I2C_I2C_SL_ADDR1 */
+	u32 reserved9[3];
+	u32 sl_addr2;			/* C0: I2C_I2C_SL_ADDR2 */
+	u32 reserved10[11];		/* D0 - EC: */
+	u32 sl_delay_count;		/* F0: I2C_I2C_SL_DELAY_COUNT */
+	u32 reserved11[19];		/* 100 - 11c: */
+	struct i2c_vi_control control;	/* 140 ~ 1A0 */
+	u32 reserved12[3];
+	u32 clk_div;			/* 1B0: I2C_I2C_CLOCK_DIVISOR */
 };
 
 /* bit fields definitions for IO Packet Header 1 format */
