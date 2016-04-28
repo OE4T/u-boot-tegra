@@ -91,6 +91,27 @@
 		interrupt-parent = <&gic>;
 	};
 
+	i2c@0,546c0c00 {
+		compatible = "nvidia,tegra210-i2c-vi";
+		reg = <0x0 0x546c0c00 0x0 0x100>;
+		interrupts = <GIC_SPI 17 IRQ_TYPE_LEVEL_HIGH>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		clocks = <&tegra_car TEGRA210_CLK_VI_I2C>,
+			 <&tegra_car TEGRA210_CLK_I2CSLOW>,
+			 <&tegra_car TEGRA210_CLK_HOST1X>;
+		clock-names = "div-clk",
+			      "slow-clk",
+			      "host1x-clk";
+		resets = <&tegra_car TEGRA210_CLK_VI_I2C>,
+			 <&tegra_car TEGRA210_CLK_I2CSLOW>,
+			 <&tegra_car TEGRA210_CLK_HOST1X>;
+		reset-names = "i2c",
+			      "i2c-slow",
+			      "host1x";
+		status = "disabled";
+	};
+
 	tegra_car: clock@0,60006000 {
 		compatible = "nvidia,tegra210-car";
 		reg = <0x0 0x60006000 0x0 0x1000>;
