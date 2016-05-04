@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2013-2015
+ * (C) Copyright 2013-2016
  * NVIDIA Corporation <www.nvidia.com>
  *
  * SPDX-License-Identifier:     GPL-2.0+
@@ -19,6 +19,10 @@
 #define EEPROM_I2C_BUS		3
 #define EEPROM_I2C_ADDRESS	0x50
 
+#define CONFIG_OF_ADD_CAM_BOARD_ID
+#define CAM_EEPROM_I2C_BUS	5
+#define CAM_EEPROM_I2C_ADDR	0x54
+
 /* High-level configuration options */
 #define CONFIG_SYS_PROMPT		"Tegra210 (P2371-2180) # "
 #define CONFIG_TEGRA_BOARD_STRING	"NVIDIA P2371-2180"
@@ -29,6 +33,7 @@
 /* I2C */
 #define CONFIG_SYS_I2C_TEGRA
 #define CONFIG_CMD_I2C
+#define CONFIG_SYS_VI_I2C_TEGRA
 
 /* SD/MMC */
 #define CONFIG_MMC
