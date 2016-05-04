@@ -739,15 +739,15 @@ static bool nv_brdid_eeprom_crc_ok(uint8_t *data, uint32_t size)
 	return data[size - 1] == crc;
 }
 
-static int nv_brdinfo_eeprom_read(void)
+static int nv_brdinfo_eeprom_read(int bus, int chip)
 {
 	int ret;
 	struct udevice *dev;
 
-	ret = i2c_get_chip_for_busnum(EEPROM_I2C_BUS, EEPROM_I2C_ADDRESS, 1,
-				      &dev);
+	ret = i2c_get_chip_for_busnum(bus, chip, 1, &dev);
 	if (ret) {
-		printf("ERROR: Cannot get board ID EEPROM I2C chip\n");
+		printf("ERROR: Cannot get ID EEPROM on I2C bus %d chip %02X\n",
+		       bus, chip);
 		goto print_warning;
 	}
 
@@ -772,6 +772,13 @@ print_warning:
 	printf("WARNING: failed to read board EEPROM\n");
 	return ret;
 }
+
+#ifdef CONFIG_OF_ADD_CAM_BOARD_ID
+__weak int camera_board_power_init(bool enable)
+{
+	return 0;
+}
+#endif
 
 #ifdef CONFIG_OF_ADD_CHOSEN_MAC_ADDRS
 int ft_add_chosen_mac_addrs(void *blob)
@@ -932,7 +939,7 @@ int ft_board_setup(void *blob, bd_t *bd)
 #endif
 
 #ifdef CONFIG_NV_BOARD_ID_EEPROM
-	ret = nv_brdinfo_eeprom_read();
+	ret = nv_brdinfo_eeprom_read(EEPROM_I2C_BUS, EEPROM_I2C_ADDRESS);
 	/* Board should continue to boot even if EEPROM read fails */
 	if (!ret) {
 #ifdef CONFIG_OF_ADD_CHOSEN_MAC_ADDRS
@@ -942,7 +949,18 @@ int ft_board_setup(void *blob, bd_t *bd)
 		ft_add_plugin_manager_ids(blob);
 #endif
 	}
+#ifdef CONFIG_OF_ADD_CAM_BOARD_ID
+	/* Enable 1.8V to the camera board EEPROM */
+	camera_board_power_init(true);
+
+	ret = nv_brdinfo_eeprom_read(CAM_EEPROM_I2C_BUS, CAM_EEPROM_I2C_ADDR);
+	if (!ret)
+		ft_add_plugin_manager_ids(blob);
+
+	/* Disable power to the camera board EEPROM */
+	camera_board_power_init(false);
 #endif
+#endif	/* CONFIG_NV_BOARD_ID_EEPROM */
 
 	return 0;
 }
