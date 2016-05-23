@@ -1042,6 +1042,11 @@ static const struct tegra_pcie_soc tegra210_pcie_soc = {
 	.force_pca_enable = true,
 };
 
+/* TODO: get context from pci framework */
+#define MAX_TEGRA_PCIE_CONTROLLER_NUM		3
+static int tegra_pcie_count = 0;
+static struct tegra_pcie *tegra_pcie[MAX_TEGRA_PCIE_CONTROLLER_NUM] = {0};
+
 static int process_nodes(const void *fdt, int nodes[], unsigned int count)
 {
 	unsigned int i;
@@ -1165,6 +1170,11 @@ static int process_nodes(const void *fdt, int nodes[], unsigned int count)
 #endif
 
 		pcie->hose.last_busno = pci_hose_scan(&pcie->hose);
+
+		if (tegra_pcie_count < MAX_TEGRA_PCIE_CONTROLLER_NUM) {
+			tegra_pcie[tegra_pcie_count] = pcie;
+			tegra_pcie_count++;
+		}
 	}
 
 	return 0;
@@ -1208,4 +1218,24 @@ int pci_skip_dev(struct pci_controller *hose, pci_dev_t dev)
 		return 1;
 
 	return 0;
+}
+
+void tegra_pcie_power_down(void)
+{
+	struct tegra_pcie *pcie;
+	int err;
+	int i;
+
+	for (i = 0; i < tegra_pcie_count; i++) {
+		pcie = tegra_pcie[i];
+		if (pcie && pcie->phy) {
+			err = tegra_xusb_phy_disable(pcie->phy);
+			if (err < 0)
+				error("failed to disable PHY: %d", err);
+
+			err = tegra_xusb_phy_unprepare(pcie->phy);
+			if (err < 0)
+				error("failed to unprepare PHY: %d", err);
+		}
+	}
 }

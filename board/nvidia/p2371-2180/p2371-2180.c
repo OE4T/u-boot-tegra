@@ -74,6 +74,13 @@ void pinmux_init(void)
 				   ARRAY_SIZE(p2371_2180_drvgrps));
 }
 
+void arch_preboot_os(void)
+{
+#ifdef CONFIG_PCI_TEGRA
+	tegra_pcie_power_down();
+#endif
+}
+
 #ifdef CONFIG_PCI_TEGRA
 int tegra_pcie_board_init(void)
 {

@@ -363,37 +363,32 @@ static int pcie_phy_enable(struct tegra_xusb_phy *phy)
 	value &= ~XUSB_PADCTL_UPHY_PLL_P0_CTL8_RCAL_CLK_EN;
 	padctl_writel(padctl, value, XUSB_PADCTL_UPHY_PLL_P0_CTL8);
 
-	value = readl(NV_PA_CLK_RST_BASE + CLK_RST_XUSBIO_PLL_CFG0);
-	value &= ~CLK_RST_XUSBIO_PLL_CFG0_PADPLL_RESET_SWCTL;
-	value &= ~CLK_RST_XUSBIO_PLL_CFG0_CLK_ENABLE_SWCTL;
-	value |= CLK_RST_XUSBIO_PLL_CFG0_PADPLL_USE_LOCKDET;
-	value |= CLK_RST_XUSBIO_PLL_CFG0_PADPLL_SLEEP_IDDQ;
-	writel(value, NV_PA_CLK_RST_BASE + CLK_RST_XUSBIO_PLL_CFG0);
-
-	value = padctl_readl(padctl, XUSB_PADCTL_UPHY_PLL_P0_CTL1);
-	value &= ~XUSB_PADCTL_UPHY_PLL_P0_CTL1_PWR_OVRD;
-	padctl_writel(padctl, value, XUSB_PADCTL_UPHY_PLL_P0_CTL1);
-
-	value = padctl_readl(padctl, XUSB_PADCTL_UPHY_PLL_P0_CTL2);
-	value &= ~XUSB_PADCTL_UPHY_PLL_P0_CTL2_CAL_OVRD;
-	padctl_writel(padctl, value, XUSB_PADCTL_UPHY_PLL_P0_CTL2);
-
-	value = padctl_readl(padctl, XUSB_PADCTL_UPHY_PLL_P0_CTL8);
-	value &= ~XUSB_PADCTL_UPHY_PLL_P0_CTL8_RCAL_OVRD;
-	padctl_writel(padctl, value, XUSB_PADCTL_UPHY_PLL_P0_CTL8);
-
-	udelay(1);
-
-	value = readl(NV_PA_CLK_RST_BASE + CLK_RST_XUSBIO_PLL_CFG0);
-	value |= CLK_RST_XUSBIO_PLL_CFG0_SEQ_ENABLE;
-	writel(value, NV_PA_CLK_RST_BASE + CLK_RST_XUSBIO_PLL_CFG0);
-
 	debug("< %s()\n", __func__);
 	return 0;
 }
 
 static int pcie_phy_disable(struct tegra_xusb_phy *phy)
 {
+	struct tegra_xusb_padctl *padctl = phy->padctl;
+	u32 value;
+
+	debug("> %s(phy=%p)\n", __func__, phy);
+
+	/* power down PEX PLL */
+	value = padctl_readl(padctl, XUSB_PADCTL_UPHY_PLL_P0_CTL1);
+	value |= XUSB_PADCTL_UPHY_PLL_P0_CTL1_IDDQ;
+	padctl_writel(padctl, value, XUSB_PADCTL_UPHY_PLL_P0_CTL1);
+
+	value = padctl_readl(padctl, XUSB_PADCTL_UPHY_PLL_P0_CTL1);
+	value &= ~XUSB_PADCTL_UPHY_PLL_P0_CTL1_SLEEP_MASK;
+	value |= XUSB_PADCTL_UPHY_PLL_P0_CTL1_SLEEP(3);
+	padctl_writel(padctl, value, XUSB_PADCTL_UPHY_PLL_P0_CTL1);
+
+	value = padctl_readl(padctl, XUSB_PADCTL_UPHY_PLL_P0_CTL1);
+	value &= ~XUSB_PADCTL_UPHY_PLL_P0_CTL1_ENABLE;
+	padctl_writel(padctl, value, XUSB_PADCTL_UPHY_PLL_P0_CTL1);
+
+	debug("< %s()\n", __func__);
 	return 0;
 }
 
