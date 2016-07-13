@@ -60,6 +60,7 @@ enum uclass_id {
 	UCLASS_PINCONFIG,	/* Pin configuration node device */
 	UCLASS_PMIC,		/* PMIC I/O device */
 	UCLASS_PWM,		/* Pulse-width modulator */
+	UCLASS_POWER_DOMAIN,	/* (SoC) Power domains */
 	UCLASS_PWRSEQ,		/* Power sequence device */
 	UCLASS_REGULATOR,	/* Regulator device */
 	UCLASS_REMOTEPROC,	/* Remote Processor device */
