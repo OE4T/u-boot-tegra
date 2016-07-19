@@ -61,7 +61,13 @@
 	"pxefile_addr_r=0x90100000\0" \
 	"kernel_addr_r=" __stringify(CONFIG_LOADADDR) "\0" \
 	"fdt_addr_r=0x82000000\0" \
-	"ramdisk_addr_r=0x82100000\0"
+	"ramdisk_addr_r=0x82100000\0" \
+	"fdt_copy_node_paths=/chosen/plugin-manager\0" \
+	"fdt_copy_prop_paths=/chosen/nvidia,bluetooth-mac:" \
+		"/chosen/nvidia,ether-mac:" \
+		"/chosen/nvidia,wifi-mac:" \
+		"/bpmp/carveout-start:" \
+		"/bpmp/carveout-size\0"
 
 /* Defines for SPL */
 #define CONFIG_SPL_TEXT_BASE		0x80108000
