@@ -11,5 +11,6 @@ obj-y	+= nvtboot_ll.o
 obj-y	+= nvtboot.o
 obj-y	+= pinmux.o
 obj-y	+= xusb-padctl.o
+obj-$(CONFIG_NV_BOARD_ID_EEPROM) += ../brd-id-eeprom.o
 obj-y	+= ../ft_board_info.o
 obj-y	+= ../xusb-padctl-common.o
