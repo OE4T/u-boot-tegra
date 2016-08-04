@@ -315,6 +315,10 @@ void dram_init_banksize(void)
 	gd->bd->bi_dram[0].start = ci->base;
 	gd->bd->bi_dram[0].size = ci->size & ~(SZ_2M - 1);
 
+#ifdef CONFIG_PCI
+	gd->pci_ram_top = gd->bd->bi_dram[0].start + gd->bd->bi_dram[0].size;
+#endif
+
 #ifdef CONFIG_PHYS_64BIT
 	ci = &nvtboot_boot_arg.params.car_info[MEM_LAYOUT_EXTENDED];
 	gd->bd->bi_dram[1].start = ci->base;
