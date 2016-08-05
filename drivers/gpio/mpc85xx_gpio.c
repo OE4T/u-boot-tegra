@@ -169,7 +169,7 @@ static int mpc85xx_gpio_ofdata_to_platdata(struct udevice *dev) {
 	fdt_size_t size;
 
 	addr = fdtdec_get_addr_size_auto_noparent(gd->fdt_blob, dev->of_offset,
-						  "reg", 0, &size);
+						  "reg", 0, &size, false);
 
 	data->addr = addr;
 	data->base = map_sysmem(CONFIG_SYS_IMMR + addr, size);

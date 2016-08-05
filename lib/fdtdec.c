@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <serial.h>
 #include <libfdt.h>
+#include <fdt_support.h>
 #include <fdtdec.h>
 #include <asm/sections.h>
 #include <linux/ctype.h>
@@ -79,7 +80,7 @@ const char *fdtdec_get_compatible(enum fdt_compat_id id)
 
 fdt_addr_t fdtdec_get_addr_size_fixed(const void *blob, int node,
 		const char *prop_name, int index, int na, int ns,
-		fdt_size_t *sizep)
+		fdt_size_t *sizep, bool translate)
 {
 	const fdt32_t *prop, *prop_end;
 	const fdt32_t *prop_addr, *prop_size, *prop_after_size;
@@ -114,7 +115,12 @@ fdt_addr_t fdtdec_get_addr_size_fixed(const void *blob, int node,
 		return FDT_ADDR_T_NONE;
 	}
 
-	addr = fdtdec_get_number(prop_addr, na);
+#if !defined(CONFIG_SPL_BUILD) && defined(CONFIG_OF_LIBFDT)
+	if (translate)
+		addr = fdt_translate_address(blob, node, prop_addr);
+	else
+#endif
+		addr = fdtdec_get_number(prop_addr, na);
 
 	if (sizep) {
 		*sizep = fdtdec_get_number(prop_size, ns);
@@ -128,7 +134,8 @@ fdt_addr_t fdtdec_get_addr_size_fixed(const void *blob, int node,
 }
 
 fdt_addr_t fdtdec_get_addr_size_auto_parent(const void *blob, int parent,
-		int node, const char *prop_name, int index, fdt_size_t *sizep)
+		int node, const char *prop_name, int index, fdt_size_t *sizep,
+		bool translate)
 {
 	int na, ns;
 
@@ -149,11 +156,12 @@ fdt_addr_t fdtdec_get_addr_size_auto_parent(const void *blob, int parent,
 	debug("na=%d, ns=%d, ", na, ns);
 
 	return fdtdec_get_addr_size_fixed(blob, node, prop_name, index, na,
-					  ns, sizep);
+					  ns, sizep, translate);
 }
 
 fdt_addr_t fdtdec_get_addr_size_auto_noparent(const void *blob, int node,
-		const char *prop_name, int index, fdt_size_t *sizep)
+		const char *prop_name, int index, fdt_size_t *sizep,
+		bool translate)
 {
 	int parent;
 
@@ -166,7 +174,7 @@ fdt_addr_t fdtdec_get_addr_size_auto_noparent(const void *blob, int node,
 	}
 
 	return fdtdec_get_addr_size_auto_parent(blob, parent, node, prop_name,
-						index, sizep);
+						index, sizep, translate);
 }
 
 fdt_addr_t fdtdec_get_addr_size(const void *blob, int node,
@@ -176,7 +184,7 @@ fdt_addr_t fdtdec_get_addr_size(const void *blob, int node,
 
 	return fdtdec_get_addr_size_fixed(blob, node, prop_name, 0,
 					  sizeof(fdt_addr_t) / sizeof(fdt32_t),
-					  ns, sizep);
+					  ns, sizep, false);
 }
 
 fdt_addr_t fdtdec_get_addr(const void *blob, int node,
