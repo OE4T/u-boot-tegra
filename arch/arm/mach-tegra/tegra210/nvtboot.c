@@ -461,3 +461,8 @@ void board_cleanup_before_linux(void)
 	reset_periph(PERIPH_ID_COP, 2);
 	writel(0, FLOW_CTLR_HALT_COP_EVENTS);
 }
+
+void *fdt_copy_get_blob_src_default(void)
+{
+	return (void *)nvtboot_boot_arg.kernel_dtb_load_addr;
+}
