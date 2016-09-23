@@ -10,12 +10,14 @@
 #define SMC_SIP_INVOKE_MCE	0x82FFFF00
 #define MCE_SMC_ROC_FLUSH_CACHE	11
 
-void board_post_cleanup_before_linux(void)
+int __asm_flush_l3_cache(void)
 {
-	struct pt_regs regs;
+	struct pt_regs regs = {0};
 
 	isb();
 
 	regs.regs[0] = SMC_SIP_INVOKE_MCE | MCE_SMC_ROC_FLUSH_CACHE;
 	smc_call(&regs);
+
+	return 0;
 }

@@ -3,6 +3,6 @@
 # SPDX-License-Identifier: GPL-2.0
 
 obj-y += ../board186.o
-obj-y += cleanup.o
+obj-y += cache.o
 obj-y += nvtboot_ll.o
 obj-y += nvtboot_mem.o
