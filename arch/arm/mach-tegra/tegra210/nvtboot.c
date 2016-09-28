@@ -451,7 +451,7 @@ int ft_nvtboot(void *blob)
 	return 0;
 }
 
-void board_pre_cleanup_before_linux(void)
+void board_cleanup_before_linux(void)
 {
 	carveout_info *ci;
 
