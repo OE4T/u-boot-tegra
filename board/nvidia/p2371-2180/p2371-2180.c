@@ -97,7 +97,7 @@ int tegra_pcie_board_init(void)
 }
 #endif /* PCI */
 
-#ifdef CONFIG_OF_ADD_CAM_BOARD_ID
+#ifdef CONFIG_NV_BOARD_ID_EEPROM_CAM
 /* IO expander */
 #define PCA9539_I2C_BUS		2
 #define PCA9539_I2C_ADDR	0x77
@@ -187,4 +187,4 @@ int camera_board_power_init(bool enable)
 
 	return 0;
 }
-#endif	/* CONFIG_OF_ADD_CAM_BOARD_ID */
+#endif	/* CONFIG_NV_BOARD_ID_EEPROM_CAM */

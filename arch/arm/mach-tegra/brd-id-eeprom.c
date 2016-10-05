@@ -104,6 +104,7 @@ static int nv_brdinfo_eeprom_read(int bus, int chip)
 	return ret;
 
 print_warning:
+	printf("%s: I2C bus %d chip %02X\n", __func__, bus, chip);
 	printf("WARNING: failed to read board EEPROM\n");
 	return ret;
 }
