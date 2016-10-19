@@ -230,7 +230,7 @@ hnf_set_pstate:
 
 	ret
 
-ENTRY(__asm_flush_l3_cache)
+ENTRY(__asm_flush_l3_dcache)
 	/*
 	 * Return status in x0
 	 *    success 0
@@ -260,7 +260,7 @@ ENTRY(__asm_flush_l3_cache)
 	mov	x0, x8
 	mov	lr, x29
 	ret
-ENDPROC(__asm_flush_l3_cache)
+ENDPROC(__asm_flush_l3_dcache)
 #endif
 
 #ifdef CONFIG_MP
