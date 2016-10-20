@@ -31,6 +31,11 @@ config TARGET_P2571
 	help
 	  P2571 is a P2530 married to a P1963 I/O board
 
+config TARGET_M3402_0000
+	bool "NVIDIA Tegra210 M3402-0000 (OrcaRacer) board"
+	help
+	  OrcaRacer is a M3402 CPU board with a E3401 base board.
+
 endchoice
 
 config SYS_SOC
@@ -48,5 +53,6 @@ source "board/nvidia/e2220-1170/Kconfig"
 source "board/nvidia/p2371-0000/Kconfig"
 source "board/nvidia/p2371-2180/Kconfig"
 source "board/nvidia/p2571/Kconfig"
+source "board/nvidia/m3402-0000/Kconfig"
 
 endif

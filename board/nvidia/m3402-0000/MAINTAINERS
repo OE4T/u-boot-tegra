@@ -1,0 +1,6 @@
+M3402-0000 BOARD
+M:	Tom Warren <twarren@nvidia.com>
+S:	Maintained
+F:	board/nvidia/m3402-0000/
+F:	include/configs/m3402-0000.h
+F:	configs/m3402-0000_defconfig
