@@ -294,14 +294,22 @@ __weak void *fdt_copy_get_blob_src_default(void)
 	return NULL;
 }
 
-static void *fdt_get_copy_blob_src(void)
+static void *no_self_copy(void *blob_src, void *blob_dst)
+{
+	if (blob_src == blob_dst)
+		return NULL;
+	return blob_src;
+}
+
+static void *fdt_get_copy_blob_src(void *blob_dst)
 {
 	char *src_addr_s;
 
 	src_addr_s = getenv("fdt_copy_src_addr");
 	if (!src_addr_s)
-		return fdt_copy_get_blob_src_default();
-	return (void *)simple_strtoul(src_addr_s, NULL, 16);
+		return no_self_copy(fdt_copy_get_blob_src_default(), blob_dst);
+	return no_self_copy((void *)simple_strtoul(src_addr_s, NULL, 16),
+			    blob_dst);
 }
 
 int fdt_copy_env_nodelist(void *blob_dst)
@@ -310,7 +318,7 @@ int fdt_copy_env_nodelist(void *blob_dst)
 
 	debug("%s:\n", __func__);
 
-	blob_src = fdt_get_copy_blob_src();
+	blob_src = fdt_get_copy_blob_src(blob_dst);
 	if (!blob_src) {
 		debug("%s: No source DT\n", __func__);
 		return 0;
@@ -325,7 +333,7 @@ int fdt_copy_env_proplist(void *blob_dst)
 
 	debug("%s:\n", __func__);
 
-	blob_src = fdt_get_copy_blob_src();
+	blob_src = fdt_get_copy_blob_src(blob_dst);
 	if (!blob_src) {
 		debug("%s: No source DT\n", __func__);
 		return 0;
