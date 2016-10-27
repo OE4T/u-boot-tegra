@@ -466,5 +466,5 @@ void board_cleanup_before_linux(void)
 
 void *fdt_copy_get_blob_src_default(void)
 {
-	return (void *)nvtboot_boot_arg.kernel_dtb_load_addr;
+	return (void *)(unsigned long)nvtboot_boot_arg.kernel_dtb_load_addr;
 }
