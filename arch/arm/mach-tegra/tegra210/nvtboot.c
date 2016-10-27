@@ -361,6 +361,8 @@ void nvtboot_init_late(void)
 	ci = &nvtboot_boot_arg.params.car_info[MEM_LAYOUT_NVDUMPER];
 	snprintf(buf, sizeof(buf), "0x%llx", ci->base);
 	setenv("nvdumper_reserved", buf);
+
+	setenv_hex("fdt_addr", nvtboot_boot_arg.kernel_dtb_load_addr);
 }
 
 static int ft_nvtboot_bpmp_carveout(void *blob)
