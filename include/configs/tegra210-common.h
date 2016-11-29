@@ -64,6 +64,7 @@
 	"ramdisk_addr_r=0x83100000\0" \
 	"fdt_copy_src_addr=0x83080000\0" \
 	"fdt_copy_node_names=/memory-controller@7001b000\0" \
+	"fdt_copy_prop_paths=/trusty/status\0" \
 	"fdt_remove_property_names=/pinmux@700008d4/pinctrl-names\0"
 
 /* Defines for SPL */
@@ -78,6 +79,7 @@
 
 #define CONFIG_OF_BOARD_SETUP
 #define CONFIG_OF_COPY_NODES
+#define CONFIG_OF_COPY_PROPERTIES
 #define CONFIG_OF_REMOVE_PROPERTIES
 
 #endif /* _TEGRA210_COMMON_H_ */

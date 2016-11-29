@@ -469,6 +469,101 @@ int ft_remove_firmware_nodes(void *blob)
 }
 #endif
 
+#ifdef CONFIG_OF_COPY_PROPERTIES
+static int ft_copy_property(void *blob_dst, char *prop_path, void *blob_src)
+{
+	char *prop_name, *node_path;
+	const void *prop;
+	int ofs_src, ofs_dst, len, ret;
+
+	prop_name = strrchr(prop_path, '/');
+	if (!prop_name) {
+		error("Can't copy prop %s; missing /", prop_path);
+		return -1;
+	}
+	*prop_name = 0;
+	prop_name++;
+	node_path = prop_path;
+
+	if (*node_path) {
+		ofs_src = fdt_path_offset(blob_src, node_path);
+		if (ofs_src < 0) {
+			error("DT node %s missing in source; can't copy %s\n",
+			      node_path, prop_name);
+			return -1;
+		}
+
+		ofs_dst = fdt_path_offset(blob_dst, node_path);
+		if (ofs_src < 0) {
+			error("DT node %s missing in dest; can't copy prop %s\n",
+			      node_path, prop_name);
+			return -1;
+		}
+	} else {
+		ofs_src = 0;
+		ofs_dst = 0;
+	}
+
+	prop = fdt_getprop(blob_src, ofs_src, prop_name, &len);
+	if (!prop) {
+		error("DT property %s/%s missing in source; can't copy\n",
+		      node_path, prop_name);
+		return -1;
+	}
+
+	ret = fdt_setprop(blob_dst, ofs_dst, prop_name, prop, len);
+	if (ret < 0) {
+		error("Can't set DT prop %s/%s\n", node_path, prop_name);
+		return ret;
+	}
+
+	return 0;
+}
+
+int ft_copy_properties(void *blob_dst)
+{
+	char *src_addr_s;
+	ulong src_addr;
+	char *prop_paths, *tmp, *prop_path;
+	int ret;
+
+	src_addr_s = getenv("fdt_copy_src_addr");
+	if (!src_addr_s)
+		return 0;
+	src_addr = simple_strtoul(src_addr_s, NULL, 16);
+
+	prop_paths = getenv("fdt_copy_prop_paths");
+	if (!prop_paths)
+		return 0;
+	prop_paths = strdup(prop_paths);
+	if (!prop_paths) {
+		printf("%s:strdup failed", __func__);
+		ret = -1;
+		goto out;
+	}
+
+	tmp = prop_paths;
+	while (true) {
+		prop_path = strsep(&tmp, ":");
+		if (!prop_path)
+			break;
+		debug("prop to copy: %s\n", prop_path);
+		ret = ft_copy_property(blob_dst, prop_path, (void *)src_addr);
+		if (ret < 0) {
+			ret = -1;
+			goto out;
+		}
+	}
+
+	ret = 0;
+
+out:
+	free(prop_paths);
+
+	return ret;
+}
+#endif
+
 #ifdef CONFIG_OF_COPY_NODES
 #define fdt_for_each_property(fdt, prop, parent)		\
 	for (prop = fdt_first_property_offset(fdt, parent);	\
@@ -922,6 +1017,12 @@ int ft_board_setup(void *blob, bd_t *bd)
 
 #ifdef CONFIG_OF_COPY_NODES
 	ret = ft_copy_nodes(blob);
+	if (ret)
+		return ret;
+#endif
+
+#ifdef CONFIG_OF_COPY_PROPERTIES
+	ret = ft_copy_properties(blob);
 	if (ret)
 		return ret;
 #endif
