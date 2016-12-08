@@ -26,7 +26,11 @@
 /*-----------------------------------------------------------------------
  * Physical Memory Map
  */
+#ifdef CONFIG_CPU_BL_IS_CBOOT
+#define CONFIG_SYS_TEXT_BASE	0x80080000	/* chainloaded as faux kernel */
+#else
 #define CONFIG_SYS_TEXT_BASE	0x80110000
+#endif
 
 /* Generic Interrupt Controller */
 #define CONFIG_GICV2
