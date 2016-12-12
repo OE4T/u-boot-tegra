@@ -30,7 +30,9 @@ extern unsigned long nvtboot_boot_x0;
 static struct {
 	u64 start;
 	u64 size;
-} ram_banks[2] = {{1}};
+} ram_banks[CONFIG_NR_DRAM_BANKS] = {{1}};
+
+u64 SZ_4G = 0x100000000;
 
 int dram_init(void)
 {
@@ -55,7 +57,10 @@ int dram_init(void)
 		hang();
 	}
 
-	len /= (na + ns);
+	/* Calculate the true # of base/size pairs to read */
+	len /= 4;		/* Convert bytes to number of cells */
+	len /= (na + ns);	/* Convert cells to number of banks */
+
 	if (len > ARRAY_SIZE(ram_banks))
 		len = ARRAY_SIZE(ram_banks);
 
@@ -66,18 +71,26 @@ int dram_init(void)
 		ram_banks[i].size = of_read_number(prop, ns);
 		prop += ns;
 		gd->ram_size += ram_banks[i].size;
+
+		debug("%s: ram_banks[%d], start = 0x%08lX, size = 0x%08lX\n",
+		      __func__, i, (ulong)ram_banks[i].start,
+		      (ulong)ram_banks[i].size);
+
 	}
+
+	/* Bank 0 s/b under 4GB, bank 1 above 4GB, other banks don't care */
+	if ((ram_banks[0].start + ram_banks[0].size) > SZ_4G)
+		debug("%s: Bank 0 size exceeds 32-bits/4GB!\n", __func__);
 
 	return 0;
 }
 
-extern unsigned long nvtboot_boot_x0;
 
 void dram_init_banksize(void)
 {
 	int i;
 
-	for (i = 0; i < 2; i++) {
+	for (i = 0; i < CONFIG_NR_DRAM_BANKS; i++) {
 		gd->bd->bi_dram[i].start = ram_banks[i].start;
 		gd->bd->bi_dram[i].size = ram_banks[i].size;
 	}
@@ -85,7 +98,25 @@ void dram_init_banksize(void)
 
 ulong board_get_usable_ram_top(ulong total_size)
 {
-	return ram_banks[0].start + ram_banks[0].size;
+	ulong ram_top = ram_banks[0].start + ram_banks[0].size;
+
+	debug("%s: ram_banks[0], start = 0x%08lX, size = 0x%08lX\n", __func__,
+	      (ulong)ram_banks[0].start, (ulong)ram_banks[0].size);
+	debug("%s: ram_top = 0x%08lX\n", __func__, ram_top);
+
+	/*
+	 * Set a < 4GB 'RAM top' if bank[0] exceeds 4GB. Otherwise U-Boot
+	 * tries to use or relocate to memory >4GB and will hang.
+	 */
+	if (ram_top > SZ_4G) {
+		debug("%s: Bank 0 size exceeds 32-bits/4GB! adjusting..\n",
+		       __func__);
+		/* Use 4GB-2M as the RAM top */
+		ram_top = ((SZ_4G - 1) & ~(SZ_2M - 1));
+	}
+
+	debug("%s: returning ram_top = 0x%08lX\n", __func__, ram_top);
+	return ram_top;
 }
 
 void *fdt_copy_get_blob_src_default(void)
