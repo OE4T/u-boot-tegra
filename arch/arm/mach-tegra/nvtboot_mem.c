@@ -8,7 +8,7 @@
 #include <fdt_support.h>
 #include <fdtdec.h>
 #include <asm/arch/tegra.h>
-#include "../dt-edit.h"
+#include "dt-edit.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
