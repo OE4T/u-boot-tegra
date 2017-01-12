@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2016, NVIDIA CORPORATION.
+ * Copyright (c) 2010-2017, NVIDIA CORPORATION.
  *
  * SPDX-License-Identifier: GPL-2.0+
  */
@@ -44,7 +44,7 @@ int ft_system_setup(void *blob, bd_t *bd)
 	fdt_copy_env_proplist(blob);
 	fdt_del_env_nodelist(blob);
 	fdt_del_env_proplist(blob);
-#ifdef CONFIG_TEGRA210
+#if defined(CONFIG_TEGRA210) && !defined(CONFIG_CPU_BL_IS_CBOOT)
 	ft_nvtboot(blob);
 #endif
 	ft_board_setup_eeprom(blob);

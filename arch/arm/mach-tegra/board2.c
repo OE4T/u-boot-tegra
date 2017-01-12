@@ -1,5 +1,5 @@
 /*
- *  (C) Copyright 2010,2011,2015
+ *  (C) Copyright 2010,2011,2015,2017
  *  NVIDIA Corporation <www.nvidia.com>
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -193,7 +193,7 @@ void gpio_early_init(void) __attribute__((weak, alias("__gpio_early_init")));
 
 int board_early_init_f(void)
 {
-#ifdef CONFIG_TEGRA210
+#if defined(CONFIG_TEGRA210) && !defined(CONFIG_CPU_BL_IS_CBOOT)
 	nvtboot_init();
 #endif
 

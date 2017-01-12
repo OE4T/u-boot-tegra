@@ -1,5 +1,5 @@
 /*
- *  (C) Copyright 2010-2015
+ *  (C) Copyright 2010-2017
  *  NVIDIA Corporation <www.nvidia.com>
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -67,6 +67,7 @@ bool tegra_cpu_is_non_secure(void)
 }
 #endif
 
+#if !defined(CONFIG_CPU_BL_IS_CBOOT)
 /* Read the RAM size directly from the memory controller */
 static phys_size_t query_sdram_size(void)
 {
@@ -123,6 +124,7 @@ int dram_init(void)
 	gd->ram_size = query_sdram_size();
 	return 0;
 }
+#endif	/* CPU_BL_IS_CBOOT */
 
 static int uart_configs[] = {
 #if defined(CONFIG_TEGRA20)

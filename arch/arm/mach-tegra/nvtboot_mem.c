@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, NVIDIA CORPORATION.
+ * Copyright (c) 2016-2017, NVIDIA CORPORATION.
  *
  * SPDX-License-Identifier: GPL-2.0+
  */
@@ -94,6 +94,10 @@ void dram_init_banksize(void)
 		gd->bd->bi_dram[i].start = ram_banks[i].start;
 		gd->bd->bi_dram[i].size = ram_banks[i].size;
 	}
+
+#ifdef CONFIG_PCI
+	gd->pci_ram_top = gd->bd->bi_dram[0].start + gd->bd->bi_dram[0].size;
+#endif
 }
 
 ulong board_get_usable_ram_top(ulong total_size)
