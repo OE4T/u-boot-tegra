@@ -291,7 +291,7 @@ void start_cpu(u32 reset_vector)
 	clock_enable_coresight(1);
 	remove_cpu_resets();
 	writel(reset_vector, EXCEP_VECTOR_CPU_RESET_VECTOR);
-	powerup_cpus();
 	tegra124_ram_repair();
+	powerup_cpus();
 	debug("start_cpu exit, should continue @ reset_vector\n");
 }
