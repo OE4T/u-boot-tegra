@@ -58,6 +58,13 @@
 		status = "disabled";
 	};
 
+	uartb: serial@3110000 {
+		compatible = "nvidia,tegra186-uart", "nvidia,tegra20-uart";
+		reg = <0x0 0x03110000 0x0 0x10000>;
+		reg-shift = <2>;
+		status = "disabled";
+	};
+
 	gen1_i2c: i2c@3160000 {
 		compatible = "nvidia,tegra186-i2c", "nvidia,tegra114-i2c";
 		reg = <0x0 0x3160000 0x0 0x100>;

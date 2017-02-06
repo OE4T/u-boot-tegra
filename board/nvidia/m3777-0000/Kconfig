@@ -1,0 +1,16 @@
+# Copyright (c) 2017, NVIDIA CORPORATION.
+#
+# SPDX-License-Identifier: GPL-2.0
+
+if TARGET_M3777_0000
+
+config SYS_BOARD
+	default "m3777-0000"
+
+config SYS_VENDOR
+	default "nvidia"
+
+config SYS_CONFIG_NAME
+	default "m3777-0000"
+
+endif
