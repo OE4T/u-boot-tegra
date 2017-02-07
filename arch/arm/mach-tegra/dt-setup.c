@@ -23,6 +23,7 @@ __weak int ft_board_setup_eeprom(void *blob)
  */
 int ft_system_setup(void *blob, bd_t *bd)
 {
+#if !defined(CONFIG_CPU_BL_IS_CBOOT)
 	const char *gpu_compats[] = {
 #if defined(CONFIG_TEGRA124)
 		"nvidia,gk20a",
@@ -44,10 +45,10 @@ int ft_system_setup(void *blob, bd_t *bd)
 	fdt_copy_env_proplist(blob);
 	fdt_del_env_nodelist(blob);
 	fdt_del_env_proplist(blob);
-#if defined(CONFIG_TEGRA210) && !defined(CONFIG_CPU_BL_IS_CBOOT)
+#ifdef CONFIG_TEGRA210
 	ft_nvtboot(blob);
 #endif
 	ft_board_setup_eeprom(blob);
-
+#endif	/* !CPU_BL_IS_CBOOT */
 	return 0;
 }

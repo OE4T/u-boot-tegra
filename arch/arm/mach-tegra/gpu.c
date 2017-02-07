@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2015, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2014-2017, NVIDIA CORPORATION.  All rights reserved.
  *
  * SPDX-License-Identifier:	GPL-2.0
  */
@@ -17,6 +17,7 @@ static bool _configured;
 
 void tegra_gpu_config(void)
 {
+#if !defined(CONFIG_CPU_BL_IS_CBOOT)
 	struct mc_ctlr *mc = (struct mc_ctlr *)NV_PA_MC_BASE;
 
 	/* Turn VPR off */
@@ -27,8 +28,8 @@ void tegra_gpu_config(void)
 	readl(&mc->mc_video_protect_reg_ctrl);
 
 	debug("configured VPR\n");
-
 	_configured = true;
+#endif
 }
 
 #if defined(CONFIG_OF_LIBFDT)
