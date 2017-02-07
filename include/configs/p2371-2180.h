@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2013-2016
+ * (C) Copyright 2013-2017
  * NVIDIA Corporation <www.nvidia.com>
  *
  * SPDX-License-Identifier:     GPL-2.0+
@@ -60,6 +60,7 @@
 /* Crystal is 38.4MHz. clk_m runs at half that rate */
 #define COUNTER_FREQUENCY	19200000
 
+#if !defined(CONFIG_CPU_BL_IS_CBOOT)
 /* Parse the board ID EEPROM and update DT */
 #define CONFIG_NV_BOARD_ID_EEPROM
 #define CONFIG_NV_BOARD_ID_EEPROM_OF_MAC_ADDRS
@@ -69,5 +70,6 @@
 #define EEPROM_I2C_ADDRESS	0x50
 #define CAM_EEPROM_I2C_BUS	5
 #define CAM_EEPROM_I2C_ADDR	0x54
+#endif	/* !CPU_BL_IS_CBOOT */
 
 #endif /* _P2371_2180_H */
