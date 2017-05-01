@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2010-2012
+ * (C) Copyright 2010-2017
  * NVIDIA Corporation <www.nvidia.com>
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -29,9 +29,17 @@
 #define BOOT_TARGET_DEVICES_MMC(func)
 #endif	/* CONFIG_MMC */
 
+#ifdef CONFIG_AHCI
+#define BOOT_TARGET_DEVICES_SCSI(func) \
+	func(SCSI, scsi, 0)
+#else
+#define BOOT_TARGET_DEVICES_SCSI(func)
+#endif	/* CONFIG_AHCI */
+
 #ifndef CONFIG_SPL_BUILD
 #define BOOT_TARGET_DEVICES(func) \
 	BOOT_TARGET_DEVICES_MMC(func) \
+	BOOT_TARGET_DEVICES_SCSI(func) \
 	func(USB, usb, 0) \
 	func(PXE, pxe, na) \
 	func(DHCP, dhcp, na)
