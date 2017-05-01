@@ -20,6 +20,17 @@
 /* I2C */
 #define CONFIG_SYS_I2C_TEGRA
 
+/* SATA/AHCI */
+#define CONFIG_AHCI
+#define CONFIG_LIBATA
+#define CONFIG_SCSI_AHCI
+#define CONFIG_SCSI_AHCI_PLAT
+#define CONFIG_SYS_SCSI_MAX_SCSI_ID     1
+#define CONFIG_SYS_SCSI_MAX_LUN         1
+#define CONFIG_SYS_SCSI_MAX_DEVICE      (CONFIG_SYS_SCSI_MAX_SCSI_ID * \
+                                         CONFIG_SYS_SCSI_MAX_LUN)
+#define CONFIG_SCSI
+
 /* Environment in 'nowhere' at this time - save it to SATA later? */
 #define CONFIG_ENV_IS_NOWHERE
 
