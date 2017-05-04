@@ -17,7 +17,7 @@ static bool _configured;
 
 void tegra_gpu_config(void)
 {
-#if !defined(CONFIG_CPU_BL_IS_CBOOT)
+#if !defined(CONFIG_ARM64)
 	struct mc_ctlr *mc = (struct mc_ctlr *)NV_PA_MC_BASE;
 
 	/* Turn VPR off */
@@ -29,7 +29,7 @@ void tegra_gpu_config(void)
 
 	debug("configured VPR\n");
 	_configured = true;
-#endif
+#endif	/* !ARM64 */
 }
 
 #if defined(CONFIG_OF_LIBFDT)

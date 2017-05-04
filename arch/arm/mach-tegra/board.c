@@ -67,7 +67,7 @@ bool tegra_cpu_is_non_secure(void)
 }
 #endif
 
-#if !defined(CONFIG_CPU_BL_IS_CBOOT)
+#if !defined(CONFIG_ARM64)
 /* Read the RAM size directly from the memory controller */
 static phys_size_t query_sdram_size(void)
 {
@@ -90,11 +90,10 @@ static phys_size_t query_sdram_size(void)
 	if (emem_cfg >= 4096) {
 		size_bytes = U32_MAX & ~(0x1000 - 1);
 	} else
-#endif
+#endif	/* !CONFIG_PHYS_64BIT */
 	{
 		/* RAM size EMC is programmed to. */
 		size_bytes = (phys_size_t)emem_cfg * 1024 * 1024;
-#ifndef CONFIG_ARM64
 		/*
 		 * If all RAM fits within 32-bits, it can be accessed without
 		 * LPAE, so go test the RAM size. Otherwise, we can't access
@@ -105,15 +104,14 @@ static phys_size_t query_sdram_size(void)
 		if (emem_cfg <= (0 - PHYS_SDRAM_1) / (1024 * 1024))
 			size_bytes = get_ram_size((void *)PHYS_SDRAM_1,
 						  size_bytes);
-#endif
 	}
-#endif
+#endif	/* !T20 */
 
 #if defined(CONFIG_TEGRA30) || defined(CONFIG_TEGRA114)
 	/* External memory limited to 2047 MB due to IROM/HI-VEC */
 	if (size_bytes == SZ_2G)
 		size_bytes -= SZ_1M;
-#endif
+#endif	/* T30/T114 */
 
 	return size_bytes;
 }
@@ -124,7 +122,7 @@ int dram_init(void)
 	gd->ram_size = query_sdram_size();
 	return 0;
 }
-#endif	/* CPU_BL_IS_CBOOT */
+#endif	/* CONFIG_ARM64 */
 
 static int uart_configs[] = {
 #if defined(CONFIG_TEGRA20)

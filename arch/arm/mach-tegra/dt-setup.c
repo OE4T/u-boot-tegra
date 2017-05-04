@@ -17,13 +17,9 @@
  */
 int ft_system_setup(void *blob, bd_t *bd)
 {
-#if !defined(CONFIG_CPU_BL_IS_CBOOT)
 	const char *gpu_compats[] = {
 #if defined(CONFIG_TEGRA124)
 		"nvidia,gk20a",
-#endif
-#if defined(CONFIG_TEGRA210)
-		"nvidia,gm20b",
 #endif
 	};
 	int i, ret;
@@ -34,9 +30,6 @@ int ft_system_setup(void *blob, bd_t *bd)
 		if (ret)
 			return ret;
 	}
-#ifdef CONFIG_TEGRA210
-	ft_nvtboot(blob);
-#endif
-#endif	/* !CPU_BL_IS_CBOOT */
+
 	return 0;
 }
