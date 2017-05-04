@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2013-2016
+ * (C) Copyright 2013-2017
  * NVIDIA Corporation <www.nvidia.com>
  *
  * SPDX-License-Identifier:     GPL-2.0+
@@ -11,17 +11,6 @@
 #include <linux/sizes.h>
 
 #include "tegra210-common.h"
-
-/* Parse the board ID EEPROM and update DT */
-#define CONFIG_NV_BOARD_ID_EEPROM
-#define CONFIG_OF_ADD_CHOSEN_MAC_ADDRS
-#define CONFIG_OF_ADD_PLUGIN_MANAGER_IDS
-#define EEPROM_I2C_BUS		3
-#define EEPROM_I2C_ADDRESS	0x50
-
-#define CONFIG_OF_ADD_CAM_BOARD_ID
-#define CAM_EEPROM_I2C_BUS	5
-#define CAM_EEPROM_I2C_ADDR	0x54
 
 /* High-level configuration options */
 #define CONFIG_TEGRA_BOARD_STRING	"NVIDIA M3402-0000"

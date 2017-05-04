@@ -1,5 +1,5 @@
 /*
- *  (C) Copyright 2010-2016
+ *  (C) Copyright 2010-2017
  *  NVIDIA Corporation <www.nvidia.com>
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -16,12 +16,6 @@ void board_init_uart_f(void);
 
 /* Set up any early GPIOs the board might need for proper operation */
 void gpio_early_init(void);  /* overrideable GPIO config        */
-
-/* Board ID EEPROM-related DTB fixups */
-int ft_board_setup_eeprom(void *blob);
-
-/* Set up power to camera boards, if any*/
-int camera_board_power_init(bool enable);
 
 /*
  * Hooks to allow boards to set up the pinmux for a specific function.
