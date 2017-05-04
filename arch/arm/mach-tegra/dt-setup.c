@@ -12,11 +12,6 @@
 #include "tegra210/nvtboot.h"
 #endif
 
-__weak int ft_board_setup_eeprom(void *blob)
-{
-	return 0;
-}
-
 /*
  * This function is called right before the kernel is booted. "blob" is the
  * device tree that will be passed to the kernel.
@@ -48,7 +43,6 @@ int ft_system_setup(void *blob, bd_t *bd)
 #ifdef CONFIG_TEGRA210
 	ft_nvtboot(blob);
 #endif
-	ft_board_setup_eeprom(blob);
 #endif	/* !CPU_BL_IS_CBOOT */
 	return 0;
 }
