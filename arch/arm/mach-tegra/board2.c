@@ -199,10 +199,6 @@ void gpio_early_init(void) __attribute__((weak, alias("__gpio_early_init")));
 
 int board_early_init_f(void)
 {
-#if defined(CONFIG_TEGRA210) && !defined(CONFIG_CPU_BL_IS_CBOOT)
-	nvtboot_init();
-#endif
-
 #if defined(CONFIG_TEGRA_DISCONNECT_UDC_ON_BOOT)
 #define USBCMD_FS2 (1 << 15)
 	{

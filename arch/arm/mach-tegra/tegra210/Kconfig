@@ -41,14 +41,6 @@ endchoice
 config SYS_SOC
 	default "tegra210"
 
-config CPU_BL_IS_CBOOT
-	bool "Tegra bootloader that loads U-Boot is CBoot"
-	default n
-	help
-	  Historically on T210, the Tegra CPU bootloader that chain-loads
-	  U-Boot into RAM has been NVTBoot-CPU. If CBoot is used instead,
-	  set this to 'y'. This will soon be the default for T210 U-Boot.
-
 source "board/nvidia/e2220-1170/Kconfig"
 source "board/nvidia/p2371-0000/Kconfig"
 source "board/nvidia/p2371-2180/Kconfig"
