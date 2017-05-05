@@ -8,7 +8,6 @@
 #include <fdt_support.h>
 #include <fdtdec.h>
 #include <asm/arch/tegra.h>
-#include "dt-edit.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -121,9 +120,4 @@ ulong board_get_usable_ram_top(ulong total_size)
 
 	debug("%s: returning ram_top = 0x%08lX\n", __func__, ram_top);
 	return ram_top;
-}
-
-void *fdt_copy_get_blob_src_default(void)
-{
-	return (void *)nvtboot_boot_x0;
 }

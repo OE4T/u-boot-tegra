@@ -1,5 +1,5 @@
 #
-# (C) Copyright 2010-2015 Nvidia Corporation.
+# (C) Copyright 2010-2017 Nvidia Corporation.
 #
 # (C) Copyright 2000-2008
 # Wolfgang Denk, DENX Software Engineering, wd@denx.de.
@@ -25,7 +25,6 @@ obj-y += xusb-padctl-dummy.o
 endif
 
 obj-$(CONFIG_ARM64) += arm64-mmu.o
-obj-y += dt-edit.o
 obj-y += dt-setup.o
 obj-$(CONFIG_TEGRA_CLOCK_SCALING) += emc.o
 obj-$(CONFIG_TEGRA_GPU) += gpu.o

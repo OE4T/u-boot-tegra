@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2013-2015
+ * (C) Copyright 2013-2017
  * NVIDIA Corporation <www.nvidia.com>
  *
  * SPDX-License-Identifier:     GPL-2.0+
@@ -65,9 +65,7 @@
 	"pxefile_addr_r=0x90100000\0" \
 	"kernel_addr_r=" __stringify(CONFIG_LOADADDR) "\0" \
 	"fdt_addr_r=0x82000000\0" \
-	"ramdisk_addr_r=0x83200000\0" \
-	"fdt_del_prop_paths=/pinmux@700008d4/pinctrl-names\0" \
-	"fdt_copy_node_paths=/memory-controller@7001b000\0"
+	"ramdisk_addr_r=0x83200000\0"
 
 /* Defines for SPL */
 #define CONFIG_SPL_TEXT_BASE		0x80108000
