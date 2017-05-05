@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, NVIDIA CORPORATION.
+ * Copyright (c) 2016-2017, NVIDIA CORPORATION.
  *
  * SPDX-License-Identifier: GPL-2.0+
  */
@@ -26,14 +26,14 @@ int board_init(void)
 	return tegra_board_init();
 }
 
-__weak int nvtboot_init_late(void)
+__weak int cboot_init_late(void)
 {
 	return 0;
 }
 
 int board_late_init(void)
 {
-	return nvtboot_init_late();
+	return cboot_init_late();
 }
 
 void pad_init_mmc(struct mmc_host *host)

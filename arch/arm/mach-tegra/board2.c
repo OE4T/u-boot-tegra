@@ -42,7 +42,7 @@
 #include <spi.h>
 #include "emc.h"
 #ifdef CONFIG_TEGRA210
-#include "tegra210/nvtboot.h"
+#include "tegra210/cboot.h"
 #endif
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -236,7 +236,7 @@ int board_late_init(void)
 #endif
 	start_cpu_fan();
 #if defined(CONFIG_TEGRA210)
-	nvtboot_init_late();
+	cboot_init_late();
 #endif
 
 	return 0;

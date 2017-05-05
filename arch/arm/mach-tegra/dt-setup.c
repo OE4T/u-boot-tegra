@@ -7,9 +7,6 @@
 #include <common.h>
 #include <asm/arch-tegra/gpu.h>
 #include <asm/arch-tegra/board.h>
-#ifdef CONFIG_TEGRA210
-#include "tegra210/nvtboot.h"
-#endif
 
 /*
  * This function is called right before the kernel is booted. "blob" is the

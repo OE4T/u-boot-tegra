@@ -11,7 +11,7 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-extern unsigned long nvtboot_boot_x0;
+extern unsigned long cboot_boot_x0;
 
 /*
  * A parsed version of /memory/reg from the DTB that is passed to U-Boot in x0.
@@ -36,23 +36,23 @@ u64 SZ_4G = 0x100000000;
 int dram_init(void)
 {
 	unsigned int na, ns;
-	const void *nvtboot_blob = (void *)nvtboot_boot_x0;
+	const void *cboot_blob = (void *)cboot_boot_x0;
 	int node, len, i;
 	const u32 *prop;
 
 	memset(ram_banks, 0, sizeof(ram_banks));
 
-	na = fdtdec_get_uint(nvtboot_blob, 0, "#address-cells", 2);
-	ns = fdtdec_get_uint(nvtboot_blob, 0, "#size-cells", 2);
+	na = fdtdec_get_uint(cboot_blob, 0, "#address-cells", 2);
+	ns = fdtdec_get_uint(cboot_blob, 0, "#size-cells", 2);
 
-	node = fdt_path_offset(nvtboot_blob, "/memory");
+	node = fdt_path_offset(cboot_blob, "/memory");
 	if (node < 0) {
-		error("Can't find /memory node in nvtboot DTB");
+		error("Can't find /memory node in cboot DTB");
 		hang();
 	}
-	prop = fdt_getprop(nvtboot_blob, node, "reg", &len);
+	prop = fdt_getprop(cboot_blob, node, "reg", &len);
 	if (!prop) {
-		error("Can't find /memory/reg property in nvtboot DTB");
+		error("Can't find /memory/reg property in cboot DTB");
 		hang();
 	}
 
