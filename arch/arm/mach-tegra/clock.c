@@ -744,3 +744,8 @@ int clock_external_output(int clk_id)
 
 	return 0;
 }
+
+__weak bool clock_early_init_done(void)
+{
+	return true;
+}
