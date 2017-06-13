@@ -5,6 +5,7 @@
 
 #include <common.h>
 #include <asm/arch-tegra/gpu.h>
+#include "dt-edit.h"
 
 /*
  * This function is called right before the kernel is booted. "blob" is the
@@ -28,6 +29,9 @@ int ft_system_setup(void *blob, struct bd_info *bd)
 		if (ret)
 			return ret;
 	}
+
+	fdt_del_env_nodelist(blob);
+	fdt_del_env_proplist(blob);
 
 	return 0;
 }
