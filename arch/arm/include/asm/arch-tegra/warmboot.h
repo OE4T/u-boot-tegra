@@ -15,6 +15,7 @@
 
 /* Defines the supported operating modes */
 enum fuse_operating_mode {
+	MODE_ODM_PRODUCTION = 1,
 	MODE_PREPRODUCTION = 2,
 	MODE_PRODUCTION = 3,
 	MODE_UNDEFINED,
@@ -57,6 +58,8 @@ struct wb_header {
 	u32 entry_point;	/* execution address of the wb code */
 	u32 code_length;	/* length of the code */
 };
+
+extern struct wb_header wb_header;
 
 /*
  * The warm boot code needs direct access to these registers since it runs in

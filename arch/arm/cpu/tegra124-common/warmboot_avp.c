@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2013-2017, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -27,7 +27,16 @@
 #include <asm/arch/sysctr.h>
 #include "warmboot_avp.h"
 
-void wb_start(void)
+/*
+ * Allocate space for wb_header
+ */
+struct wb_header wb_header =
+{
+	.destination = NV_WB_RUN_ADDRESS,
+	.entry_point = NV_WB_RUN_ADDRESS,
+};
+
+void __attribute__((aligned(16))) wb_start(void)
 {
 	struct pmc_ctlr *pmc = (struct pmc_ctlr *)NV_PA_PMC_BASE;
 	struct flow_ctlr *flow = (struct flow_ctlr *)NV_PA_FLOW_BASE;
@@ -380,6 +389,6 @@ do_reset:
  * wb_end() is a dummy function, and must be directly following wb_start(),
  * and is used to calculate the size of wb_start().
  */
-void wb_end(void)
+void __attribute__((aligned(16))) wb_end(void)
 {
 }
