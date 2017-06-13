@@ -21,6 +21,7 @@ obj-$(CONFIG_TEGRA_PMC) += powergate.o
 obj-y += xusb-padctl-dummy.o
 
 obj-$(CONFIG_ARM64) += arm64-mmu.o cboot.o
+obj-y += dt-edit.o
 obj-y += dt-setup.o
 obj-$(CONFIG_TEGRA_CLOCK_SCALING) += emc.o
 obj-$(CONFIG_TEGRA_GPU) += gpu.o
