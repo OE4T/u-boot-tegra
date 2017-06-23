@@ -11,8 +11,6 @@ ifndef CONFIG_TEGRA186
 ifdef CONFIG_SPL_BUILD
 obj-y += spl.o
 obj-y += cpu.o
-else
-obj-$(CONFIG_CMD_ENTERRCM) += cmd_enterrcm.o
 endif
 
 obj-y += ap.o
@@ -32,6 +30,7 @@ obj-$(CONFIG_TEGRA_GPU) += gpu.o
 obj-$(CONFIG_TEGRA_IVC) += ivc.o
 obj-y += lowlevel_init.o
 ifndef CONFIG_SPL_BUILD
+obj-$(CONFIG_CMD_ENTERRCM) += cmd_enterrcm.o
 obj-$(CONFIG_ARMV7_PSCI) += psci.o
 endif
 obj-$(CONFIG_DISPLAY_CPUINFO) += sys_info.o
