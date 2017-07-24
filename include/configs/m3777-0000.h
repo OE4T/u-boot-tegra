@@ -31,6 +31,9 @@
                                          CONFIG_SYS_SCSI_MAX_LUN)
 #define CONFIG_SCSI
 
+/* M3777 flash map puts APP partition @ partition 7 */
+#define BOOT_TARGET_DEFAULTDEVPLIST	"7"
+
 /* Environment in 'nowhere' at this time - save it to SATA later? */
 #define CONFIG_ENV_IS_NOWHERE
 
