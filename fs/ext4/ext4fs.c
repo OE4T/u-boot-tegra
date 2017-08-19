@@ -217,16 +217,20 @@ int ext4_read_file(const char *filename, void *buf, loff_t offset, loff_t len,
 	loff_t file_len;
 	int ret;
 
+	ext4fs_cache_extent_blocks(1);
 	ret = ext4fs_open(filename, &file_len);
 	if (ret < 0) {
 		printf("** File not found %s **\n", filename);
+		ext4fs_cache_extent_blocks(0);
 		return -1;
 	}
 
 	if (len == 0)
 		len = file_len;
 
-	return ext4fs_read(buf, offset, len, len_read);
+	ret = ext4fs_read(buf, offset, len, len_read);
+	ext4fs_cache_extent_blocks(0);
+	return ret;
 }
 
 int ext4fs_uuid(char *uuid_str)
