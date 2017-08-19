@@ -56,6 +56,7 @@ int ext4fs_find_file(const char *path, struct ext2fs_node *rootnode,
 			struct ext2fs_node **foundnode, int expecttype);
 int ext4fs_iterate_dir(struct ext2fs_node *dir, char *name,
 			struct ext2fs_node **fnode, int *ftype);
+void ext4fs_cache_extent_blocks(int onoff);
 
 #if defined(CONFIG_EXT4_WRITE)
 uint32_t ext4fs_div_roundup(uint32_t size, uint32_t n);
