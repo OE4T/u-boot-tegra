@@ -1509,6 +1509,68 @@ void ext4fs_allocate_blocks(struct ext2_inode *file_inode,
 
 #endif
 
+struct ext4_extentblk_node {
+	struct list_head lh;
+	unsigned long long block;
+	void *buf;
+};
+static LIST_HEAD(ext4_extentblk_list);
+static int ext4_extcache_enabled = 0;
+
+static void ext4_extentcache_clear(void)
+{
+	struct ext4_extentblk_node *node, *tmp;
+	list_for_each_entry_safe(node, tmp, &ext4_extentblk_list, lh) {
+		list_del(&node->lh);
+		free(node);
+	}
+}
+
+void ext4fs_cache_extent_blocks(int onoff) {
+
+	if (ext4_extcache_enabled != onoff)
+		ext4_extentcache_clear();
+	ext4_extcache_enabled = onoff;
+	debug("ext4fs extent caching now %s\n", onoff ? "ON" : "OFF");
+}
+
+static int extentcache_read(unsigned long long block,
+			    int log2_blksz, int blksz,
+			    char *buf)
+{
+	struct ext4_extentblk_node *node, *new;
+
+	if (ext4_extcache_enabled) {
+		list_for_each_entry(node, &ext4_extentblk_list, lh)
+			if (node->block == block) {
+				memcpy(buf, node->buf, blksz);
+				debug("extent cache hit for %llu\n", block);
+				return 1;
+			} else if (node->block > block)
+				break;
+		debug("extent cache miss for %llu\n", block);
+	}
+	if (!ext4fs_devread((lbaint_t)block << log2_blksz, 0, blksz, buf))
+		return 0;
+	if (ext4_extcache_enabled) {
+		new = malloc(sizeof(*new) + blksz);
+		if (!new) {
+			debug("extent cache node allocation failure\n");
+			return 1;
+		}
+		new->block = block;
+		new->buf = new + 1;
+		memcpy(new + 1, buf, blksz);
+		list_for_each_entry(node, &ext4_extentblk_list, lh)
+			if (node->block > new->block) {
+				list_add_tail(&new->lh, &node->lh);
+				return 1;
+			}
+		list_add_tail(&new->lh, &ext4_extentblk_list);
+	}
+	return 1;
+}
+
 static struct ext4_extent_header *ext4fs_get_extent_block
 	(struct ext2_data *data, char *buf,
 		struct ext4_extent_header *ext_block,
@@ -1540,8 +1602,7 @@ static struct ext4_extent_header *ext4fs_get_extent_block
 		block = le16_to_cpu(index[i].ei_leaf_hi);
 		block = (block << 32) + le32_to_cpu(index[i].ei_leaf_lo);
 
-		if (ext4fs_devread((lbaint_t)block << log2_blksz, 0, blksz,
-				   buf))
+		if (extentcache_read(block, log2_blksz, blksz, buf))
 			ext_block = (struct ext4_extent_header *)buf;
 		else
 			return NULL;
