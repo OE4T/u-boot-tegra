@@ -12,7 +12,6 @@
 
 #ifdef CONFIG_ARM64
 #define CONFIG_PHYS_64BIT
-#define CONFIG_STATIC_RELA
 #endif
 
 #if defined(CONFIG_LS102XA) || \
