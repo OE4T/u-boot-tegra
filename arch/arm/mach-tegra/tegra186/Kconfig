@@ -27,6 +27,9 @@ endchoice
 config SYS_SOC
 	default "tegra186"
 
+config SYS_INIT_SP_BSS_OFFSET
+	default 524288
+
 source "board/nvidia/p2771-0000/Kconfig"
 source "board/nvidia/m3777-0000/Kconfig"
 
