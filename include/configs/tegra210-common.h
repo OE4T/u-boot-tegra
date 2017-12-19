@@ -64,11 +64,6 @@
 	"ramdisk_addr_r=0x83200000\0" \
 	"fdt_del_prop_paths=/pinmux@700008d4/pinctrl-names\0"
 
-/* Defines for SPL */
-#define CONFIG_SPL_TEXT_BASE		0x80108000
-#define CONFIG_SYS_SPL_MALLOC_START	0x80090000
-#define CONFIG_SPL_STACK		0x800ffffc
-
 /* For USB EHCI controller */
 #define CONFIG_EHCI_IS_TDI
 #define CONFIG_USB_EHCI_TXFIFO_THRESH	0x10
