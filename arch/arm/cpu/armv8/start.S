@@ -19,7 +19,11 @@
 
 .globl	_start
 _start:
+#if defined(LINUX_KERNEL_IMAGE_HEADER)
+#include <asm/boot0-linux-kernel-header.h>
+#else
 	b	reset
+#endif
 
 #ifdef CONFIG_ENABLE_ARM_SOC_BOOT0_HOOK
 /*
