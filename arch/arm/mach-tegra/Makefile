@@ -1,5 +1,5 @@
 #
-# (C) Copyright 2010-2017 Nvidia Corporation.
+#  Copyright (c) 2010-2018, NVIDIA CORPORATION. All rights reserved.
 #
 # (C) Copyright 2000-2008
 # Wolfgang Denk, DENX Software Engineering, wd@denx.de.
@@ -34,6 +34,7 @@ obj-$(CONFIG_CMD_ENTERRCM) += cmd_enterrcm.o
 obj-$(CONFIG_ARMV7_PSCI) += psci.o
 endif
 obj-$(CONFIG_DISPLAY_CPUINFO) += sys_info.o
+obj-y += pmc.o
 
 obj-$(CONFIG_TEGRA20) += tegra20/
 obj-$(CONFIG_TEGRA30) += tegra30/

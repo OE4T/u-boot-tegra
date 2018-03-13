@@ -1,6 +1,5 @@
 /*
- *  (C) Copyright 2010-2015
- *  NVIDIA Corporation <www.nvidia.com>
+ *  Copyright (c) 2010-2018, NVIDIA CORPORATION. All rights reserved.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -388,5 +387,12 @@ struct pmc_ctlr {
 
 /* APBDEV_PMC_CNTRL2_0 0x440 */
 #define HOLD_CKE_LOW_EN				(1 << 12)
+
+/* PMC read/write functions */
+u32 tegra_pmc_readl(unsigned long offset);
+void tegra_pmc_writel(u32 value, unsigned long offset);
+
+/* PMC_CNTRL_0 MAIN_RST*/
+#define MAIN_RST_BIT 4
 
 #endif	/* PMC_H */

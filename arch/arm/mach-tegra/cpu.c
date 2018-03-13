@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2015, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2010-2018, NVIDIA CORPORATION.  All rights reserved.
  *
  * SPDX-License-Identifier:	GPL-2.0
  */
@@ -300,21 +300,19 @@ void enable_cpu_clock(int enable)
 
 static int is_cpu_powered(void)
 {
-	struct pmc_ctlr *pmc = (struct pmc_ctlr *)NV_PA_PMC_BASE;
-
-	return (readl(&pmc->pmc_pwrgate_status) & CPU_PWRED) ? 1 : 0;
+	return (tegra_pmc_readl(offsetof(struct pmc_ctlr,
+				pmc_pwrgate_status)) & CPU_PWRED) ? 1 : 0;
 }
 
 static void remove_cpu_io_clamps(void)
 {
-	struct pmc_ctlr *pmc = (struct pmc_ctlr *)NV_PA_PMC_BASE;
 	u32 reg;
 	debug("%s entry\n", __func__);
 
 	/* Remove the clamps on the CPU I/O signals */
-	reg = readl(&pmc->pmc_remove_clamping);
+	reg = tegra_pmc_readl(offsetof(struct pmc_ctlr, pmc_remove_clamping));
 	reg |= CPU_CLMP;
-	writel(reg, &pmc->pmc_remove_clamping);
+	tegra_pmc_writel(reg, offsetof(struct pmc_ctlr, pmc_remove_clamping));
 
 	/* Give I/O signals time to stabilize */
 	udelay(IO_STABILIZATION_DELAY);
@@ -322,17 +320,19 @@ static void remove_cpu_io_clamps(void)
 
 void powerup_cpu(void)
 {
-	struct pmc_ctlr *pmc = (struct pmc_ctlr *)NV_PA_PMC_BASE;
 	u32 reg;
 	int timeout = IO_STABILIZATION_DELAY;
 	debug("%s entry\n", __func__);
 
 	if (!is_cpu_powered()) {
 		/* Toggle the CPU power state (OFF -> ON) */
-		reg = readl(&pmc->pmc_pwrgate_toggle);
+		reg = tegra_pmc_readl(offsetof(struct pmc_ctlr,
+				      pmc_pwrgate_toggle));
 		reg &= PARTID_CP;
 		reg |= START_CP;
-		writel(reg, &pmc->pmc_pwrgate_toggle);
+		tegra_pmc_writel(reg,
+				 offsetof(struct pmc_ctlr,
+				 pmc_pwrgate_toggle));
 
 		/* Wait for the power to come up */
 		while (!is_cpu_powered()) {
