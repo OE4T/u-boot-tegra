@@ -1,6 +1,5 @@
 /*
- * (C) Copyright 2013-2017
- * NVIDIA Corporation <www.nvidia.com>
+ *  Copyright (c) 2013-2018, NVIDIA CORPORATION. All rights reserved.
  *
  * SPDX-License-Identifier:     GPL-2.0+
  */
@@ -66,5 +65,8 @@
 
 /* GPU needs setup */
 #define CONFIG_TEGRA_GPU
+
+/* PMC secure access */
+#define CONFIG_ACCESS_PMC_VIA_SMC
 
 #endif /* _TEGRA210_COMMON_H_ */
