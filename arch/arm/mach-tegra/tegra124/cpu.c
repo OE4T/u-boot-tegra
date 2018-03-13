@@ -20,7 +20,7 @@
 
 static void enable_cpu_power_rail(void)
 {
-	struct pmc_ctlr *pmc = (struct pmc_ctlr *)NV_PA_PMC_BASE;
+	u32 val, ofs;
 
 	debug("%s entry\n", __func__);
 
@@ -34,11 +34,16 @@ static void enable_cpu_power_rail(void)
 	 * Set CPUPWRGOOD_TIMER - APB clock is 1/2 of SCLK (102MHz),
 	 * set it for 5ms as per SysEng (102MHz*5ms = 510000 (7C830h).
 	 */
-	writel(0x7C830, &pmc->pmc_cpupwrgood_timer);
+	ofs = offsetof(struct pmc_ctlr, pmc_cpupwrgood_timer);
+	tegra_pmc_writel(0x7C830, ofs);
 
 	/* Set polarity to 0 (normal) and enable CPUPWRREQ_OE */
-	clrbits_le32(&pmc->pmc_cntrl, CPUPWRREQ_POL);
-	setbits_le32(&pmc->pmc_cntrl, CPUPWRREQ_OE);
+	ofs = offsetof(struct pmc_ctlr, pmc_cntrl);
+	val = tegra_pmc_readl(ofs);
+	val &= ~CPUPWRREQ_POL;
+	tegra_pmc_writel(val, ofs);
+	val |= CPUPWRREQ_OE;
+	tegra_pmc_writel(val, ofs);
 }
 
 static void enable_cpu_clocks(void)
@@ -149,10 +154,9 @@ static void tegra124_ram_repair(void)
 void tegra124_init_clocks(void)
 {
 	struct flow_ctlr *flow = (struct flow_ctlr *)NV_PA_FLOW_BASE;
-	struct pmc_ctlr *pmc = (struct pmc_ctlr *)NV_PA_PMC_BASE;
 	struct clk_rst_ctlr *clkrst =
 			(struct clk_rst_ctlr *)NV_PA_CLK_RST_BASE;
-	u32 val;
+	u32 val, ofs;
 
 	debug("%s entry\n", __func__);
 
@@ -166,13 +170,17 @@ void tegra124_init_clocks(void)
 	writel(val, &clkrst->crc_osc_ctrl);
 
 	/* Update same value in PMC_OSC_EDPD_OVER XOFS field for warmboot */
-	val = readl(&pmc->pmc_osc_edpd_over);
+	ofs = offsetof(struct pmc_ctlr, pmc_osc_edpd_over);
+	val = tegra_pmc_readl(ofs);
 	val &= ~PMC_XOFS_MASK;
 	val |= (OSC_DRIVE_STRENGTH << PMC_XOFS_SHIFT);
-	writel(val, &pmc->pmc_osc_edpd_over);
+	tegra_pmc_writel(val, ofs);
 
 	/* Set HOLD_CKE_LOW_EN to 1 */
-	setbits_le32(&pmc->pmc_cntrl2, HOLD_CKE_LOW_EN);
+	ofs = offsetof(struct pmc_ctlr, pmc_cntrl2);
+	val = tegra_pmc_readl(ofs);
+	val |= HOLD_CKE_LOW_EN;
+	tegra_pmc_writel(val, ofs);
 
 	debug("Setting up PLLX\n");
 	init_pllx();
@@ -231,24 +239,25 @@ void tegra124_init_clocks(void)
 
 static bool is_partition_powered(u32 partid)
 {
-	struct pmc_ctlr *pmc = (struct pmc_ctlr *)NV_PA_PMC_BASE;
-	u32 reg;
+	u32 reg, ofs;
 
 	/* Get power gate status */
-	reg = readl(&pmc->pmc_pwrgate_status);
+	ofs = offsetof(struct pmc_ctlr, pmc_pwrgate_status);
+	reg = tegra_pmc_readl(ofs);
 	return !!(reg & (1 << partid));
 }
 
 static void power_partition(u32 partid)
 {
-	struct pmc_ctlr *pmc = (struct pmc_ctlr *)NV_PA_PMC_BASE;
+	u32 ofs;
 
 	debug("%s: part ID = %08X\n", __func__, partid);
 	/* Is the partition already on? */
 	if (!is_partition_powered(partid)) {
 		/* No, toggle the partition power state (OFF -> ON) */
 		debug("power_partition, toggling state\n");
-		writel(START_CP | partid, &pmc->pmc_pwrgate_toggle);
+		ofs = offsetof(struct pmc_ctlr, pmc_pwrgate_toggle);
+		tegra_pmc_writel(START_CP | partid, ofs);
 
 		/* Wait for the power to come up */
 		while (!is_partition_powered(partid))
@@ -281,15 +290,17 @@ void powerup_cpus(void)
 
 void start_cpu(u32 reset_vector)
 {
-	struct pmc_ctlr *pmc = (struct pmc_ctlr *)NV_PA_PMC_BASE;
+	u32 ofs;
 
 	debug("%s entry, reset_vector = %x\n", __func__, reset_vector);
 
 	tegra124_init_clocks();
 
 	/* Set power-gating timer multiplier */
-	writel((MULT_8 << TIMER_MULT_SHIFT) | (MULT_8 << TIMER_MULT_CPU_SHIFT),
-	       &pmc->pmc_pwrgate_timer_mult);
+	ofs = offsetof(struct pmc_ctlr, pmc_pwrgate_timer_mult);
+	tegra_pmc_writel((MULT_8 << TIMER_MULT_SHIFT) |
+			 (MULT_8 << TIMER_MULT_CPU_SHIFT),
+			 ofs);
 
 	enable_cpu_power_rail();
 	powerup_cpus();

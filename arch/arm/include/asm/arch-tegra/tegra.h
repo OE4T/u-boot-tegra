@@ -101,8 +101,6 @@ enum {
 	TEGRA_SYSCON_PMC,
 };
 
-#else  /* __ASSEMBLY__ */
-#define PRM_RSTCTRL		NV_PA_PMC_BASE
 #endif
 
 #endif	/* TEGRA_H */
