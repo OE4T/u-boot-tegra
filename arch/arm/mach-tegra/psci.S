@@ -13,7 +13,6 @@
 #include <asm/psci.h>
 
 	.pushsection ._secure.text, "ax"
-	.arch_extension sec
 
 #define TEGRA_SB_CSR_0			0x6000c200
 #define NS_RST_VEC_WR_DIS		(1 << 1)

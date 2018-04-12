@@ -22,8 +22,6 @@
 
 	.pushsection ._secure.text, "ax"
 
-	.arch_extension	sec
-
 	.align	5
 	.globl _psci_vectors
 _psci_vectors:

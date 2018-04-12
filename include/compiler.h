@@ -124,8 +124,10 @@ typedef unsigned int uint;
 /* Provided by gcc. */
 #include <stdint.h>
 #else
+#ifndef _LINUX_TYPES_H
 /* Type for `void *' pointers. */
 typedef unsigned long int uintptr_t;
+#endif
 #endif
 
 #include <linux/string.h>

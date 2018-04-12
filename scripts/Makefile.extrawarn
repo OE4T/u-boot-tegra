@@ -65,14 +65,4 @@ dtc-warning += $(dtc-warning-$(findstring 3, $(KBUILD_ENABLE_EXTRA_GCC_CHECKS)))
 
 DTC_FLAGS += $(dtc-warning)
 
-else
-
-# Disable noisy checks by default
-DTC_FLAGS += -Wno-unit_address_vs_reg
-DTC_FLAGS += -Wno-simple_bus_reg
-DTC_FLAGS += -Wno-unit_address_format
-DTC_FLAGS += -Wno-pci_bridge
-DTC_FLAGS += -Wno-pci_device_bus_num
-DTC_FLAGS += -Wno-pci_device_reg
-
 endif

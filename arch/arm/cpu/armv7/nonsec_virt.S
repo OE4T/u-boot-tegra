@@ -11,9 +11,6 @@
 #include <asm/armv7.h>
 #include <asm/proc-armv/ptrace.h>
 
-.arch_extension sec
-.arch_extension virt
-
 	.pushsection ._secure.text, "ax"
 
 	.align	5
