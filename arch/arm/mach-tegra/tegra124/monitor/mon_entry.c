@@ -235,6 +235,7 @@ void mon_text mon_entry_initial(void)
 	mon_putc('\n');
 
 	mon_init_clear_pmc_scratch();
+	mon_init_psci_initial();
 	mon_init_soc();
 	mon_init_cpu_for_ns();
 }
@@ -269,7 +270,6 @@ void mon_text mon_entry_cluster_resume(void)
 
 	mon_init_cpu_for_ns();
 }
-
 void mon_text mon_entry_lp1_resume(void)
 {
 	mon_puts(MON_STR("MON: LP1 resume CPU "));
@@ -277,6 +277,18 @@ void mon_text mon_entry_lp1_resume(void)
 	mon_putc('\n');
 
 	mon_psci_undo_lp1_entry();
+	mon_init_cpu_for_ns();
+}
+
+void mon_text mon_entry_lp0_resume(void)
+{
+	// This won't actually appear on the UART; see comments in mon_putc().
+	mon_puts(MON_STR("MON: LP0 resume CPU "));
+	mon_put_cpuid();
+	mon_putc('\n');
+
+	mon_psci_undo_lp0_entry();
+	mon_init_soc();
 	mon_init_cpu_for_ns();
 }
 

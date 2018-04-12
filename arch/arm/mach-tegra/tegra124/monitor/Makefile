@@ -17,3 +17,14 @@ obj-y += mon_psci.o
 obj-y += mon_sip.o
 obj-y += mon_sleep.o
 obj-y += mon_smc.o
+
+obj-y += mon_aes.o
+obj-y += mon_crypto.o
+obj-y += mon_t1x4_warmboot.o
+obj-y += mon_warmboot.o
+obj-y += mon_warmboot_avp.o
+
+CFLAGS_mon_warmboot_avp.o = \
+    -march=armv4t \
+    -U__LINUX_ARM_ARCH__ \
+    -D__LINUX_ARM_ARCH__=4

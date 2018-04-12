@@ -174,6 +174,14 @@ mon_context_ids:
 mon_translation_table_ptr:
 	.word 0
 
+	.globl mon_lp0_resume_signed_ptr
+mon_lp0_resume_signed_ptr:
+	.word 0
+
+	.globl mon_lp0_resume_iram_save_ptr
+mon_lp0_resume_iram_save_ptr:
+	.word 0
+
 	.globl mon_lp0_lp1_entry_iram_save_ptr
 mon_lp0_lp1_entry_iram_save_ptr:
 	.word 0
@@ -354,6 +362,14 @@ ENTRY(mon_dynamic_alloc)
 	// ... Translation table size
 	ldr	r6, =(16 * 1024)
 	add	r5, r5, r6
+	// Allocate assembled WB0 code buffer
+	ldr	r1, =mon_lp0_resume_signed_ptr
+	str	r5, [r1]
+	add	r5, r5, #MON_LP0_RESUME_MAX_SIZE
+	// Allocate IRAM save buffer for LP0 resume code
+	ldr	r1, =mon_lp0_resume_iram_save_ptr
+	str	r5, [r1]
+	add	r5, r5, #MON_LP0_RESUME_MAX_SIZE
 	// Allocate IRAM save buffer for LP0/1 entry code
 	ldr	r1, =mon_lp0_lp1_entry_iram_save_ptr
 	str	r5, [r1]

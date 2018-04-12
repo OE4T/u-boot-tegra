@@ -31,6 +31,9 @@
 #define TEGRA_CPU_POWERGATE_ID(cpu) \
 	((cpu == 0) ? TEGRA_POWERGATE_CPU0 : (TEGRA_POWERGATE_CPU1 + cpu - 1))
 
+#define TEGRA_PMC_SCRATCH1			0x54
+#define TEGRA_PMC_SCRATCH41			0x140
+
 /* CPU_SUSPEND power_level */
 #define TEGRA_PWR_DN_AFFINITY_CPU		0
 #define TEGRA_PWR_DN_AFFINITY_CLUSTER		1
@@ -39,6 +42,7 @@
 #define PSCI_POWER_STATE_TYPE_POWER_DOWN	1
 
 /* CPU_SUSPEND state_id */
+#define TEGRA_ID_CPU_SUSPEND_LP0		1
 #define TEGRA_ID_CPU_SUSPEND_LP1		2
 #define TEGRA_ID_CPU_SUSPEND_CLUSTER		4
 #define TEGRA_ID_CPU_SUSPEND_STDBY		5
@@ -203,6 +207,26 @@ static void mon_text mon_text mon_unreset_all_iram_bus_masters(void)
 		&clkrst->crc_rst_dev_ex[2].clr);
 }
 
+static u32 mon_text mon_lp0_resume_size(void)
+{
+	return sizeof(struct wb_header) +
+		roundup((u32)&mon_wb_end - (u32)&mon_wb_start, 16);
+}
+
+static void mon_text mon_psci_install_lp0_resume_code(void)
+{
+	u32 iram_len = mon_lp0_resume_size();
+	mon_memcpy(mon_lp0_resume_iram_save_ptr, (void *)MON_LP0_RESUME_IRAM_ADDR, iram_len);
+	/* Boot ROM copies code to IRAM, so don't do it here */
+}
+
+static void mon_text mon_psci_uninstall_lp0_resume_code(void)
+{
+	u32 iram_len = mon_lp0_resume_size();
+	mon_memcpy((void *)MON_LP0_RESUME_IRAM_ADDR, mon_lp0_resume_iram_save_ptr, iram_len);
+	mon_clean_dcache_to_poc(MON_LP0_LP1_ENTRY_IRAM_ADDR, iram_len);
+}
+
 static void mon_text mon_psci_install_lp0_lp1_entry_code(void)
 {
 	u32 iram_len = (u32)&tegra3_iram_end - (u32)&tegra3_iram_start;
@@ -215,6 +239,51 @@ static void mon_text mon_psci_uninstall_lp0_lp1_entry_code(void)
 	u32 iram_len = (u32)&tegra3_iram_end - (u32)&tegra3_iram_start;
 	mon_memcpy((void *)MON_LP0_LP1_ENTRY_IRAM_ADDR, mon_lp0_lp1_entry_iram_save_ptr, iram_len);
 	mon_clean_dcache_to_poc(MON_LP0_LP1_ENTRY_IRAM_ADDR, iram_len);
+}
+
+void mon_text mon_psci_undo_lp0_entry(void)
+{
+	mon_psci_uninstall_lp0_resume_code();
+	mon_psci_uninstall_lp0_lp1_entry_code();
+	// Don't call mon_unreset_all_iram_bus_masters(); the whole chip was reset
+}
+
+static u32 mon_text mon_enter_lp0(u32 state_type, u32 power_level)
+{
+	u32 cur_cpu_id = mon_read_mpidr() & 3;
+
+	if (state_type != PSCI_POWER_STATE_TYPE_POWER_DOWN) {
+		mon_puts(MON_STR("MON: ERR: Bad state_type\n"));
+		return ARM_PSCI_RET_INVAL;
+	}
+
+	if (power_level != TEGRA_PWR_DN_AFFINITY_CLUSTER) {
+		mon_puts(MON_STR("MON: ERR: Bad power_level\n"));
+		return ARM_PSCI_RET_INVAL;
+	}
+
+	if (mon_online_cpu_count() != 1) {
+		mon_puts(MON_STR("MON: ERR: Multiple CPUs online\n"));
+		return ARM_PSCI_RET_INVAL;
+	}
+
+	mon_puts(MON_STR("MON: PSCI: Entering LP0\n"));
+
+	mon_reset_all_iram_bus_masters();
+	mon_psci_install_lp0_lp1_entry_code();
+	mon_psci_install_lp0_resume_code();
+
+	// Inform monitor entry code what do do
+	mon_entry_handlers[cur_cpu_id] = (u32)&mon_entry_lp0_resume;
+	dsb();
+
+	mon_disable_dcache_clean_all();
+	mon_disable_smp();
+	mon_lp1_shutdown();
+
+	/* This should not be reached */
+	mon_puts(MON_STR("MON: ERR: CPU did not power down!\n"));
+	mon_error();
 }
 
 void mon_text mon_psci_undo_lp1_entry(void)
@@ -353,6 +422,8 @@ static u32 mon_text mon_smc_psci_cpu_suspend(u32 power_state,
 	dsb();
 
 	switch (state_id) {
+	case TEGRA_ID_CPU_SUSPEND_LP0:
+		return mon_enter_lp0(state_type, power_level);
 	case TEGRA_ID_CPU_SUSPEND_LP1:
 		return mon_enter_lp1(state_type, power_level);
 	case TEGRA_ID_CPU_SUSPEND_CLUSTER:
@@ -499,11 +570,40 @@ static void mon_text mon_noreturn mon_smc_psci_system_reset(void)
 	mon_error();
 }
 
+void mon_text mon_init_psci_initial(void)
+{
+	int ret;
+
+	if (mon_lp0_resume_size() > MON_LP0_RESUME_MAX_SIZE) {
+		mon_puts(MON_STR("MON: ERR: LP0 resume size too large\n"));
+		mon_error();
+	}
+
+	if ((u32)&tegra3_iram_end - (u32)&tegra3_iram_start >
+	    MON_LP0_LP1_ENTRY_MAX_SIZE) {
+		mon_puts(MON_STR("MON: ERR: LP0/1 entry size too large\n"));
+		mon_error();
+	}
+
+	mon_warmboot_save_sdram_params();
+	ret = mon_warmboot_prepare_code((u32)mon_lp0_resume_signed_ptr,
+					MON_LP0_RESUME_MAX_SIZE);
+	if (ret) {
+		mon_puts(MON_STR("MON: ERR: LP0 resume code setup failed\n"));
+		mon_error();
+	}
+}
+
 void mon_text mon_init_psci_soc(void)
 {
 	int i;
 	for (i = 0; i < ARRAY_SIZE(mon_unpowergated); i++)
 		mon_unpowergated[i] = false;
+
+	// Tell boot ROM where LP0 resume code is
+	mon_pmc_writel((u32)mon_lp0_resume_signed_ptr, TEGRA_PMC_SCRATCH1);
+	// Tell the LP0 resume code where to set the CPU reset vector to
+	mon_pmc_writel((u32)&mon_reentry, TEGRA_PMC_SCRATCH41);
 }
 
 u32 mon_text mon_smc_psci(u32 func, u32 arg0, u32 arg1, u32 arg2)
