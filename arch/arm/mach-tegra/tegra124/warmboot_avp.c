@@ -36,6 +36,13 @@ struct wb_header wb_header =
 	.entry_point = NV_WB_RUN_ADDRESS,
 };
 
+#define wb_udelay(usecs) \
+{ \
+	unsigned long ts = readl(NV_PA_TMRUS_BASE); \
+	while ((readl(NV_PA_TMRUS_BASE)) - ts < (usecs + 1)) \
+		; \
+}
+
 void __attribute__((aligned(16))) wb_start(void)
 {
 	struct pmc_ctlr *pmc = (struct pmc_ctlr *)NV_PA_PMC_BASE;
@@ -205,22 +212,6 @@ void __attribute__((aligned(16))) wb_start(void)
 	reg = SET_CLK_ENB_CPUG_ENABLE | SET_CLK_ENB_CPULP_ENABLE;
 	writel(reg, &clkrst->crc_clk_enb_ex_vw[TEGRA_DEV_V].set);
 
-	/* Take non-cpu of G and LP cluster OUT of reset */
-	reg = CLR_NONCPURESET;
-	writel(reg, &clkrst->crc_rst_cpulp_cmplx_clr);
-	writel(reg, &clkrst->crc_rst_cpug_cmplx_clr);
-
-	/* Clear software controlled reset of slow cluster */
-	reg = CLR_CPURESET0 | CLR_DBGRESET0 | CLR_CORERESET0 | CLR_CXRESET0;
-	writel(reg, &clkrst->crc_rst_cpulp_cmplx_clr);
-
-	/* Clear software controlled reset of fast cluster */
-	reg = CLR_CPURESET0 | CLR_DBGRESET0 | CLR_CORERESET0 | CLR_CXRESET0 |
-		CLR_CPURESET1 | CLR_DBGRESET1 | CLR_CORERESET1 | CLR_CXRESET1 |
-		CLR_CPURESET2 | CLR_DBGRESET2 | CLR_CORERESET2 | CLR_CXRESET2 |
-		CLR_CPURESET3 | CLR_DBGRESET3 | CLR_CORERESET3 | CLR_CXRESET3;
-	writel(reg, &clkrst->crc_rst_cpug_cmplx_clr);
-
 	/* Initialize System Counter (TSC) with osc frequency */
 	/* Find out the current osc frequency */
 	reg = readl(&clkrst->crc_osc_ctrl);
@@ -255,8 +246,12 @@ void __attribute__((aligned(16))) wb_start(void)
 	reg = readl(&mc->mc_video_protect_size_mb);
 	reg = readl(&mc->mc_video_protect_reg_ctrl);
 
-	/* ram re-repair cluster0*/
+	/*
+	 * Request the Flow Controller perform RAM repair whenever it turns on
+	 * a power rail that requires RAM repair.
+	 */
 	clrbits_le32(&flow->ram_repair, RAM_REPAIR_BYPASS_EN);
+
 	/*
 	 * Reprogram PMC_CPUPWRGOOD_TIMER register:
 	 *
@@ -310,15 +305,6 @@ void __attribute__((aligned(16))) wb_start(void)
 			while (readl(&pmc->pmc_clamp_status) & reg)
 				;
 		}
-		/* Ram Repair cluster 1 */
-		reg = readl(&flow->ram_repair_cluster1) | RAM_REPAIR_REQ;
-		writel(reg, &flow->ram_repair_cluster1);
-		/* Wait for completion (status == 0) */
-		do {
-			udelay(1);
-			reg = readl(&flow->ram_repair_cluster1);
-		} while (!(reg & RAM_REPAIR_STS) && ram_repair_timeout--)
-			;
 	} else {
 		/* FastCPU */
 		reg = PWRGATE_STATUS_CRAIL_ENABLE;
@@ -364,7 +350,35 @@ void __attribute__((aligned(16))) wb_start(void)
 			while (readl(&pmc->pmc_clamp_status) & reg)
 				;
 		}
+
+		/*
+		 * RAM repair cluster 0
+		 *
+		 * Only do this if we will boot this cluster, and hence we
+		 * have turned on power to this cluster.
+		 */
+		reg = readl(&flow->ram_repair) | RAM_REPAIR_REQ;
+		writel(reg, &flow->ram_repair);
+		/* Wait for completion (status == 0) */
+		do {
+			wb_udelay(1);
+			reg = readl(&flow->ram_repair);
+		} while (!(reg & RAM_REPAIR_STS) && ram_repair_timeout--);
 	}
+
+	/*
+	 * RAM repair cluster 1
+	 *
+	 * Always do this since the cluster is always powered on with the SoC
+	 * irrespective of which cluster will be booted.
+	 */
+	reg = readl(&flow->ram_repair_cluster1) | RAM_REPAIR_REQ;
+	writel(reg, &flow->ram_repair_cluster1);
+	/* Wait for completion (status == 0) */
+	do {
+		wb_udelay(1);
+		reg = readl(&flow->ram_repair_cluster1);
+	} while (!(reg & RAM_REPAIR_STS) && ram_repair_timeout--);
 
 	/* give I/O signals time to stable */
 	reg = 20 | EVENT_MSEC | EVENT_MODE_STOP;
@@ -372,6 +386,22 @@ void __attribute__((aligned(16))) wb_start(void)
 
 	/* restore the original PMC_CPUPWRGOOD_TIMER register */
 	writel(reg_saved, &pmc->pmc_cpupwrgood_timer);
+
+	/* Take non-CPU of G and LP cluster OUT of reset */
+	reg = CLR_NONCPURESET;
+	writel(reg, &clkrst->crc_rst_cpulp_cmplx_clr);
+	writel(reg, &clkrst->crc_rst_cpug_cmplx_clr);
+
+	/* Clear software controlled reset of slow cluster */
+	reg = CLR_CPURESET0 | CLR_DBGRESET0 | CLR_CORERESET0 | CLR_CXRESET0;
+	writel(reg, &clkrst->crc_rst_cpulp_cmplx_clr);
+
+	/* Clear software controlled reset of fast cluster */
+	reg = CLR_CPURESET0 | CLR_DBGRESET0 | CLR_CORERESET0 | CLR_CXRESET0 |
+		CLR_CPURESET1 | CLR_DBGRESET1 | CLR_CORERESET1 | CLR_CXRESET1 |
+		CLR_CPURESET2 | CLR_DBGRESET2 | CLR_CORERESET2 | CLR_CXRESET2 |
+		CLR_CPURESET3 | CLR_DBGRESET3 | CLR_CORERESET3 | CLR_CXRESET3;
+	writel(reg, &clkrst->crc_rst_cpug_cmplx_clr);
 
 avp_halt:
 	reg = EVENT_MODE_STOP | EVENT_JTAG;
