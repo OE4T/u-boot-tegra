@@ -26,6 +26,8 @@
 int warmboot_save_sdram_params(void)
 {
 	u32 ram_code;
+	unsigned long bct_start;
+	struct sdram_params *bct_sdram;
 	struct sdram_params sdram;
 	struct pmc_ctlr *pmc = (struct pmc_ctlr *)NV_PA_PMC_BASE;
 
@@ -35,9 +37,9 @@ int warmboot_save_sdram_params(void)
 	/* ram_code[1:0] selects SDRAM configuration set within the BCT */
 	ram_code &= 3;
 
-	memcpy(&sdram,
-	       (char *)((struct sdram_params *)SDRAM_PARAMS_BASE + ram_code),
-	       sizeof(sdram));
+	bct_start = readl(NV_PA_BASE_SRAM + NVBOOTINFOTABLE_BCTPTR);
+	bct_sdram = (struct sdram_params *)(bct_start + 0x7f8);
+	memcpy(&sdram, &bct_sdram[ram_code], sizeof(sdram));
 
 	return t1x4_wb_save_sdram_params(&sdram);
 }
