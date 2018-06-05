@@ -59,6 +59,18 @@ static void mon_text mon_init_secure_ram(void)
 	writel(CONFIG_ARMV7_SECURE_RESERVE_SIZE >> 20, &mc->mc_security_cfg1);
 }
 
+#define APB_SLAVE_SECURITY_ENABLE_REG0_0	0xC00
+#define PMC_SECURITY_EN				13
+
+static void mon_text mon_init_set_pmc_tzonly(void)
+{
+	u32 val;
+
+	val = readl(NV_PA_APB_MISC_BASE + APB_SLAVE_SECURITY_ENABLE_REG0_0);
+	val |= BIT(PMC_SECURITY_EN);
+	writel(val, NV_PA_APB_MISC_BASE + APB_SLAVE_SECURITY_ENABLE_REG0_0);
+}
+
 static void mon_text mon_init_evp(void)
 {
 	u32 val;
@@ -121,6 +133,7 @@ static void mon_text mon_init_soc(void)
 {
 	mon_init_psci_soc();
 	mon_init_secure_ram();
+	mon_init_set_pmc_tzonly();
 	mon_init_evp();
 	mon_init_sysctr_ctlr();
 	mon_init_smmu();
