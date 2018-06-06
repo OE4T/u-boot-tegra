@@ -9,10 +9,6 @@
 
 #include <linux/sizes.h>
 
-/* LP0 suspend / resume */
-#define CONFIG_TEGRA_LP0
-#define CONFIG_AES
-
 #include "tegra124-common.h"
 
 #define CONFIG_SERIAL_TAG
@@ -58,8 +54,15 @@
 #include "tegra-common-usb-gadget.h"
 #include "tegra-common-post.h"
 
-/* Reserve top 1M for secure RAM */
-#define CONFIG_ARMV7_SECURE_BASE		0xfff00000
+#define CONFIG_TEGRA_SUPPORT_NON_SECURE
+/*
+ * Reserve 1M for secure RAM, near top of RAM. Top 1M of RAM isn't usable for
+ * WB0 code, so move the BASE down to avoid that region. We deliberately don't
+ * make _SIZE 2M to prevent the secure region from spilling into the unusable
+ * top 1M of RAM.
+ */
+#define CONFIG_ARMV7_SECURE_BASE		0xffe00000
 #define CONFIG_ARMV7_SECURE_RESERVE_SIZE	0x00100000
+#define CONFIG_ARMV7_PSCI_0_2
 
 #endif /* __CONFIG_H */
