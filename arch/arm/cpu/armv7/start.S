@@ -31,6 +31,8 @@
 	.globl	reset
 	.globl	save_boot_params_ret
 	.type   save_boot_params_ret,%function
+	.globl	boot_monitor_ret
+	.type	boot_monitor_ret,%function
 #ifdef CONFIG_ARMV7_LPAE
 	.global	switch_to_hypervisor_ret
 #endif
@@ -39,6 +41,9 @@ reset:
 	/* Allow the board to save important registers */
 	b	save_boot_params
 save_boot_params_ret:
+	/* Boot any early monitor */
+	b	boot_monitor
+boot_monitor_ret:
 #ifdef CONFIG_ARMV7_LPAE
 /*
  * check for Hypervisor support
@@ -116,6 +121,19 @@ ENTRY(save_boot_params)
 	b	save_boot_params_ret		@ back to my caller
 ENDPROC(save_boot_params)
 	.weak	save_boot_params
+
+/*************************************************************************
+ *
+ * void boot_monitor() __attribute__((weak));
+ *
+ * Stack pointer is not yet initialized at this moment
+ * Don't save anything to stack even if compiled with -O0
+ *
+ *************************************************************************/
+ENTRY(boot_monitor)
+	b	boot_monitor_ret		@ back to my caller
+ENDPROC(boot_monitor)
+	.weak	boot_monitor
 
 #ifdef CONFIG_ARMV7_LPAE
 ENTRY(switch_to_hypervisor)
