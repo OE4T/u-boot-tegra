@@ -30,7 +30,7 @@
 /*
  * Allocate space for wb_header
  */
-struct wb_header wb_header =
+struct wb_header mon_data MON_SYM(wb_header) =
 {
 	.destination = NV_WB_RUN_ADDRESS,
 	.entry_point = NV_WB_RUN_ADDRESS,
@@ -43,7 +43,7 @@ struct wb_header wb_header =
 		; \
 }
 
-void __attribute__((aligned(16))) wb_start(void)
+void __attribute__((aligned(16))) mon_text MON_SYM(wb_start)(void)
 {
 	struct pmc_ctlr *pmc = (struct pmc_ctlr *)NV_PA_PMC_BASE;
 	struct flow_ctlr *flow = (struct flow_ctlr *)NV_PA_FLOW_BASE;
@@ -60,7 +60,7 @@ void __attribute__((aligned(16))) wb_start(void)
 
 	/* Are we running where we're supposed to be? */
 	asm volatile (
-		"adr	%0, wb_start;"	/* reg: wb_start address */
+		"adr	%0, " MON_SYM_STR(wb_start) ";"	/* reg: wb_start address */
 		: "=r"(reg)		/* output */
 					/* no input, no clobber list */
 	);
@@ -419,6 +419,6 @@ do_reset:
  * wb_end() is a dummy function, and must be directly following wb_start(),
  * and is used to calculate the size of wb_start().
  */
-void __attribute__((aligned(16))) wb_end(void)
+void __attribute__((aligned(16))) mon_text MON_SYM(wb_end)(void)
 {
 }

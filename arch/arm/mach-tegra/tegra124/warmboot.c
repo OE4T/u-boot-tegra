@@ -23,7 +23,7 @@
 #include <asm/arch-tegra/warmboot.h>
 #include <asm/arch-tegra/sdram_param.h>
 
-int warmboot_save_sdram_params(void)
+int mon_text MON_SYM(warmboot_save_sdram_params)(void)
 {
 	u32 ram_code;
 	unsigned long bct_start;
@@ -39,12 +39,12 @@ int warmboot_save_sdram_params(void)
 
 	bct_start = readl(NV_PA_BASE_SRAM + NVBOOTINFOTABLE_BCTPTR);
 	bct_sdram = (struct sdram_params *)(bct_start + 0x7f8);
-	memcpy(&sdram, &bct_sdram[ram_code], sizeof(sdram));
+	MON_SYM(memcpy)(&sdram, &bct_sdram[ram_code], sizeof(sdram));
 
-	return t1x4_wb_save_sdram_params(&sdram);
+	return MON_SYM(t1x4_wb_save_sdram_params)(&sdram);
 }
 
-int warmboot_prepare_code(u32 seg_address, u32 seg_length)
+int mon_text MON_SYM(warmboot_prepare_code)(u32 seg_address, u32 seg_length)
 {
-	return t1x4_wb_prepare_code(CHIPID_TEGRA124, seg_address, seg_length);
+	return MON_SYM(t1x4_wb_prepare_code)(CHIPID_TEGRA124, seg_address, seg_length);
 }

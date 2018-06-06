@@ -20,7 +20,7 @@
 #define e(src, op1, op2, dst, dbit)					\
 	encode(sdram_offset(src), op1, op2, sdram_offset(dst), dbit)
 
-struct encode_fields encode_list[] = {
+static struct encode_fields mon_data encode_list[] = {
 	e(emc_swizzle_rank0_byte0, 26:24, 30:28, swizzle_rank_byte_encode, 0),
 	e(emc_swizzle_rank0_byte1, 26:24, 30:28, swizzle_rank_byte_encode, 1),
 	e(emc_swizzle_rank0_byte2, 26:24, 30:28, swizzle_rank_byte_encode, 2),
@@ -40,7 +40,7 @@ struct encode_fields encode_list[] = {
 #define c(const, src, scratch, dst)	\
 	pack(TYPE_CONST, const, src, pmc_offset(scratch), dst)
 
-struct pack_fields pack_list_1[] = {
+static struct pack_fields mon_data pack_list_1[] = {
 	s(emc_clock_source, 7:0, pmc_scratch6, 15:8),
 	s(emc_clock_source, 31:29, pmc_scratch6, 18:16),
 	s(emc_clock_source, 26:26, pmc_scratch6, 19:19),
@@ -476,7 +476,7 @@ struct pack_fields pack_list_1[] = {
 	s(memory_type, 2:0, pmc_scratch107, 6:4),
 };
 
-struct pack_fields pack_list_ddr3[] = {
+static struct pack_fields mon_data pack_list_ddr3[] = {
 	s(emc_mrs, 13:0, pmc_scratch5, 13:0),
 	s(emc_emrs, 13:0, pmc_scratch5, 27:14),
 	s(emc_mrs, 21:20, pmc_scratch5, 29:28),
@@ -505,7 +505,7 @@ struct pack_fields pack_list_ddr3[] = {
 	c(0, 31:0, pmc_scratch117, 31:0),
 };
 
-struct pack_fields pack_list_lpddr2[] = {
+static struct pack_fields mon_data pack_list_lpddr2[] = {
 	s(emc_mrw_lpddr2_zcal_warmboot, 23:16, pmc_scratch5, 7:0),
 	s(emc_mrw_lpddr2_zcal_warmboot, 7:0, pmc_scratch5, 15:8),
 	s(emc_warmboot_mrw_extra, 23:16, pmc_scratch5, 23:16),
@@ -532,7 +532,7 @@ struct pack_fields pack_list_lpddr2[] = {
 	s(emc_mrw4, 31:30, pmc_scratch10, 19:18),
 };
 
-struct pack_fields pack_list_2[] = {
+static struct pack_fields mon_data pack_list_2[] = {
 	s(mc_video_protect_gpu_override0, 31:0, pmc_secure_scratch8, 31:0),
 	s(mc_video_protect_vpr_override, 3:0, pmc_secure_scratch9, 3:0),
 	s(mc_video_protect_vpr_override, 11:6, pmc_secure_scratch9, 9:4),

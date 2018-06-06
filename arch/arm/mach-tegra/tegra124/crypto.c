@@ -26,7 +26,7 @@
 #include <uboot_aes.h>
 #include "crypto.h"
 
-static u8 zero_key[16];
+static u8 mon_data zero_key[16];
 
 #define AES_CMAC_CONST_RB 0x87  /* from RFC 4493, Figure 2.2 */
 
@@ -35,7 +35,7 @@ enum security_op {
 	SECURITY_ENCRYPT	= 1 << 1,	/* Encrypt the data */
 };
 
-static void debug_print_vector(char *name, u32 num_bytes, u8 *data)
+static void mon_text debug_print_vector(char *name, u32 num_bytes, u8 *data)
 {
 	u32 i;
 
@@ -59,7 +59,7 @@ static void debug_print_vector(char *name, u32 num_bytes, u8 *data)
  * \param src			Source data
  * \param dst			Destination data, which is modified here
  */
-static void apply_cbc_chain_data(u8 *cbc_chain_data, u8 *src, u8 *dst)
+static void mon_text apply_cbc_chain_data(u8 *cbc_chain_data, u8 *src, u8 *dst)
 {
 	int i;
 
@@ -75,7 +75,7 @@ static void apply_cbc_chain_data(u8 *cbc_chain_data, u8 *src, u8 *dst)
  * \param dst			Destination buffer
  * \param num_aes_blocks	Number of AES blocks to encrypt
  */
-static void encrypt_object(u8 *key_schedule, u8 *src, u8 *dst,
+static void mon_text encrypt_object(u8 *key_schedule, u8 *src, u8 *dst,
 			   u32 num_aes_blocks)
 {
 	u8 tmp_data[AES_KEY_LENGTH];
@@ -93,7 +93,7 @@ static void encrypt_object(u8 *key_schedule, u8 *src, u8 *dst,
 		debug_print_vector("AES Xor", AES_KEY_LENGTH, tmp_data);
 
 		/* encrypt the AES block */
-		aes_encrypt(tmp_data, key_schedule, dst);
+		MON_SYM(aes_encrypt)(tmp_data, key_schedule, dst);
 		debug_print_vector("AES Dst", AES_KEY_LENGTH, dst);
 
 		/* Update pointers for next loop. */
@@ -110,7 +110,7 @@ static void encrypt_object(u8 *key_schedule, u8 *src, u8 *dst,
  * \param out	Output vector
  * \param size	Length of vector in bytes
  */
-static void left_shift_vector(u8 *in, u8 *out, int size)
+static void mon_text left_shift_vector(u8 *in, u8 *out, int size)
 {
 	int carry = 0;
 	int i;
@@ -130,7 +130,7 @@ static void left_shift_vector(u8 *in, u8 *out, int size)
  * \param dst			Destination buffer, length AES_KEY_LENGTH
  * \param num_aes_blocks	Number of AES blocks to encrypt
  */
-static void sign_object(u8 *key, u8 *key_schedule, u8 *src, u8 *dst,
+static void mon_text sign_object(u8 *key, u8 *key_schedule, u8 *src, u8 *dst,
 			u32 num_aes_blocks)
 {
 	u8 tmp_data[AES_KEY_LENGTH];
@@ -165,7 +165,7 @@ static void sign_object(u8 *key, u8 *key_schedule, u8 *src, u8 *dst,
 			apply_cbc_chain_data(tmp_data, k1, tmp_data);
 
 		/* encrypt the AES block */
-		aes_encrypt(tmp_data, key_schedule, dst);
+		MON_SYM(aes_encrypt)(tmp_data, key_schedule, dst);
 
 		debug("sign_obj: block %d of %d\n", i, num_aes_blocks);
 		debug_print_vector("AES-CMAC Src", AES_KEY_LENGTH, src);
@@ -189,7 +189,7 @@ static void sign_object(u8 *key, u8 *key_schedule, u8 *src, u8 *dst,
  * \param length	Size of source data
  * \param sig_dst	Destination address for signature, AES_KEY_LENGTH bytes
  */
-static int encrypt_and_sign(u8 *key, enum security_op oper, u8 *src,
+static int mon_text encrypt_and_sign(u8 *key, enum security_op oper, u8 *src,
 			    u32 length, u8 *sig_dst)
 {
 	u32 num_aes_blocks;
@@ -202,7 +202,7 @@ static int encrypt_and_sign(u8 *key, enum security_op oper, u8 *src,
 	 * The only need for a key is for signing/checksum purposes, so
 	 * if not encrypting, expand a key of 0s.
 	 */
-	aes_expand_key(oper & SECURITY_ENCRYPT ? key : zero_key, key_schedule);
+	MON_SYM(aes_expand_key)(oper & SECURITY_ENCRYPT ? key : zero_key, key_schedule);
 
 	num_aes_blocks = (length + AES_KEY_LENGTH - 1) / AES_KEY_LENGTH;
 
@@ -223,7 +223,7 @@ static int encrypt_and_sign(u8 *key, enum security_op oper, u8 *src,
 	return 0;
 }
 
-int sign_data_block(u8 *source, unsigned length, u8 *signature)
+int mon_text MON_SYM(sign_data_block)(u8 *source, unsigned length, u8 *signature)
 {
 	return encrypt_and_sign(zero_key, SECURITY_SIGN, source,
 				length, signature);

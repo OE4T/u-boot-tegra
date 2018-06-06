@@ -24,6 +24,8 @@
 #ifndef _CRYPTO_H_
 #define _CRYPTO_H_
 
+#include <mon_section_default.h>
+
 /**
  * Sign a block of data
  *
@@ -31,6 +33,6 @@
  * \param length	Size of source data
  * \param signature	Destination address for signature, AES_KEY_LENGTH bytes
  */
-int sign_data_block(u8 *source, unsigned length, u8 *signature);
+int MON_SYM(sign_data_block)(u8 *source, unsigned length, u8 *signature);
 
 #endif /* #ifndef _CRYPTO_H_ */

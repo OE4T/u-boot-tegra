@@ -29,7 +29,7 @@
 #include "uboot_aes.h"
 
 /* forward s-box */
-static const u8 sbox[256] = {
+static const u8 mon_rodata sbox[256] = {
 	0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5,
 	0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76,
 	0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59, 0x47, 0xf0,
@@ -65,7 +65,7 @@ static const u8 sbox[256] = {
 };
 
 /* inverse s-box */
-static const u8 inv_sbox[256] = {
+static const u8 mon_rodata inv_sbox[256] = {
 	0x52, 0x09, 0x6a, 0xd5, 0x30, 0x36, 0xa5, 0x38,
 	0xbf, 0x40, 0xa3, 0x9e, 0x81, 0xf3, 0xd7, 0xfb,
 	0x7c, 0xe3, 0x39, 0x82, 0x9b, 0x2f, 0xff, 0x87,
@@ -101,7 +101,7 @@ static const u8 inv_sbox[256] = {
 };
 
 /* combined Xtimes2[Sbox[]] */
-static const u8 x2_sbox[256] = {
+static const u8 mon_rodata x2_sbox[256] = {
 	0xc6, 0xf8, 0xee, 0xf6, 0xff, 0xd6, 0xde, 0x91,
 	0x60, 0x02, 0xce, 0x56, 0xe7, 0xb5, 0x4d, 0xec,
 	0x8f, 0x1f, 0x89, 0xfa, 0xef, 0xb2, 0x8e, 0xfb,
@@ -137,7 +137,7 @@ static const u8 x2_sbox[256] = {
 };
 
 /* combined Xtimes3[Sbox[]] */
-static const u8 x3_sbox[256] = {
+static const u8 mon_rodata x3_sbox[256] = {
 	0xa5, 0x84, 0x99, 0x8d, 0x0d, 0xbd, 0xb1, 0x54,
 	0x50, 0x03, 0xa9, 0x7d, 0x19, 0x62, 0xe6, 0x9a,
 	0x45, 0x9d, 0x40, 0x87, 0x15, 0xeb, 0xc9, 0x0b,
@@ -178,7 +178,7 @@ static const u8 x3_sbox[256] = {
  * Xtime2[x] = (x & 0x80 ? 0x1b : 0) ^ (x + x)
  * Xtime3[x] = x^Xtime2[x];
  */
-static const u8 x_time_9[256] = {
+static const u8 mon_rodata x_time_9[256] = {
 	0x00, 0x09, 0x12, 0x1b, 0x24, 0x2d, 0x36, 0x3f,
 	0x48, 0x41, 0x5a, 0x53, 0x6c, 0x65, 0x7e, 0x77,
 	0x90, 0x99, 0x82, 0x8b, 0xb4, 0xbd, 0xa6, 0xaf,
@@ -213,7 +213,7 @@ static const u8 x_time_9[256] = {
 	0x79, 0x70, 0x6b, 0x62, 0x5d, 0x54, 0x4f, 0x46
 };
 
-static const u8 x_time_b[256] = {
+static const u8 mon_rodata x_time_b[256] = {
 	0x00, 0x0b, 0x16, 0x1d, 0x2c, 0x27, 0x3a, 0x31,
 	0x58, 0x53, 0x4e, 0x45, 0x74, 0x7f, 0x62, 0x69,
 	0xb0, 0xbb, 0xa6, 0xad, 0x9c, 0x97, 0x8a, 0x81,
@@ -248,7 +248,7 @@ static const u8 x_time_b[256] = {
 	0x92, 0x99, 0x84, 0x8f, 0xbe, 0xb5, 0xa8, 0xa3
 };
 
-static const u8 x_time_d[256] = {
+static const u8 mon_rodata x_time_d[256] = {
 	0x00, 0x0d, 0x1a, 0x17, 0x34, 0x39, 0x2e, 0x23,
 	0x68, 0x65, 0x72, 0x7f, 0x5c, 0x51, 0x46, 0x4b,
 	0xd0, 0xdd, 0xca, 0xc7, 0xe4, 0xe9, 0xfe, 0xf3,
@@ -283,7 +283,7 @@ static const u8 x_time_d[256] = {
 	0xb4, 0xb9, 0xae, 0xa3, 0x80, 0x8d, 0x9a, 0x97
 };
 
-static const u8 x_time_e[256] = {
+static const u8 mon_rodata x_time_e[256] = {
 	0x00, 0x0e, 0x1c, 0x12, 0x38, 0x36, 0x24, 0x2a,
 	0x70, 0x7e, 0x6c, 0x62, 0x48, 0x46, 0x54, 0x5a,
 	0xe0, 0xee, 0xfc, 0xf2, 0xd8, 0xd6, 0xc4, 0xca,
@@ -323,7 +323,7 @@ static const u8 x_time_e[256] = {
  * row0 - unchanged, row1- shifted left 1,
  * row2 - shifted left 2 and row3 - shifted left 3
  */
-static void shift_rows(u8 *state)
+static void mon_text shift_rows(u8 *state)
 {
 	u8 tmp;
 
@@ -361,7 +361,7 @@ static void shift_rows(u8 *state)
  * row0 - unchanged, row1- shifted right 1,
  * row2 - shifted right 2 and row3 - shifted right 3
  */
-static void inv_shift_rows(u8 *state)
+static void mon_text inv_shift_rows(u8 *state)
 {
 	u8 tmp;
 
@@ -395,7 +395,7 @@ static void inv_shift_rows(u8 *state)
 }
 
 /* recombine and mix each row in a column */
-static void mix_sub_columns(u8 *state)
+static void mon_text mix_sub_columns(u8 *state)
 {
 	u8 tmp[4 * AES_STATECOLS];
 
@@ -439,11 +439,11 @@ static void mix_sub_columns(u8 *state)
 	tmp[15] = x3_sbox[state[12]] ^ sbox[state[1]] ^
 		  sbox[state[6]] ^ x2_sbox[state[11]];
 
-	memcpy(state, tmp, sizeof(tmp));
+	MON_SYM(memcpy)(state, tmp, sizeof(tmp));
 }
 
 /* restore and un-mix each row in a column */
-static void inv_mix_sub_columns(u8 *state)
+static void mon_text inv_mix_sub_columns(u8 *state)
 {
 	u8 tmp[4 * AES_STATECOLS];
 	int  i;
@@ -496,7 +496,7 @@ static void inv_mix_sub_columns(u8 *state)
  * encrypt/decrypt columns of the key
  * n.b. you can replace this with byte-wise xor if you wish.
  */
-static void add_round_key(u32 *state, u32 *key)
+static void mon_text add_round_key(u32 *state, u32 *key)
 {
 	int idx;
 
@@ -504,17 +504,17 @@ static void add_round_key(u32 *state, u32 *key)
 		state[idx] ^= key[idx];
 }
 
-static u8 rcon[11] = {
+static const u8 mon_rodata rcon[11] = {
 	0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36
 };
 
 /* produce AES_STATECOLS bytes for each round */
-void aes_expand_key(u8 *key, u8 *expkey)
+void mon_text MON_SYM(aes_expand_key)(u8 *key, u8 *expkey)
 {
 	u8 tmp0, tmp1, tmp2, tmp3, tmp4;
 	u32 idx;
 
-	memcpy(expkey, key, AES_KEYCOLS * 4);
+	MON_SYM(memcpy)(expkey, key, AES_KEYCOLS * 4);
 
 	for (idx = AES_KEYCOLS; idx < AES_STATECOLS * (AES_ROUNDS + 1); idx++) {
 		tmp0 = expkey[4*idx - 4];
@@ -542,12 +542,12 @@ void aes_expand_key(u8 *key, u8 *expkey)
 }
 
 /* encrypt one 128 bit block */
-void aes_encrypt(u8 *in, u8 *expkey, u8 *out)
+void mon_text MON_SYM(aes_encrypt)(u8 *in, u8 *expkey, u8 *out)
 {
 	u8 state[AES_STATECOLS * 4];
 	u32 round;
 
-	memcpy(state, in, AES_STATECOLS * 4);
+	MON_SYM(memcpy)(state, in, AES_STATECOLS * 4);
 	add_round_key((u32 *)state, (u32 *)expkey);
 
 	for (round = 1; round < AES_ROUNDS + 1; round++) {
@@ -560,15 +560,15 @@ void aes_encrypt(u8 *in, u8 *expkey, u8 *out)
 			      (u32 *)expkey + round * AES_STATECOLS);
 	}
 
-	memcpy(out, state, sizeof(state));
+	MON_SYM(memcpy)(out, state, sizeof(state));
 }
 
-void aes_decrypt(u8 *in, u8 *expkey, u8 *out)
+void mon_text MON_SYM(aes_decrypt)(u8 *in, u8 *expkey, u8 *out)
 {
 	u8 state[AES_STATECOLS * 4];
 	int round;
 
-	memcpy(state, in, sizeof(state));
+	MON_SYM(memcpy)(state, in, sizeof(state));
 
 	add_round_key((u32 *)state,
 		      (u32 *)expkey + AES_ROUNDS * AES_STATECOLS);
@@ -581,10 +581,10 @@ void aes_decrypt(u8 *in, u8 *expkey, u8 *out)
 			inv_mix_sub_columns(state);
 	}
 
-	memcpy(out, state, sizeof(state));
+	MON_SYM(memcpy)(out, state, sizeof(state));
 }
 
-static void debug_print_vector(char *name, u32 num_bytes, u8 *data)
+static void mon_text debug_print_vector(char *name, u32 num_bytes, u8 *data)
 {
 #ifdef DEBUG
 	printf("%s [%d] @0x%08x", name, num_bytes, (u32)data);
@@ -592,7 +592,7 @@ static void debug_print_vector(char *name, u32 num_bytes, u8 *data)
 #endif
 }
 
-void aes_apply_cbc_chain_data(u8 *cbc_chain_data, u8 *src, u8 *dst)
+void mon_text MON_SYM(aes_apply_cbc_chain_data)(u8 *cbc_chain_data, u8 *src, u8 *dst)
 {
 	int i;
 
@@ -600,7 +600,7 @@ void aes_apply_cbc_chain_data(u8 *cbc_chain_data, u8 *src, u8 *dst)
 		*dst++ = *src++ ^ *cbc_chain_data++;
 }
 
-void aes_cbc_encrypt_blocks(u8 *key_exp, u8 *iv, u8 *src, u8 *dst,
+void mon_text MON_SYM(aes_cbc_encrypt_blocks)(u8 *key_exp, u8 *iv, u8 *src, u8 *dst,
 			    u32 num_aes_blocks)
 {
 	u8 tmp_data[AES_KEY_LENGTH];
@@ -612,11 +612,11 @@ void aes_cbc_encrypt_blocks(u8 *key_exp, u8 *iv, u8 *src, u8 *dst,
 		debug_print_vector("AES Src", AES_KEY_LENGTH, src);
 
 		/* Apply the chain data */
-		aes_apply_cbc_chain_data(cbc_chain_data, src, tmp_data);
+		MON_SYM(aes_apply_cbc_chain_data)(cbc_chain_data, src, tmp_data);
 		debug_print_vector("AES Xor", AES_KEY_LENGTH, tmp_data);
 
 		/* Encrypt the AES block */
-		aes_encrypt(tmp_data, key_exp, dst);
+		MON_SYM(aes_encrypt)(tmp_data, key_exp, dst);
 		debug_print_vector("AES Dst", AES_KEY_LENGTH, dst);
 
 		/* Update pointers for next loop. */
@@ -626,7 +626,7 @@ void aes_cbc_encrypt_blocks(u8 *key_exp, u8 *iv, u8 *src, u8 *dst,
 	}
 }
 
-void aes_cbc_decrypt_blocks(u8 *key_exp, u8 *iv, u8 *src, u8 *dst,
+void mon_text MON_SYM(aes_cbc_decrypt_blocks)(u8 *key_exp, u8 *iv, u8 *src, u8 *dst,
 			    u32 num_aes_blocks)
 {
 	u8 tmp_data[AES_KEY_LENGTH], tmp_block[AES_KEY_LENGTH];
@@ -634,23 +634,23 @@ void aes_cbc_decrypt_blocks(u8 *key_exp, u8 *iv, u8 *src, u8 *dst,
 	u8 cbc_chain_data[AES_KEY_LENGTH];
 	u32 i;
 
-	memcpy(cbc_chain_data, iv, AES_KEY_LENGTH);
+	MON_SYM(memcpy)(cbc_chain_data, iv, AES_KEY_LENGTH);
 	for (i = 0; i < num_aes_blocks; i++) {
 		debug("encrypt_object: block %d of %d\n", i, num_aes_blocks);
 		debug_print_vector("AES Src", AES_KEY_LENGTH, src);
 
-		memcpy(tmp_block, src, AES_KEY_LENGTH);
+		MON_SYM(memcpy)(tmp_block, src, AES_KEY_LENGTH);
 
 		/* Decrypt the AES block */
-		aes_decrypt(src, key_exp, tmp_data);
+		MON_SYM(aes_decrypt)(src, key_exp, tmp_data);
 		debug_print_vector("AES Xor", AES_KEY_LENGTH, tmp_data);
 
 		/* Apply the chain data */
-		aes_apply_cbc_chain_data(cbc_chain_data, tmp_data, dst);
+		MON_SYM(aes_apply_cbc_chain_data)(cbc_chain_data, tmp_data, dst);
 		debug_print_vector("AES Dst", AES_KEY_LENGTH, dst);
 
 		/* Update pointers for next loop. */
-		memcpy(cbc_chain_data, tmp_block, AES_KEY_LENGTH);
+		MON_SYM(memcpy)(cbc_chain_data, tmp_block, AES_KEY_LENGTH);
 		src += AES_KEY_LENGTH;
 		dst += AES_KEY_LENGTH;
 	}

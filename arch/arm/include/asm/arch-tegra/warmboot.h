@@ -8,6 +8,7 @@
 #define _WARM_BOOT_H_
 
 #include <asm/arch-tegra/sdram_param.h>
+#include <mon_section_default.h>
 
 #define STRAP_OPT_A_RAM_CODE_SHIFT	4
 #define STRAP_OPT_A_RAM_CODE_MASK	(0xf << STRAP_OPT_A_RAM_CODE_SHIFT)
@@ -58,7 +59,7 @@ struct wb_header {
 	u32 code_length;	/* length of the code */
 };
 
-extern struct wb_header wb_header;
+extern struct wb_header MON_SYM(wb_header);
 
 /*
  * The warm boot code needs direct access to these registers since it runs in
@@ -214,12 +215,12 @@ struct pack_fields {
  *
  * @return 0 if ok, -1 on error
  */
-int warmboot_save_sdram_params(void);
+int MON_SYM(warmboot_save_sdram_params)(void);
 
-int warmboot_prepare_code(u32 seg_address, u32 seg_length);
-int sign_data_block(u8 *source, u32 length, u8 *signature);
-void wb_start(void);	/* Start of WB assembly code */
-void wb_end(void);	/* End of WB assembly code */
+int MON_SYM(warmboot_prepare_code)(u32 seg_address, u32 seg_length);
+int MON_SYM(sign_data_block)(u8 *source, u32 length, u8 *signature);
+void MON_SYM(wb_start)(void);	/* Start of WB assembly code */
+void MON_SYM(wb_end)(void);	/* End of WB assembly code */
 
 /* Common routines for T114 and T124 SOCs */
 
@@ -228,11 +229,11 @@ void wb_end(void);	/* End of WB assembly code */
  * save sdram parameters to scratch registers so sdram parameters can be
  * restored when system resumes from LP0
  */
-int t1x4_wb_save_sdram_params(struct sdram_params *sdram);
+int MON_SYM(t1x4_wb_save_sdram_params)(struct sdram_params *sdram);
 
 /*
  * t1x4_wb_prepare_code():
  * prepare WB code, which will be executed by AVP when system resumes from LP0
  */
-int t1x4_wb_prepare_code(u32 tegra_id, u32 seg_address, u32 seg_length);
+int MON_SYM(t1x4_wb_prepare_code)(u32 tegra_id, u32 seg_address, u32 seg_length);
 #endif

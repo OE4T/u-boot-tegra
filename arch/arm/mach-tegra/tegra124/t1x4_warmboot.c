@@ -39,12 +39,12 @@
  *			fields to do encoding
  * @param sdram		pointer to struct sdram_params for SDRAM parameters
  */
-void do_encode(struct encode_fields *encode, struct sdram_params *sdram)
+static void mon_text do_encode(struct encode_fields *encode, struct sdram_params *sdram)
 {
 	u32 val, op1, op2;
 
 	val = readl((char *)sdram + encode->src_offset);
-	debug("%s: sdram[%#x] => %#x\n", __func__, encode->src_offset, val);
+	debug(MON_STR("%s: sdram[%#x] => %#x\n"), __func__, encode->src_offset, val);
 	op1 = val >> encode->op1_shift;
 	op1 &= encode->op1_mask;
 	op2 = val >> encode->op2_shift;
@@ -54,7 +54,7 @@ void do_encode(struct encode_fields *encode, struct sdram_params *sdram)
 	val &= ~(1 << encode->dst_shift);
 	if (op1 > op2)
 		val |= (1 << encode->dst_shift);
-	debug("%s: sdram[%#x] <= %#x\n", __func__, encode->dst_offset, val);
+	debug(MON_STR("%s: sdram[%#x] <= %#x\n"), __func__, encode->dst_offset, val);
 	writel(val, (char *)sdram + encode->dst_offset);
 }
 
@@ -66,7 +66,7 @@ void do_encode(struct encode_fields *encode, struct sdram_params *sdram)
  * @param num_list	# of pointers of struct encode_fields in encode_list
  * @param sdram		pointer to struct sdram_params for SDRAM parameters
  */
-void do_encode_list(struct encode_fields *encode_list,  u32 num_list,
+static void mon_text do_encode_list(struct encode_fields *encode_list,  u32 num_list,
 		       struct sdram_params *sdram)
 {
 	struct encode_fields *encode;
@@ -91,7 +91,7 @@ void do_encode_list(struct encode_fields *encode_list,  u32 num_list,
  *			fields to do packing
  * @param sdram		pointer to struct sdram_params for SDRAM parameters
  */
-void do_pack(struct pack_fields *pack, struct sdram_params *sdram)
+static void mon_text do_pack(struct pack_fields *pack, struct sdram_params *sdram)
 {
 	u32 val, offset, type, reg;
 	struct clk_rst_ctlr *clkrst = (struct clk_rst_ctlr *)NV_PA_CLK_RST_BASE;
@@ -111,7 +111,7 @@ void do_pack(struct pack_fields *pack, struct sdram_params *sdram)
 		val = offset;
 		break;
 	default:
-		debug("src_type (%u) is not supported\n", type);
+		debug(MON_STR("src_type (%u) is not supported\n"), type);
 		return;
 	}
 
@@ -133,7 +133,7 @@ void do_pack(struct pack_fields *pack, struct sdram_params *sdram)
  * @param num_list	# of pointers of struct pack_fields in pack_list
  * @param sdram		pointer to struct sdram_params for SDRAM parameters
  */
-void do_pack_list(struct pack_fields *pack_list, u32 num_list,
+static void mon_text do_pack_list(struct pack_fields *pack_list, u32 num_list,
 		   struct sdram_params *sdram)
 {
 	struct pack_fields *pack;
@@ -155,7 +155,7 @@ void do_pack_list(struct pack_fields *pack_list, u32 num_list,
  * @param sdram		pointer to struct sdram_params for SDRAM parameters
  * @return		0 always
  */
-int t1x4_wb_save_sdram_params(struct sdram_params *sdram)
+int mon_text MON_SYM(t1x4_wb_save_sdram_params)(struct sdram_params *sdram)
 {
 	/* encode BIT6_GT_BIT7 bits in sdram.swizzle_rank_byte_encode */
 	do_encode_list(encode_list, ARRAY_SIZE(encode_list), sdram);
@@ -185,7 +185,7 @@ int t1x4_wb_save_sdram_params(struct sdram_params *sdram)
 #undef RANDOM_AES_BLOCK_IS_PATTERN	/* to patternize the header */
 #define RANDOM_AES_BLOCK_IS_ZERO	/* to clear the header */
 
-static u32 get_major_version(void)
+static u32 mon_text get_major_version(void)
 {
 	u32 major_id;
 	struct apb_misc_gp_ctlr *gp =
@@ -196,22 +196,22 @@ static u32 get_major_version(void)
 	return major_id;
 }
 
-static int is_production_mode_fuse_set(struct fuse_regs *fuse)
+static int mon_text is_production_mode_fuse_set(struct fuse_regs *fuse)
 {
 	return readl(&fuse->production_mode);
 }
 
-static int is_odm_production_mode_fuse_set(struct fuse_regs *fuse)
+static int mon_text is_odm_production_mode_fuse_set(struct fuse_regs *fuse)
 {
 	return readl(&fuse->security_mode);
 }
 
-static int is_failure_analysis_mode(struct fuse_regs *fuse)
+static int mon_text is_failure_analysis_mode(struct fuse_regs *fuse)
 {
 	return readl(&fuse->fa);
 }
 
-static int is_odm_production_mode(void)
+static int mon_text is_odm_production_mode(void)
 {
 	struct fuse_regs *fuse = (struct fuse_regs *)NV_PA_FUSE_BASE;
 
@@ -222,7 +222,7 @@ static int is_odm_production_mode(void)
 		return 0;
 }
 
-static int is_production_mode(void)
+static int mon_text is_production_mode(void)
 {
 	struct fuse_regs *fuse = (struct fuse_regs *)NV_PA_FUSE_BASE;
 
@@ -237,7 +237,7 @@ static int is_production_mode(void)
 		return 0;
 }
 
-static enum fuse_operating_mode fuse_get_operation_mode(u32 tegra_id)
+static enum fuse_operating_mode mon_text fuse_get_operation_mode(u32 tegra_id)
 {
 	u32 chip_id;
 	struct apb_misc_gp_ctlr *gp =
@@ -260,13 +260,13 @@ static enum fuse_operating_mode fuse_get_operation_mode(u32 tegra_id)
 
 #if defined(RANDOM_AES_BLOCK_IS_RANDOM)
 /* Currently, this routine returns a 32-bit all 0 seed. */
-static u32 query_random_seed(void)
+static u32 mon_text query_random_seed(void)
 {
 	return 0;
 }
 #endif
 
-static void determine_crypto_options(u32 tegra_id, int *is_encrypted,
+static void mon_text determine_crypto_options(u32 tegra_id, int *is_encrypted,
 				     int *is_signed, int *use_zero_key)
 {
 	switch (fuse_get_operation_mode(tegra_id)) {
@@ -290,7 +290,7 @@ static void determine_crypto_options(u32 tegra_id, int *is_encrypted,
 	}
 }
 
-static int sign_wb_code(u32 start, u32 length, int use_zero_key)
+static int mon_text sign_wb_code(u32 start, u32 length, int use_zero_key)
 {
 	int err;
 	u8 *source;		/* Pointer to source */
@@ -300,7 +300,7 @@ static int sign_wb_code(u32 start, u32 length, int use_zero_key)
 	source = (u8 *)(start + offsetof(struct wb_header, random_aes_block));
 	length -= offsetof(struct wb_header, random_aes_block);
 	hash = (u8 *)(start + offsetof(struct wb_header, hash_signature.hash));
-	err = sign_data_block(source, length, hash);
+	err = MON_SYM(sign_data_block)(source, length, hash);
 
 	return err;
 }
@@ -319,7 +319,7 @@ static int sign_wb_code(u32 start, u32 length, int use_zero_key)
  * @return		0 if success
  *			!0 (error code) if failed
  */
-int t1x4_wb_prepare_code(u32 tegra_id, u32 seg_address, u32 seg_length)
+int mon_text MON_SYM(t1x4_wb_prepare_code)(u32 tegra_id, u32 seg_address, u32 seg_length)
 {
 	int err = 0;
 	u32 length;			/* length of the signed/encrypt code */
@@ -333,13 +333,13 @@ int t1x4_wb_prepare_code(u32 tegra_id, u32 seg_address, u32 seg_length)
 				 &use_zero_key);
 
 	if (is_encrypted) {
-		printf("!!!! Encryption is not supported !!!!\n");
+		MON_SYM(printf)(MON_STR("!!!! Encryption is not supported !!!!\n"));
 		err = -EACCES;
 		goto fail;
 	}
 
 	/* Get the actual code limits. */
-	length = roundup(((u32)wb_end - (u32)wb_start), 16);
+	length = roundup(((u32)MON_SYM(wb_end) - (u32)MON_SYM(wb_start)), 16);
 
 	/*
 	 * The region specified by seg_address must not be in IRAM and must be
@@ -375,9 +375,9 @@ int t1x4_wb_prepare_code(u32 tegra_id, u32 seg_address, u32 seg_length)
 		 *   1. wb_header's length_insecure is not 0,
 		 *   2. code_length matches to the calculated code length.
 		 */
-		if ((wb_header.length_insecure == 0) ||
-		    (length != wb_header.code_length)) {
-			printf("Error: WB0 code is not signed.\n");
+		if ((MON_SYM(wb_header).length_insecure == 0) ||
+		    (length != MON_SYM(wb_header).code_length)) {
+			MON_SYM(printf)(MON_STR("Error: WB0 code is not signed.\n"));
 			err = -EACCES;
 			goto fail;
 		}
@@ -386,12 +386,12 @@ int t1x4_wb_prepare_code(u32 tegra_id, u32 seg_address, u32 seg_length)
 	dst_header = (struct wb_header *)seg_address;
 
 	/* copy wb header to destination */
-	memcpy((char *)dst_header, (char *)&wb_header, sizeof(struct wb_header));
+	MON_SYM(memcpy)((char *)dst_header, (char *)&MON_SYM(wb_header), sizeof(struct wb_header));
 	/* copy the wb code directly following dst_header. */
-	memcpy((char *)(dst_header + 1), (char *)wb_start, length);
+	MON_SYM(memcpy)((char *)(dst_header + 1), (char *)MON_SYM(wb_start), length);
 
 	if (is_signed) {
-		memset((char *)dst_header, 0, sizeof(struct wb_header));
+		MON_SYM(memset)((char *)dst_header, 0, sizeof(struct wb_header));
 
 		/* If signing is required, populate the random_aes_block */
 		u32 *aes_block = (u32 *)&(dst_header->random_aes_block);
@@ -406,8 +406,8 @@ int t1x4_wb_prepare_code(u32 tegra_id, u32 seg_address, u32 seg_length)
 #elif defined(RANDOM_AES_BLOCK_IS_ZERO)
 			*aes_block++ = 0;
 #else
-			printf("None of RANDOM_AES_BLOCK_IS_XXX is defined; ");
-			printf("Default to pattern 0.\n");
+			MON_SYM(printf)(MON_STR("None of RANDOM_AES_BLOCK_IS_XXX is defined; "));
+			MON_SYM(printf)(MON_STR("Default to pattern 0.\n"));
 			*aes_block++ = 0;
 #endif
 		} while (aes_block < end);
@@ -425,7 +425,7 @@ int t1x4_wb_prepare_code(u32 tegra_id, u32 seg_address, u32 seg_length)
 
 fail:
 	if (err)
-		printf("WB code not copied to LP0 location! (error=%d)\n", err);
+		MON_SYM(printf)(MON_STR("WB code not copied to LP0 location! (error=%d)\n"), err);
 
 	return err;
 }

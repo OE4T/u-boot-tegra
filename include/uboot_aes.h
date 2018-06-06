@@ -7,6 +7,8 @@
 #ifndef _AES_REF_H_
 #define _AES_REF_H_
 
+#include <mon_section_default.h>
+
 #ifdef USE_HOSTCC
 /* Define compat stuff for use in fw_* tools. */
 typedef unsigned char u8;
@@ -39,7 +41,7 @@ enum {
  * @key		Key, of length AES_KEY_LENGTH bytes
  * @expkey	Buffer to place expanded key, AES_EXPAND_KEY_LENGTH
  */
-void aes_expand_key(u8 *key, u8 *expkey);
+void MON_SYM(aes_expand_key)(u8 *key, u8 *expkey);
 
 /**
  * aes_encrypt() - Encrypt single block of data with AES 128
@@ -48,7 +50,7 @@ void aes_expand_key(u8 *key, u8 *expkey);
  * @expkey	Expanded key to use for encryption (from aes_expand_key())
  * @out		Output data
  */
-void aes_encrypt(u8 *in, u8 *expkey, u8 *out);
+void MON_SYM(aes_encrypt)(u8 *in, u8 *expkey, u8 *out);
 
 /**
  * aes_decrypt() - Decrypt single block of data with AES 128
@@ -57,7 +59,7 @@ void aes_encrypt(u8 *in, u8 *expkey, u8 *out);
  * @expkey	Expanded key to use for decryption (from aes_expand_key())
  * @out		Output data
  */
-void aes_decrypt(u8 *in, u8 *expkey, u8 *out);
+void MON_SYM(aes_decrypt)(u8 *in, u8 *expkey, u8 *out);
 
 /**
  * Apply chain data to the destination using EOR
@@ -68,7 +70,7 @@ void aes_decrypt(u8 *in, u8 *expkey, u8 *out);
  * @src			Source data
  * @dst			Destination data, which is modified here
  */
-void aes_apply_cbc_chain_data(u8 *cbc_chain_data, u8 *src, u8 *dst);
+void MON_SYM(aes_apply_cbc_chain_data)(u8 *cbc_chain_data, u8 *src, u8 *dst);
 
 /**
  * aes_cbc_encrypt_blocks() - Encrypt multiple blocks of data with AES CBC.
@@ -79,7 +81,7 @@ void aes_apply_cbc_chain_data(u8 *cbc_chain_data, u8 *src, u8 *dst);
  * @dst			Destination buffer
  * @num_aes_blocks	Number of AES blocks to encrypt
  */
-void aes_cbc_encrypt_blocks(u8 *key_exp, u8 *iv, u8 *src, u8 *dst,
+void MON_SYM(aes_cbc_encrypt_blocks)(u8 *key_exp, u8 *iv, u8 *src, u8 *dst,
 			    u32 num_aes_blocks);
 
 /**
@@ -91,7 +93,7 @@ void aes_cbc_encrypt_blocks(u8 *key_exp, u8 *iv, u8 *src, u8 *dst,
  * @dst			Destination buffer
  * @num_aes_blocks	Number of AES blocks to decrypt
  */
-void aes_cbc_decrypt_blocks(u8 *key_exp, u8 *iv, u8 *src, u8 *dst,
+void MON_SYM(aes_cbc_decrypt_blocks)(u8 *key_exp, u8 *iv, u8 *src, u8 *dst,
 			    u32 num_aes_blocks);
 
 #endif /* _AES_REF_H_ */
