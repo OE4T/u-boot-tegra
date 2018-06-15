@@ -38,6 +38,9 @@ void mon_text mon_smc(u32 func, u32 arg0, u32 arg1, u32 arg2, u32 *ns_regs)
 	}
 
 	switch ((func >> 24) & 0x3f) {
+	case 2:
+		ret = mon_smc_sip(func, arg0, arg1, arg2, ns_regs);
+		break;
 	default:
 		mon_puts(MON_STR("MON: ERR: Unknown SMC call range 0x"));
 		mon_puthex(func, true);

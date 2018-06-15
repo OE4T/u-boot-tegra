@@ -12,4 +12,5 @@ obj-y += mon_vecs.o
 obj-y += mon_dbg.o
 obj-y += mon_entry.o
 obj-y += mon_lib.o
+obj-y += mon_sip.o
 obj-y += mon_smc.o
