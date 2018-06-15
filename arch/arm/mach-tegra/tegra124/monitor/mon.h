@@ -79,6 +79,9 @@ extern void mon_entry_unexpected(void);
 void mon_delay_usecs(u32 n);
 void mon_noreturn mon_error(void);
 
+/* mon_smc.c */
+void mon_smc(u32 func, u32 arg0, u32 arg1, u32 arg2, u32 *ns_regs);
+
 /* mon_vecs.S */
 extern u32 mon_entry_handlers[];
 extern u32 mon_ns_entry_points[];

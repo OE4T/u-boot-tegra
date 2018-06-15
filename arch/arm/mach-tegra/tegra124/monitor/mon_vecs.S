@@ -84,12 +84,27 @@ ENTRY(mon_exc_undef)
 	b	mon_exc
 ENDPROC(mon_exc_undef)
 
-mon_txt_exc_smc:
-	.asciz "SMC @"
-
 ENTRY(mon_exc_smc)
-	adr	r0, mon_txt_exc_smc
-	b	mon_exc
+	// Save all registers; while we should only need to save r4-r14, the
+	// kernel SMC code assumes we save everything. We also save everything
+	// so that the SMC handler can easily modify any NS state.
+	push	{r0-r12, lr}
+	// SCR: secure world banked access
+	mrc	p15, 0, r5, c1, c1, 0
+	bic	r5, r5, #SCR_NS
+	mcr	p15, 0, r5, c1, c1, 0
+	// Handle the SMC call
+	push	{sp} // Pointer to saved NS regs
+	bl	mon_smc
+	add	sp, sp, #4
+	// SCR: non-secure world banked access
+	mrc	p15, 0, r5, c1, c1, 0
+	orr	r5, r5, #SCR_NS
+	mcr	p15, 0, r5, c1, c1, 0
+	// Restore saved (possibly modified) registers
+	pop	{r0-r12, lr}
+	// ERET to NS SW
+	movs	pc, lr
 ENDPROC(mon_exc_smc)
 
 mon_txt_exc_pabort:
