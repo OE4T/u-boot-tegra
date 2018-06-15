@@ -248,6 +248,17 @@ void mon_text mon_entry_cpu_on(void)
 	mon_init_cpu_for_ns();
 }
 
+void mon_text mon_entry_lp2_resume(void)
+{
+#if DEBUG_HIGH_VOLUME
+	mon_puts(MON_STR("MON: LP2 resume CPU "));
+	mon_put_cpuid();
+	mon_putc('\n');
+#endif
+
+	mon_init_cpu_for_ns();
+}
+
 void mon_text mon_entry_unexpected(void)
 {
 	mon_puts(MON_STR("MON: Unexpected entry on CPU "));

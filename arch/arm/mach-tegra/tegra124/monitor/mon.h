@@ -77,6 +77,7 @@ extern void mon_put_cpuid(void);
 /* mon_entry.c */
 extern void mon_entry_initial(void);
 extern void mon_entry_cpu_on(void);
+extern void mon_entry_lp2_resume(void);
 extern void mon_entry_unexpected(void);
 
 /* mon_lib.c */

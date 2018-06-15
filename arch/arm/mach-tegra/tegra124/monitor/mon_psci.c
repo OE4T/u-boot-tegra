@@ -31,6 +31,15 @@
 #define TEGRA_CPU_POWERGATE_ID(cpu) \
 	((cpu == 0) ? TEGRA_POWERGATE_CPU0 : (TEGRA_POWERGATE_CPU1 + cpu - 1))
 
+/* CPU_SUSPEND power_level */
+#define TEGRA_PWR_DN_AFFINITY_CPU		0
+
+/* CPU_SUSPEND state_type */
+#define PSCI_POWER_STATE_TYPE_POWER_DOWN	1
+
+/* CPU_SUSPEND state_id */
+#define TEGRA_ID_CPU_SUSPEND_STDBY		5
+
 static u32 mon_data mon_psci_state[4] = {
 	PSCI_AFFINITY_LEVEL_ON,
 	PSCI_AFFINITY_LEVEL_OFF,
@@ -115,6 +124,66 @@ static void mon_text mon_check_cur_cpu_is_on(void)
 	if (mon_psci_state[cur_cpu_id] != PSCI_AFFINITY_LEVEL_ON) {
 		mon_puts(MON_STR("MON: ERR: Bad CPU state\n"));
 		mon_error();
+	}
+}
+
+static u32 mon_text mon_enter_lp2(u32 state_type, u32 power_level)
+{
+	u32 cur_cpu_id = mon_read_mpidr() & 3;
+
+	if (state_type != PSCI_POWER_STATE_TYPE_POWER_DOWN) {
+		mon_puts(MON_STR("MON: ERR: Bad state_type\n"));
+		return ARM_PSCI_RET_INVAL;
+	}
+
+	if (power_level != TEGRA_PWR_DN_AFFINITY_CPU) {
+		mon_puts(MON_STR("MON: ERR: Bad power_level\n"));
+		return ARM_PSCI_RET_INVAL;
+	}
+
+	mon_entry_handlers[cur_cpu_id] = (u32)&mon_entry_lp2_resume;
+	dsb();
+
+	mon_disable_dcache_clean_l1();
+	mon_disable_smp();
+	mon_cpu_shutdown(0);
+
+	/* This should not be reached */
+	mon_puts(MON_STR("MON: ERR: CPU did not power down!\n"));
+	mon_error();
+}
+
+static u32 mon_text mon_smc_psci_cpu_suspend(u32 power_state,
+	u32 entry_point_address, u32 context_id)
+{
+	u32 cur_cpu_id = mon_read_mpidr() & 3;
+	u32 power_level, state_type, state_id;
+
+#if DEBUG_HIGH_VOLUME
+	mon_puts(MON_STR("MON: PSCI: CPU_SUSPEND for "));
+	mon_put_cpuid();
+	mon_putc('\n');
+#endif
+
+	mon_check_cur_cpu_is_on();
+
+	if (power_state & 0xfcfe0000) {
+		mon_puts(MON_STR("MON: ERR: Bad power state\n"));
+		return ARM_PSCI_RET_INVAL;
+	}
+	power_level = (power_state >> 24) & 3;
+	state_type = (power_state >> 16) & 1;
+	state_id = power_state & 0xffff;
+
+	mon_ns_entry_points[cur_cpu_id] = entry_point_address;
+	mon_context_ids[cur_cpu_id] = context_id;
+	dsb();
+
+	switch (state_id) {
+	case TEGRA_ID_CPU_SUSPEND_STDBY:
+		return mon_enter_lp2(state_type, power_level);
+	default:
+		return ARM_PSCI_RET_NI;
 	}
 }
 
@@ -265,6 +334,8 @@ u32 mon_text mon_smc_psci(u32 func, u32 arg0, u32 arg1, u32 arg2)
 	switch (func) {
 	case ARM_PSCI_0_2_FN_PSCI_VERSION:
 		return 2;
+	case ARM_PSCI_0_2_FN_CPU_SUSPEND:
+		return mon_smc_psci_cpu_suspend(arg0, arg1, arg2);
 	case ARM_PSCI_0_2_FN_CPU_OFF:
 		return mon_smc_psci_cpu_off();
 	case ARM_PSCI_0_2_FN_CPU_ON:
