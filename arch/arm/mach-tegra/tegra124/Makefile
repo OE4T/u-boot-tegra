@@ -1,5 +1,5 @@
 #
-# (C) Copyright 2013-2014
+# (C) Copyright 2013-2018
 # NVIDIA Corporation <www.nvidia.com>
 #
 # SPDX-License-Identifier:     GPL-2.0+
@@ -27,3 +27,8 @@ obj-$(CONFIG_TEGRA_LP0) += crypto.o
 obj-$(CONFIG_TEGRA_LP0) += t1x4_warmboot.o
 obj-$(CONFIG_TEGRA_LP0) += warmboot.o
 obj-$(CONFIG_TEGRA_LP0) += warmboot_avp.o
+
+ifndef CONFIG_SPL_BUILD
+obj-$(CONFIG_TARGET_L4T_MONITOR) += mon_boot.o
+obj-$(CONFIG_TARGET_L4T_MONITOR) += monitor/
+endif

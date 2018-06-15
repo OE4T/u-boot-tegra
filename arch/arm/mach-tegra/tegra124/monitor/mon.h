@@ -71,9 +71,20 @@ extern void mon_puts(const char *s);
 extern void mon_puthex(u32 val, bool zfill);
 extern void mon_put_cpuid(void);
 
+/* mon_entry.c */
+extern void mon_entry_initial(void);
+extern void mon_entry_unexpected(void);
+
 /* mon_lib.c */
 void mon_delay_usecs(u32 n);
 void mon_noreturn mon_error(void);
 
+/* mon_vecs.S */
+extern u32 mon_entry_handlers[];
+extern u32 mon_ns_entry_points[];
+extern u32 mon_context_ids[];
+extern void mon_vectors(void);
+extern void mon_entry(void);
+extern void mon_reentry(void);
 #endif
 #endif
