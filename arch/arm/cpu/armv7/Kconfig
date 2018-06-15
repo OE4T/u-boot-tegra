@@ -43,7 +43,7 @@ config ARMV7_PSCI
 
 config ARMV7_PSCI_NR_CPUS
 	int "Maximum supported CPUs for PSCI"
-	depends on ARMV7_NONSEC
+	depends on ARMV7_NONSEC || TARGET_L4T_MONITOR
 	default 4
 	help
 	  The maximum number of CPUs supported in the PSCI firmware.

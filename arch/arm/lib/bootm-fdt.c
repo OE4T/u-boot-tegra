@@ -62,8 +62,8 @@ int arch_fixup_fdt(void *blob)
 		return ret;
 #endif
 
-#if defined(CONFIG_ARMV7_NONSEC) || defined(CONFIG_ARMV8_PSCI) || \
-	defined(CONFIG_SEC_FIRMWARE_ARMV8_PSCI)
+#if defined(CONFIG_ARMV7_NONSEC) || defined(CONFIG_TARGET_L4T_MONITOR) || \
+	defined(CONFIG_ARMV8_PSCI) || defined(CONFIG_SEC_FIRMWARE_ARMV8_PSCI)
 	ret = psci_update_dt(blob);
 	if (ret)
 		return ret;

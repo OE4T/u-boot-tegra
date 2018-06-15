@@ -1,5 +1,12 @@
 if TEGRA124
 
+config TARGET_L4T_MONITOR
+	bool "Enable L4T secure monitor"
+	help
+	  Enable a secure monitor that supports L4T, and is booted early
+	  during U-Boot operation, rather than immediately before booting
+	  the kernel.
+
 choice
 	prompt "Tegra124 board select"
 	optional

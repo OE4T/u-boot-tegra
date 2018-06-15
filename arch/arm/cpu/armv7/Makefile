@@ -15,8 +15,12 @@ obj-y	+= lowlevel_init.o
 endif
 
 obj-$(CONFIG_ARM_SMCCC)		+= smccc-call.o
+ifeq ($(CONFIG_TARGET_L4T_MONITOR),y)
+obj-y += virt-dt.o
+else
 obj-$(CONFIG_ARMV7_NONSEC)	+= nonsec_virt.o virt-v7.o virt-dt.o
 obj-$(CONFIG_ARMV7_PSCI)	+= psci.o psci-common.o
+endif
 
 obj-$(CONFIG_IPROC) += iproc-common/
 obj-$(CONFIG_KONA) += kona-common/

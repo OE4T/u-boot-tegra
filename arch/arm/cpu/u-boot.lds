@@ -17,7 +17,7 @@ SECTIONS
 #ifndef CONFIG_CMDLINE
 	/DISCARD/ : { *(.u_boot_list_2_cmd_*) }
 #endif
-#if defined(CONFIG_ARMV7_SECURE_BASE) && defined(CONFIG_ARMV7_NONSEC)
+#if defined(CONFIG_ARMV7_SECURE_BASE) && (defined(CONFIG_ARMV7_NONSEC) || defined(CONFIG_TARGET_L4T_MONITOR))
 	/*
 	 * If CONFIG_ARMV7_SECURE_BASE is true, secure code will not
 	 * bundle with u-boot, and code offsets are fixed. Secure zone
@@ -46,7 +46,7 @@ SECTIONS
 		*(.text*)
 	}
 
-#ifdef CONFIG_ARMV7_NONSEC
+#if defined(CONFIG_ARMV7_NONSEC) || defined(CONFIG_TARGET_L4T_MONITOR)
 
 	/* Align the secure section only if we're going to use it in situ */
 	.__secure_start :
@@ -66,6 +66,7 @@ SECTIONS
 		AT(ADDR(.__secure_start) + SIZEOF(.__secure_start))
 	{
 		*(._secure.text)
+		*(._secure.rodata)
 	}
 
 	.secure_data : AT(LOADADDR(.secure_text) + SIZEOF(.secure_text))
@@ -73,7 +74,7 @@ SECTIONS
 		*(._secure.data)
 	}
 
-#ifdef CONFIG_ARMV7_PSCI
+#if defined(CONFIG_ARMV7_PSCI) || defined(CONFIG_TARGET_L4T_MONITOR)
 	.secure_stack ALIGN(ADDR(.secure_data) + SIZEOF(.secure_data),
 			    CONSTANT(COMMONPAGESIZE)) (NOLOAD) :
 #ifdef __ARMV7_PSCI_STACK_IN_RAM
