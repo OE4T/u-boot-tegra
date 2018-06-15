@@ -270,6 +270,16 @@ void mon_text mon_entry_cluster_resume(void)
 	mon_init_cpu_for_ns();
 }
 
+void mon_text mon_entry_lp1_resume(void)
+{
+	mon_puts(MON_STR("MON: LP1 resume CPU "));
+	mon_put_cpuid();
+	mon_putc('\n');
+
+	mon_psci_undo_lp1_entry();
+	mon_init_cpu_for_ns();
+}
+
 void mon_text mon_entry_unexpected(void)
 {
 	mon_puts(MON_STR("MON: Unexpected entry on CPU "));

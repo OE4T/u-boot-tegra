@@ -80,6 +80,7 @@ extern void mon_entry_initial(void);
 extern void mon_entry_cpu_on(void);
 extern void mon_entry_lp2_resume(void);
 extern void mon_entry_cluster_resume(void);
+extern void mon_entry_lp1_resume(void);
 extern void mon_entry_unexpected(void);
 
 /* mon_lib.c */
@@ -88,6 +89,7 @@ void mon_noreturn mon_error(void);
 
 /* mon_psci.c */
 extern void mon_init_psci_soc(void);
+extern void mon_psci_undo_lp1_entry(void);
 extern void mon_smc_psci_notify_booted(void);
 extern u32 mon_smc_psci(u32 func, u32 arg0, u32 arg1, u32 arg2);
 
@@ -95,8 +97,12 @@ extern u32 mon_smc_psci(u32 func, u32 arg0, u32 arg1, u32 arg2);
 extern u32 mon_smc_sip(u32 func, u32 arg0, u32 arg1, u32 arg2, u32 *ns_regs);
 
 /* mon_sleep.S */
+extern u8 tegra3_iram_end;
+extern u8 tegra3_iram_start;
 extern void mon_cpu_shutdown(u32 for_hotplug);
 extern void mon_cluster_shutdown(void);
+extern void mon_lp1_shutdown(void);
+extern void tegra3_lp1_reset(void);
 
 /* mon_smc.c */
 void mon_smc(u32 func, u32 arg0, u32 arg1, u32 arg2, u32 *ns_regs);
@@ -105,6 +111,7 @@ void mon_smc(u32 func, u32 arg0, u32 arg1, u32 arg2, u32 *ns_regs);
 extern u32 mon_entry_handlers[];
 extern u32 mon_ns_entry_points[];
 extern u32 mon_context_ids[];
+extern u32 *mon_lp0_lp1_entry_iram_save_ptr;
 extern void mon_vectors(void);
 extern void mon_entry(void);
 extern void mon_reentry(void);

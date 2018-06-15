@@ -39,6 +39,7 @@
 #define PSCI_POWER_STATE_TYPE_POWER_DOWN	1
 
 /* CPU_SUSPEND state_id */
+#define TEGRA_ID_CPU_SUSPEND_LP1		2
 #define TEGRA_ID_CPU_SUSPEND_CLUSTER		4
 #define TEGRA_ID_CPU_SUSPEND_STDBY		5
 
@@ -141,6 +142,133 @@ static u32 mon_text mon_online_cpu_count(void)
 	return count;
 }
 
+static void mon_text mon_clean_dcache_to_poc(u32 addr, size_t length)
+{
+#define CACHE_LINE_LEN 64
+	length += CACHE_LINE_LEN - 1;
+	length &= ~(CACHE_LINE_LEN - 1);
+	while (length) {
+		mon_dccimvac(addr);
+		addr += CACHE_LINE_LEN;
+		length -= CACHE_LINE_LEN;
+	}
+}
+
+#define LP01_RST_MASK_L ( \
+	BIT(31) | /* COP cache */ \
+	BIT(29) | /* VCP */ \
+	BIT(1))   /* COP */
+
+#define LP01_RST_MASK_H ( \
+	BIT(31) | /* BSEV */ \
+	BIT(30) | /* BSEA */ \
+	BIT(29) | /* VDE */ \
+	BIT(10) | /* NOR */ \
+	BIT(2)  | /* APB DMA */ \
+	BIT(1))   /* AHB DMA */
+
+#define LP01_RST_MASK_U ( \
+	BIT(11))  /* AVPUCQ */
+
+static u32 mon_data mon_pre_lp1_rst_l, mon_pre_lp1_rst_h, mon_pre_lp1_rst_u;
+
+static void mon_text mon_text mon_reset_all_iram_bus_masters(void)
+{
+	struct clk_rst_ctlr *clkrst = (struct clk_rst_ctlr *)NV_PA_CLK_RST_BASE;
+
+	/*
+	 * Modules that can master the bus that IRAM is attached to could
+	 * corrupt the LP0/1 entry/exit code in IRAM afte the monitor copies
+	 * it there. Force all such modules into reset to prevent this.
+	 * The following can't be controlled: SE (no reset bit), USB2 (might
+	 * be a wakeup source).
+	 */
+	mon_pre_lp1_rst_l = readl(&clkrst->crc_rst_dev[0]);
+	writel(LP01_RST_MASK_L, &clkrst->crc_rst_dev_ex[0].set);
+	mon_pre_lp1_rst_h = readl(&clkrst->crc_rst_dev[1]);
+	writel(LP01_RST_MASK_H, &clkrst->crc_rst_dev_ex[1].set);
+	mon_pre_lp1_rst_u = readl(&clkrst->crc_rst_dev[2]);
+	writel(LP01_RST_MASK_U, &clkrst->crc_rst_dev_ex[2].set);
+}
+
+static void mon_text mon_text mon_unreset_all_iram_bus_masters(void)
+{
+	struct clk_rst_ctlr *clkrst = (struct clk_rst_ctlr *)NV_PA_CLK_RST_BASE;
+
+	writel(LP01_RST_MASK_L & ~mon_pre_lp1_rst_l,
+		&clkrst->crc_rst_dev_ex[0].clr);
+	writel(LP01_RST_MASK_H & ~mon_pre_lp1_rst_h,
+		&clkrst->crc_rst_dev_ex[1].clr);
+	writel(LP01_RST_MASK_U & ~mon_pre_lp1_rst_u,
+		&clkrst->crc_rst_dev_ex[2].clr);
+}
+
+static void mon_text mon_psci_install_lp0_lp1_entry_code(void)
+{
+	u32 iram_len = (u32)&tegra3_iram_end - (u32)&tegra3_iram_start;
+	mon_memcpy(mon_lp0_lp1_entry_iram_save_ptr, (void *)MON_LP0_LP1_ENTRY_IRAM_ADDR, iram_len);
+	mon_memcpy((void *)MON_LP0_LP1_ENTRY_IRAM_ADDR, &tegra3_iram_start, iram_len);
+}
+
+static void mon_text mon_psci_uninstall_lp0_lp1_entry_code(void)
+{
+	u32 iram_len = (u32)&tegra3_iram_end - (u32)&tegra3_iram_start;
+	mon_memcpy((void *)MON_LP0_LP1_ENTRY_IRAM_ADDR, mon_lp0_lp1_entry_iram_save_ptr, iram_len);
+	mon_clean_dcache_to_poc(MON_LP0_LP1_ENTRY_IRAM_ADDR, iram_len);
+}
+
+void mon_text mon_psci_undo_lp1_entry(void)
+{
+	mon_psci_uninstall_lp0_lp1_entry_code();
+	mon_unreset_all_iram_bus_masters();
+
+	// Make CPU reset directly into monitor in DRAM
+	writel((u32)&mon_reentry, TEGRA_RESET_EXCEPTION_VECTOR);
+}
+
+static u32 mon_text mon_enter_lp1(u32 state_type, u32 power_level)
+{
+	u32 cur_cpu_id = mon_read_mpidr() & 3;
+	u32 iram_tegra3_lp1_reset;
+
+	if (state_type != PSCI_POWER_STATE_TYPE_POWER_DOWN) {
+		mon_puts(MON_STR("MON: ERR: Bad state_type\n"));
+		return ARM_PSCI_RET_INVAL;
+	}
+
+	if (power_level != TEGRA_PWR_DN_AFFINITY_CLUSTER) {
+		mon_puts(MON_STR("MON: ERR: Bad power_level\n"));
+		return ARM_PSCI_RET_INVAL;
+	}
+
+	if (mon_online_cpu_count() != 1) {
+		mon_puts(MON_STR("MON: ERR: Multiple CPUs online\n"));
+		return ARM_PSCI_RET_INVAL;
+	}
+
+	mon_puts(MON_STR("MON: PSCI: Entering LP1\n"));
+
+	mon_reset_all_iram_bus_masters();
+	mon_psci_install_lp0_lp1_entry_code();
+
+	// Make CPU reset into IRAM
+	iram_tegra3_lp1_reset = MON_LP0_LP1_ENTRY_IRAM_ADDR +
+		((u32)((u8 *)&tegra3_lp1_reset - (u8 *)&tegra3_iram_start));
+	writel(iram_tegra3_lp1_reset, TEGRA_RESET_EXCEPTION_VECTOR);
+
+	// Inform monitor entry code what do do
+	mon_entry_handlers[cur_cpu_id] = (u32)&mon_entry_lp1_resume;
+	dsb();
+
+	mon_disable_dcache_clean_all();
+	mon_disable_smp();
+	mon_lp1_shutdown();
+
+	/* This should not be reached */
+	mon_puts(MON_STR("MON: ERR: CPU did not power down!\n"));
+	mon_error();
+}
+
 static u32 mon_text mon_cluster_switch(u32 state_type, u32 power_level)
 {
 	u32 cur_cpu_id = mon_read_mpidr() & 3;
@@ -225,6 +353,8 @@ static u32 mon_text mon_smc_psci_cpu_suspend(u32 power_state,
 	dsb();
 
 	switch (state_id) {
+	case TEGRA_ID_CPU_SUSPEND_LP1:
+		return mon_enter_lp1(state_type, power_level);
 	case TEGRA_ID_CPU_SUSPEND_CLUSTER:
 		return mon_cluster_switch(state_type, power_level);
 	case TEGRA_ID_CPU_SUSPEND_STDBY:
