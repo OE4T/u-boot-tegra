@@ -9,8 +9,11 @@
 # It doesn't really matter, but makes the binary layout a bit more obvious.
 obj-y += mon_vecs.o
 
+obj-y += mon_cache.o
 obj-y += mon_dbg.o
 obj-y += mon_entry.o
 obj-y += mon_lib.o
+obj-y += mon_psci.o
 obj-y += mon_sip.o
+obj-y += mon_sleep.o
 obj-y += mon_smc.o

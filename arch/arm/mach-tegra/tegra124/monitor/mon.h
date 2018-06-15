@@ -65,6 +65,9 @@
 #include "mon_cp15.h"
 #include "mon_gic.h"
 
+/* mon_cache.S */
+extern void mon_disable_dcache_clean_l1(void);
+
 /* mon_dbg.c */
 extern void mon_putc(char c);
 extern void mon_puts(const char *s);
@@ -73,14 +76,23 @@ extern void mon_put_cpuid(void);
 
 /* mon_entry.c */
 extern void mon_entry_initial(void);
+extern void mon_entry_cpu_on(void);
 extern void mon_entry_unexpected(void);
 
 /* mon_lib.c */
 void mon_delay_usecs(u32 n);
 void mon_noreturn mon_error(void);
 
+/* mon_psci.c */
+extern void mon_init_psci_soc(void);
+extern void mon_smc_psci_notify_booted(void);
+extern u32 mon_smc_psci(u32 func, u32 arg0, u32 arg1, u32 arg2);
+
 /* mon_sip.c */
 extern u32 mon_smc_sip(u32 func, u32 arg0, u32 arg1, u32 arg2, u32 *ns_regs);
+
+/* mon_sleep.S */
+extern void mon_cpu_shutdown(u32 for_hotplug);
 
 /* mon_smc.c */
 void mon_smc(u32 func, u32 arg0, u32 arg1, u32 arg2, u32 *ns_regs);

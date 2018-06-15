@@ -119,6 +119,7 @@ static void mon_text mon_init_vpr(void)
 
 static void mon_text mon_init_soc(void)
 {
+	mon_init_psci_soc();
 	mon_init_secure_ram();
 	mon_init_evp();
 	mon_init_sysctr_ctlr();
@@ -235,6 +236,15 @@ void mon_text mon_entry_initial(void)
 
 	mon_init_clear_pmc_scratch();
 	mon_init_soc();
+	mon_init_cpu_for_ns();
+}
+
+void mon_text mon_entry_cpu_on(void)
+{
+	mon_puts(MON_STR("MON: CPU_ON on CPU "));
+	mon_put_cpuid();
+	mon_putc('\n');
+
 	mon_init_cpu_for_ns();
 }
 

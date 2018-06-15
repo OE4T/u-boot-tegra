@@ -272,6 +272,8 @@ ENTRY(mon_reentry)
 	str	r7, [r5, r4, LSL #2]
 	blx	r6
 
+	blx	mon_smc_psci_notify_booted
+
 	// Get NS world target PC and context ID
 	mrc p15, 0, r4, c0, c0, 5	// MPIDR
 	and r4, r4, #0x3		// Aff0 (masked to T124 CPU count)
