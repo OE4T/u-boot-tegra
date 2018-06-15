@@ -67,6 +67,7 @@
 
 /* mon_cache.S */
 extern void mon_disable_dcache_clean_l1(void);
+extern void mon_disable_dcache_clean_all(void);
 
 /* mon_dbg.c */
 extern void mon_putc(char c);
@@ -78,6 +79,7 @@ extern void mon_put_cpuid(void);
 extern void mon_entry_initial(void);
 extern void mon_entry_cpu_on(void);
 extern void mon_entry_lp2_resume(void);
+extern void mon_entry_cluster_resume(void);
 extern void mon_entry_unexpected(void);
 
 /* mon_lib.c */
@@ -94,6 +96,7 @@ extern u32 mon_smc_sip(u32 func, u32 arg0, u32 arg1, u32 arg2, u32 *ns_regs);
 
 /* mon_sleep.S */
 extern void mon_cpu_shutdown(u32 for_hotplug);
+extern void mon_cluster_shutdown(void);
 
 /* mon_smc.c */
 void mon_smc(u32 func, u32 arg0, u32 arg1, u32 arg2, u32 *ns_regs);

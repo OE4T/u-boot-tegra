@@ -13,13 +13,17 @@
 	.pushsection ._secure.text, "ax"
 
 #define FLOW_CTLR_HALT_CPU_EVENTS		0x00
+#define FLOW_CTLR_HALT_EVENTS_MODE_STOP_UNTIL_IRQ	(4 << 29)
 #define FLOW_CTLR_HALT_EVENTS_MODE_WAITEVENT	(2 << 29)
+#define FLOW_CTLR_HALT_EVENTS_LIC_IRQ		BIT(11)
+#define FLOW_CTLR_HALT_EVENTS_LIC_FIQ		BIT(10)
 #define FLOW_CTLR_HALT_EVENTS_GIC_IRQ		BIT(9)
 #define FLOW_CTLR_HALT_EVENTS_GIC_FIQ		BIT(8)
 
 #define FLOW_CTLR_CPU_CSR			0x08
 #define FLOW_CTLR_CSR_INTR_FLAG			BIT(15)
 #define FLOW_CTLR_CSR_EVENT_FLAG		BIT(14)
+#define FLOW_CTLR_CSR_IMMEDIATE_WAKE		BIT(3)
 #define FLOW_CTLR_CSR_ENABLE			BIT(0)
 
 #define FLOW_CTLR_HALT_CPU1_EVENTS		0x14
@@ -156,5 +160,43 @@ mon_cpu_shutdown_wfe_war:
 	.endr
 	b	.				@ should never get here
 ENDPROC(mon_cpu_shutdown)
+
+/*
+ * mon_cluster_shutdown
+ *
+ * uses flow controller to enter sleep state
+ * This copy is only used for cluster switching; there's another copy that's
+ * executed from IRAM for LP0/LP1.
+ * executes from SDRAM with target state is LP2
+ */
+ENTRY(mon_cluster_shutdown)
+	ldr	r6, =TEGRA_FLOW_CTLR_BASE
+
+	dsb
+	cpu_id	r1
+
+	cpu_to_csr_reg	r2, r1
+	ldr	r0, [r6, r2]
+	orr	r0, r0, #FLOW_CTLR_CSR_INTR_FLAG | FLOW_CTLR_CSR_EVENT_FLAG
+	orr	r0, r0, #FLOW_CTLR_CSR_ENABLE
+	str	r0, [r6, r2]
+
+	tst	r0, #FLOW_CTLR_CSR_IMMEDIATE_WAKE
+	movne	r0, #FLOW_CTLR_HALT_EVENTS_MODE_WAITEVENT
+	moveq	r0, #FLOW_CTLR_HALT_EVENTS_MODE_STOP_UNTIL_IRQ
+	orr	r0, r0, #FLOW_CTLR_HALT_EVENTS_LIC_IRQ | FLOW_CTLR_HALT_EVENTS_LIC_FIQ
+	cpu_to_halt_reg r2, r1
+	str	r0, [r6, r2]
+	dsb
+	ldr	r0, [r6, r2] /* memory barrier */
+
+1:
+	isb
+	dsb
+	wfi	/* CPU should be power gated here */
+
+	/* !!!FIXME!!! Implement halt failure handler */
+	b	1b
+ENDPROC(mon_cluster_shutdown)
 
 	.popsection

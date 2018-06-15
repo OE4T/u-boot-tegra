@@ -33,11 +33,13 @@
 
 /* CPU_SUSPEND power_level */
 #define TEGRA_PWR_DN_AFFINITY_CPU		0
+#define TEGRA_PWR_DN_AFFINITY_CLUSTER		1
 
 /* CPU_SUSPEND state_type */
 #define PSCI_POWER_STATE_TYPE_POWER_DOWN	1
 
 /* CPU_SUSPEND state_id */
+#define TEGRA_ID_CPU_SUSPEND_CLUSTER		4
 #define TEGRA_ID_CPU_SUSPEND_STDBY		5
 
 static u32 mon_data mon_psci_state[4] = {
@@ -127,6 +129,49 @@ static void mon_text mon_check_cur_cpu_is_on(void)
 	}
 }
 
+static u32 mon_text mon_online_cpu_count(void)
+{
+	u32 cpu, count = 0;
+
+	for (cpu = 0; cpu <= 3; cpu++) {
+		if (mon_psci_state[cpu] != PSCI_AFFINITY_LEVEL_OFF)
+			count++;
+	}
+
+	return count;
+}
+
+static u32 mon_text mon_cluster_switch(u32 state_type, u32 power_level)
+{
+	u32 cur_cpu_id = mon_read_mpidr() & 3;
+
+	if (state_type != PSCI_POWER_STATE_TYPE_POWER_DOWN) {
+		mon_puts(MON_STR("MON: ERR: Bad state_type\n"));
+		return ARM_PSCI_RET_INVAL;
+	}
+
+	if (power_level != TEGRA_PWR_DN_AFFINITY_CLUSTER) {
+		mon_puts(MON_STR("MON: ERR: Bad power_level\n"));
+		return ARM_PSCI_RET_INVAL;
+	}
+
+	if (mon_online_cpu_count() != 1) {
+		mon_puts(MON_STR("MON: ERR: Multiple CPUs online\n"));
+		return ARM_PSCI_RET_INVAL;
+	}
+
+	mon_entry_handlers[cur_cpu_id] = (u32)&mon_entry_cluster_resume;
+	dsb();
+
+	mon_disable_dcache_clean_all();
+	mon_disable_smp();
+	mon_cluster_shutdown();
+
+	/* This should not be reached */
+	mon_puts(MON_STR("MON: ERR: CPU did not power down!\n"));
+	mon_error();
+}
+
 static u32 mon_text mon_enter_lp2(u32 state_type, u32 power_level)
 {
 	u32 cur_cpu_id = mon_read_mpidr() & 3;
@@ -180,6 +225,8 @@ static u32 mon_text mon_smc_psci_cpu_suspend(u32 power_state,
 	dsb();
 
 	switch (state_id) {
+	case TEGRA_ID_CPU_SUSPEND_CLUSTER:
+		return mon_cluster_switch(state_type, power_level);
 	case TEGRA_ID_CPU_SUSPEND_STDBY:
 		return mon_enter_lp2(state_type, power_level);
 	default:
