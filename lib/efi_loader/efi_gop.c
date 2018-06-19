@@ -77,6 +77,10 @@ static __always_inline u16 efi_blt_col_to_vid16(struct efi_gop_pixel *blt)
 	       (u16)(blt->blue  >> 3);
 }
 
+#if GCC_VERSION < 40700
+#define __builtin_assume_aligned(p, a) (p)
+#endif
+
 static __always_inline efi_status_t gop_blt_int(struct efi_gop *this,
 						struct efi_gop_pixel *bufferp,
 						u32 operation, efi_uintn_t sx,
