@@ -7,7 +7,9 @@
 #ifndef _WARM_BOOT_H_
 #define _WARM_BOOT_H_
 
+#ifdef CONFIG_TEGRA124
 #include <asm/arch-tegra/sdram_param.h>
+#endif
 #include <mon_section_default.h>
 
 #define STRAP_OPT_A_RAM_CODE_SHIFT	4
@@ -224,6 +226,7 @@ void MON_SYM(wb_end)(void);	/* End of WB assembly code */
 
 /* Common routines for T114 and T124 SOCs */
 
+#ifdef CONFIG_TEGRA124
 /*
  * t1x4_wb_save_sdram_params():
  * save sdram parameters to scratch registers so sdram parameters can be
@@ -236,4 +239,5 @@ int MON_SYM(t1x4_wb_save_sdram_params)(struct sdram_params *sdram);
  * prepare WB code, which will be executed by AVP when system resumes from LP0
  */
 int MON_SYM(t1x4_wb_prepare_code)(u32 tegra_id, u32 seg_address, u32 seg_length);
+#endif
 #endif
