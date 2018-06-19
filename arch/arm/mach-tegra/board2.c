@@ -412,7 +412,6 @@ void get_board_serial(unsigned long *serial_high, unsigned long *serial_low)
 #endif /* SERIAL_EEPROM */
 }
 
-#ifdef CONFIG_OF_BOARD_SETUP
 void fdt_serial_tag_setup(void *blob, bd_t *bd)
 {
 	unsigned long serial_high;
@@ -474,15 +473,10 @@ void fdt_serial_tag_setup(void *blob, bd_t *bd)
 		printf("ERROR: could not update name property %s.\n",
 			fdt_strerror(ret));
 }
-#endif  /* OF_BOARD_SETUP */
-#endif	/* SERIAL_TAG */
 
-#ifdef CONFIG_OF_BOARD_SETUP
 void ft_board_setup(void *blob, bd_t *bd)
 {
 	/* Overwrite DT file with right board info properties */
-#ifdef CONFIG_SERIAL_TAG
 	fdt_serial_tag_setup(blob, bd);
-#endif	/* SERIAL_TAG */
 }
-#endif  /* OF_BOARD_SETUP */
+#endif	/* SERIAL_TAG */
