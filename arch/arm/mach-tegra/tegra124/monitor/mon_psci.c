@@ -158,53 +158,56 @@ static void mon_text mon_clean_dcache_to_poc(u32 addr, size_t length)
 	}
 }
 
-#define LP01_RST_MASK_L ( \
-	BIT(31) | /* COP cache */ \
-	BIT(29) | /* VCP */ \
-	BIT(1))   /* COP */
+#define AHB_ARBITRATION_DISABLE_0 4
 
-#define LP01_RST_MASK_H ( \
-	BIT(31) | /* BSEV */ \
-	BIT(30) | /* BSEA */ \
-	BIT(29) | /* VDE */ \
-	BIT(10) | /* NOR */ \
-	BIT(2)  | /* APB DMA */ \
-	BIT(1))   /* AHB DMA */
+static u32 mon_data mon_pre_lp_ahb_arb_dis;
 
-#define LP01_RST_MASK_U ( \
-	BIT(11))  /* AVPUCQ */
-
-static u32 mon_data mon_pre_lp1_rst_l, mon_pre_lp1_rst_h, mon_pre_lp1_rst_u;
-
-static void mon_text mon_text mon_reset_all_iram_bus_masters(void)
+static void mon_text mon_disable_all_ahb_masters(void)
 {
-	struct clk_rst_ctlr *clkrst = (struct clk_rst_ctlr *)NV_PA_CLK_RST_BASE;
+	u32 val;
+
+	mon_pre_lp_ahb_arb_dis = readl(NV_PA_AHB_BASE + AHB_ARBITRATION_DISABLE_0);
 
 	/*
-	 * Modules that can master the bus that IRAM is attached to could
-	 * corrupt the LP0/1 entry/exit code in IRAM afte the monitor copies
-	 * it there. Force all such modules into reset to prevent this.
-	 * The following can't be controlled: SE (no reset bit), USB2 (might
-	 * be a wakeup source).
+	 * Disable all AHB masters except for:
+	 * BIT(3) CSITE: If this is active, there is no security anyway.
+	 * BIT(0) CPU:   The CPU executes code from IRAM.
+	 *
+	 * This prevents anything from accessing IRAM, and thus prevents the
+	 * LP0/1 entry/resume code from being edited while it's located in
+	 * IRAM, which in turn prevents the monitor's execution flow from being
+	 * subverted.
 	 */
-	mon_pre_lp1_rst_l = readl(&clkrst->crc_rst_dev[0]);
-	writel(LP01_RST_MASK_L, &clkrst->crc_rst_dev_ex[0].set);
-	mon_pre_lp1_rst_h = readl(&clkrst->crc_rst_dev[1]);
-	writel(LP01_RST_MASK_H, &clkrst->crc_rst_dev_ex[1].set);
-	mon_pre_lp1_rst_u = readl(&clkrst->crc_rst_dev[2]);
-	writel(LP01_RST_MASK_U, &clkrst->crc_rst_dev_ex[2].set);
+	val = mon_pre_lp_ahb_arb_dis |
+		BIT(21) | /* MIPIHSI */
+		BIT(18) | /* USB2 */
+		BIT(17) | /* USB3 */
+		BIT(16) | /* BSEA */
+		BIT(15) | /* DDS */
+		BIT(14) | /* SE */
+		BIT(13) | /* BSEV */
+		BIT(11) | /* SNOR */
+		BIT(7)  | /* APBDMA */
+		BIT(6)  | /* USB */
+		BIT(5)  | /* AHBDMA */
+		BIT(4)  | /* ARC */
+		BIT(2)  | /* VCP */
+		BIT(1);   /* COP */
+	writel(val, NV_PA_AHB_BASE + AHB_ARBITRATION_DISABLE_0);
+	/* Finish and drain any existing transactions */
+	asm volatile("isb; dsb \n\t");
+	mon_delay_usecs(100);
+	/* Make sure nothing snuck in an edit to that register */
+	val ^= readl(NV_PA_AHB_BASE + AHB_ARBITRATION_DISABLE_0);
+	if (val) {
+		mon_puts(MON_STR("MON: ERR: AHB arbitration register changed!\n"));
+		mon_error();
+	}
 }
 
-static void mon_text mon_text mon_unreset_all_iram_bus_masters(void)
+static void mon_text mon_reenable_all_ahb_masters(void)
 {
-	struct clk_rst_ctlr *clkrst = (struct clk_rst_ctlr *)NV_PA_CLK_RST_BASE;
-
-	writel(LP01_RST_MASK_L & ~mon_pre_lp1_rst_l,
-		&clkrst->crc_rst_dev_ex[0].clr);
-	writel(LP01_RST_MASK_H & ~mon_pre_lp1_rst_h,
-		&clkrst->crc_rst_dev_ex[1].clr);
-	writel(LP01_RST_MASK_U & ~mon_pre_lp1_rst_u,
-		&clkrst->crc_rst_dev_ex[2].clr);
+	writel(mon_pre_lp_ahb_arb_dis, NV_PA_AHB_BASE + AHB_ARBITRATION_DISABLE_0);
 }
 
 static u32 mon_text mon_lp0_resume_size(void)
@@ -245,7 +248,7 @@ void mon_text mon_psci_undo_lp0_entry(void)
 {
 	mon_psci_uninstall_lp0_resume_code();
 	mon_psci_uninstall_lp0_lp1_entry_code();
-	// Don't call mon_unreset_all_iram_bus_masters(); the whole chip was reset
+	// Don't call mon_reenable_all_ahb_masters(); the whole chip was reset
 }
 
 static u32 mon_text mon_enter_lp0(u32 state_type, u32 power_level)
@@ -269,7 +272,7 @@ static u32 mon_text mon_enter_lp0(u32 state_type, u32 power_level)
 
 	mon_puts(MON_STR("MON: PSCI: Entering LP0\n"));
 
-	mon_reset_all_iram_bus_masters();
+	mon_disable_all_ahb_masters();
 	mon_psci_install_lp0_lp1_entry_code();
 	mon_psci_install_lp0_resume_code();
 
@@ -289,7 +292,7 @@ static u32 mon_text mon_enter_lp0(u32 state_type, u32 power_level)
 void mon_text mon_psci_undo_lp1_entry(void)
 {
 	mon_psci_uninstall_lp0_lp1_entry_code();
-	mon_unreset_all_iram_bus_masters();
+	mon_reenable_all_ahb_masters();
 
 	// Make CPU reset directly into monitor in DRAM
 	writel((u32)&mon_reentry, TEGRA_RESET_EXCEPTION_VECTOR);
@@ -317,7 +320,7 @@ static u32 mon_text mon_enter_lp1(u32 state_type, u32 power_level)
 
 	mon_puts(MON_STR("MON: PSCI: Entering LP1\n"));
 
-	mon_reset_all_iram_bus_masters();
+	mon_disable_all_ahb_masters();
 	mon_psci_install_lp0_lp1_entry_code();
 
 	// Make CPU reset into IRAM
