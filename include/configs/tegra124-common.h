@@ -56,7 +56,11 @@
 	"ramdisk_addr_r=0x82100000\0"
 
 /* Defines for SPL */
+#ifdef CONFIG_TARGET_JETSON_TK1
 #define CONFIG_SPL_TEXT_BASE		0x83D88000
+#else
+#define CONFIG_SPL_TEXT_BASE		0x80108000
+#endif
 #define CONFIG_SYS_SPL_MALLOC_START	0x80090000
 #define CONFIG_SPL_STACK		0x800ffffc
 
