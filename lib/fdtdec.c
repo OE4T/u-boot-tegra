@@ -7,7 +7,7 @@
 #include <common.h>
 #include <errno.h>
 #include <serial.h>
-#include <libfdt.h>
+#include "libfdt/libfdt.h"
 #include <fdtdec.h>
 #include <linux/ctype.h>
 

@@ -6,8 +6,8 @@
 #include "libfdt_env.h"
 
 #ifndef USE_HOSTCC
-#include <fdt.h>
-#include <libfdt.h>
+#include "fdt.h"
+#include "libfdt.h"
 #else
 #include "fdt_host.h"
 #endif
