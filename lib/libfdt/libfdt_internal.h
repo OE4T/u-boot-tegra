@@ -5,7 +5,7 @@
  * Copyright (C) 2006 David Gibson, IBM Corporation.
  * SPDX-License-Identifier:	GPL-2.0+ BSD-2-Clause
  */
-#include <fdt.h>
+#include "fdt.h"
 
 #define FDT_ALIGN(x, a)		(((x) + (a) - 1) & ~((a) - 1))
 #define FDT_TAGALIGN(x)		(FDT_ALIGN((x), FDT_TAGSIZE))
