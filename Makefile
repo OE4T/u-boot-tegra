@@ -599,6 +599,7 @@ KBUILD_CFLAGS += $(KCFLAGS)
 UBOOTINCLUDE    := \
 		-Iinclude \
 		$(if $(KBUILD_SRC), -I$(srctree)/include) \
+		-I$(srctree)/lib/libfdt \
 		$(if $(CONFIG_SYS_THUMB_BUILD), $(if $(CONFIG_HAS_THUMB2),, \
 			-I$(srctree)/arch/$(ARCH)/thumb1/include),) \
 		-I$(srctree)/arch/$(ARCH)/include \
