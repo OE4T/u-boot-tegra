@@ -221,7 +221,7 @@ LICENSE-$(CONFIG_CMD_LICENSE) += $(LICENSE_H)
 # Define __KERNEL_STRICT_NAMES to prevent typedef overlaps
 # Define _GNU_SOURCE to obtain the getline prototype from stdio.h
 #
-HOST_EXTRACFLAGS += -include $(srctree)/include/libfdt_env.h \
+HOST_EXTRACFLAGS += -include $(srctree)/lib/libfdt/libfdt_env.h \
 		$(patsubst -I%,-idirafter%, $(filter -I%, $(UBOOTINCLUDE))) \
 		-I$(srctree)/lib/libfdt \
 		-I$(srctree)/tools \
