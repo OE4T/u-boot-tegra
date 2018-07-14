@@ -10,11 +10,11 @@
 
 #ifndef USE_HOSTCC
 #include <common.h>
-#include <libfdt.h>
-#include <fdtdec.h>
+#include "libfdt/libfdt.h"
+#include "libfdt/fdtdec.h"
 #else
-#include "libfdt.h"
-#include "fdt_support.h"
+#include "libfdt/libfdt.h"
+#include "libfdt/fdt_support.h"
 
 #define debug(...)
 #endif
