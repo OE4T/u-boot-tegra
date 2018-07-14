@@ -50,8 +50,8 @@ struct lmb;
 
 #if IMAGE_ENABLE_FIT
 #include <hash.h>
-#include <libfdt.h>
-#include <fdt_support.h>
+#include "../lib/libfdt/libfdt.h"
+#include "../lib/libfdt/fdt_support.h"
 # ifdef CONFIG_SPL_BUILD
 #  ifdef CONFIG_SPL_CRC32_SUPPORT
 #   define IMAGE_ENABLE_CRC32	1
