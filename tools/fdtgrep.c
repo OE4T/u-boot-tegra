@@ -15,9 +15,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdbool.h>
 
-#include <../include/libfdt.h>
-#include <libfdt_internal.h>
+#include "../lib/libfdt/libfdt.h"
+#include "../lib/libfdt/libfdt_internal.h"
 
 /* Define DEBUG to get some debugging output on stderr */
 #ifdef DEBUG
