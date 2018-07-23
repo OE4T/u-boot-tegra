@@ -19,6 +19,9 @@
 #define APBDEV_PMC_PMC_SWRST_0		0x8
 #define APBDEV_PMC_SCRATCH1_0		0x54
 #define APBDEV_PMC_SCRATCH2_0		0x58
+#define APBDEV_PMC_SCRATCH3_0		0x5c
+#define APBDEV_PMC_SCRATCH4_0		0x60
+#define APBDEV_PMC_SCRATCH5_0		0x64
 #define APBDEV_PMC_SCRATCH19_0		0x9c
 #define APBDEV_PMC_SCRATCH22_0		0xa8
 #define APBDEV_PMC_SCRATCH23_0		0xac
@@ -48,6 +51,8 @@
 
 static u32 mon_text mon_sip_pmc_commands(u32 cmd, u32 addr, u32 val, u32 *ns_regs)
 {
+	uint32_t ns_mask, tmp;
+
 	/* Check the address is within PMC range and is 4byte aligned */
 	if ((addr >= APBDEV_PMC_SIZE) || (addr & 0x3)) {
 		mon_puts(MON_STR("MON: ERR: Invalid PMC offset 0x"));
@@ -62,7 +67,8 @@ static u32 mon_text mon_sip_pmc_commands(u32 cmd, u32 addr, u32 val, u32 *ns_reg
 	// Where LP0 resume code jumps to after completion
 	case APBDEV_PMC_SCRATCH41_0:
 	// Configuration used by boot ROM during LP0 resume
-	case APBDEV_PMC_SCRATCH2_0 ... APBDEV_PMC_SCRATCH19_0:
+	case APBDEV_PMC_SCRATCH2_0 ... APBDEV_PMC_SCRATCH3_0:
+	case APBDEV_PMC_SCRATCH5_0 ... APBDEV_PMC_SCRATCH19_0:
 	case APBDEV_PMC_SCRATCH22_0 ... APBDEV_PMC_SCRATCH23_0:
 	case APBDEV_PMC_SCRATCH24_0 ... APBDEV_PMC_SCRATCH33_0:
 	case APBDEV_PMC_SCRATCH35_0 ... APBDEV_PMC_SCRATCH36_0:
@@ -91,16 +97,29 @@ static u32 mon_text mon_sip_pmc_commands(u32 cmd, u32 addr, u32 val, u32 *ns_reg
 		mon_puthex(addr, true);
 		mon_putc('\n');
 		return -1;
+	case APBDEV_PMC_SCRATCH4_0:
+		// Scratch4 bit 31 used to indicate LP0 resume cluster by NS
+		ns_mask = BIT(31);
+		break;
 	default:
-		// All other registers are OK
+		// All other registers are OK; all bits
+		ns_mask = 0xffffffffU;
 		break;
 	}
 
 	/* Perform PMC read/write */
 	if (cmd == PMC_READ) {
-		ns_regs[1] = readl(NV_PA_PMC_BASE + addr);
+		tmp = readl(NV_PA_PMC_BASE + addr);
+		tmp &= ns_mask;
+		ns_regs[1] = tmp;
 		return 0;
 	} else if (cmd == PMC_WRITE) {
+		if (ns_mask != 0xffffffffU) {
+			val &= ns_mask;
+			tmp = readl(NV_PA_PMC_BASE + addr);
+			tmp &= ~ns_mask;
+			val |= tmp;
+		}
 		writel(val, NV_PA_PMC_BASE + addr);
 		return 0;
 	} else {
