@@ -31,6 +31,14 @@ config TARGET_P2571
 	help
 	  P2571 is a P2530 married to a P1963 I/O board
 
+config TARGET_P3450_PORG
+	bool "NVIDIA Tegra210 P3450-Porg (Jetson Nano) board"
+	help
+	  P3450-Porg (Jetson Nano developer kit) is a P3448 CPU board married
+	  to a P3449 I/O board. The combination contains SoC, DRAM, SPI, SD
+	  card slot, HDMI, USB micro-B port, USB3.1 hub/host ports, PCIe/NVMe,
+	  and two GPIO expansion headers.
+
 endchoice
 
 config SYS_SOC
@@ -43,5 +51,6 @@ source "board/nvidia/e2220-1170/Kconfig"
 source "board/nvidia/p2371-0000/Kconfig"
 source "board/nvidia/p2371-2180/Kconfig"
 source "board/nvidia/p2571/Kconfig"
+source "board/nvidia/p3450-porg/Kconfig"
 
 endif
