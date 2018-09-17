@@ -96,7 +96,7 @@
 /*-----------------------------------------------------------------------
  * Physical Memory Map
  */
-#define CONFIG_NR_DRAM_BANKS	2
+#define CONFIG_NR_DRAM_BANKS	3
 #define PHYS_SDRAM_1		NV_PA_SDRC_CS0
 #define PHYS_SDRAM_1_SIZE	0x20000000	/* 512M */
 
