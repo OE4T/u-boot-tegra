@@ -1,5 +1,5 @@
 /*
- *  (C) Copyright 2010-2012
+ *  (C) Copyright 2010-2018
  *  NVIDIA Corporation <www.nvidia.com>
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -96,7 +96,7 @@
 /*-----------------------------------------------------------------------
  * Physical Memory Map
  */
-#define CONFIG_NR_DRAM_BANKS	2
+#define CONFIG_NR_DRAM_BANKS	3
 #define PHYS_SDRAM_1		NV_PA_SDRC_CS0
 #define PHYS_SDRAM_1_SIZE	0x20000000	/* 512M */
 
