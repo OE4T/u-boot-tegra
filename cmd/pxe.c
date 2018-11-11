@@ -18,6 +18,9 @@
 
 #include "menu.h"
 #include "cli.h"
+#ifdef CONFIG_HUSH_PARSER
+#include "cli_hush.h"
+#endif
 
 #define MAX_TFTP_PATH_LEN 127
 
@@ -681,7 +684,9 @@ static int label_boot(cmd_tbl_t *cmdtp, struct pxe_label *label)
 	if ((label->ipappend & 0x3) || label->append) {
 		char bootargs[CONFIG_SYS_CBSIZE] = "";
 		char finalbootargs[CONFIG_SYS_CBSIZE];
-
+#ifdef CONFIG_HUSH_PARSER
+		char *distro_bootpart, *hush_bootpart;
+#endif
 		if (strlen(label->append ?: "") +
 		    strlen(ip_str) + strlen(mac_str) + 1 > sizeof(bootargs)) {
 			printf("bootarg overflow %zd+%zd+%zd+1 > %zd\n",
@@ -696,9 +701,23 @@ static int label_boot(cmd_tbl_t *cmdtp, struct pxe_label *label)
 		strcat(bootargs, ip_str);
 		strcat(bootargs, mac_str);
 
+#ifdef CONFIG_HUSH_PARSER
+		distro_bootpart = getenv("distro_bootpart");
+		hush_bootpart = get_local_var("distro_bootpart");
+		if (hush_bootpart && !distro_bootpart) {
+			char partnumstr[32];
+			unsigned long partnum = simple_strtoul(hush_bootpart, NULL, 16);
+			snprintf(partnumstr, sizeof(partnumstr), "%lu", partnum);
+			setenv("distro_bootpart", partnumstr);
+		}
+#endif
 		cli_simple_process_macros(bootargs, finalbootargs);
 		setenv("bootargs", finalbootargs);
 		printf("append: %s\n", finalbootargs);
+#ifdef CONFIG_HUSH_PARSER
+		if (hush_bootpart && !distro_bootpart)
+			setenv("distro_bootpart", NULL);
+#endif
 	}
 
 	bootm_argv[1] = getenv("kernel_addr_r");
