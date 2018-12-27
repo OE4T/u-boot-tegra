@@ -54,9 +54,7 @@ static int do_enterrcm(cmd_tbl_t *cmdtp, int flag, int argc,
 	disable_interrupts();
 
 	/* reset_cpu */
-	reg = tegra_pmc_readl(offsetof(struct pmc_ctlr, pmc_cntrl));
-	reg |= (1 << MAIN_RST_BIT);
-	tegra_pmc_writel(reg, offsetof(struct pmc_ctlr, pmc_cntrl));
+	reset_cpu(0);
 
 	return 0;
 }

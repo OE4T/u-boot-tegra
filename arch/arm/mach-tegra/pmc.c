@@ -113,3 +113,12 @@ void tegra_pmc_writel(u32 value, unsigned long offset)
 #endif
 	writel(value, NV_PA_PMC_BASE + offset);
 }
+
+void reset_cpu(ulong addr)
+{
+	u32 val;
+
+	val = tegra_pmc_readl(offsetof(struct pmc_ctlr, pmc_cntrl));
+	val |= (1 << MAIN_RST_BIT);
+	tegra_pmc_writel(val, offsetof(struct pmc_ctlr, pmc_cntrl));
+}
