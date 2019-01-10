@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, NVIDIA CORPORATION. All rights reserved.
+ * Copyright (c) 2018-2019, NVIDIA CORPORATION. All rights reserved.
  *
  * SPDX-License-Identifier: GPL-2.0+
  */
@@ -24,7 +24,7 @@
 static const struct tegra_gpio_config p3450_porg_gpio_inits[] = {
 	/*        port, pin, init_val */
 	GPIO_INIT(A,    5,   IN),
-	GPIO_INIT(A,    6,   OUT1),
+	GPIO_INIT(A,    6,   OUT0),
 	GPIO_INIT(B,    0,   IN),
 	GPIO_INIT(B,    1,   IN),
 	GPIO_INIT(B,    2,   IN),
@@ -61,8 +61,9 @@ static const struct tegra_gpio_config p3450_porg_gpio_inits[] = {
 	GPIO_INIT(Y,    1,   IN),
 	GPIO_INIT(Y,    2,   IN),
 	GPIO_INIT(Z,    0,   IN),
+	GPIO_INIT(Z,    2,   IN),
 	GPIO_INIT(BB,   0,   IN),
-	GPIO_INIT(BB,   2,   OUT0),
+	GPIO_INIT(CC,   4,   IN),
 	GPIO_INIT(DD,   0,   IN),
 };
 
