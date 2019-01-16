@@ -35,6 +35,10 @@
 #define CONFIG_SF_DEFAULT_SPEED		24000000
 #define CONFIG_SPI_FLASH_SIZE		(4 << 20)
 
+/* USB2.0 Host support */
+#define CONFIG_USB_EHCI
+#define CONFIG_USB_EHCI_TEGRA
+
 /* PCI host support */
 #define CONFIG_PCI
 #define CONFIG_PCI_PNP
@@ -42,6 +46,7 @@
 
 /* General networking support */
 
+#include "tegra-common-usb-gadget.h"
 #include "tegra-common-post.h"
 
 /* Crystal is 38.4MHz. clk_m runs at half that rate */

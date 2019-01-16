@@ -17,6 +17,7 @@
 		i2c4 = "/i2c@0,7000c700";
 		sdhci0 = "/sdhci@0,700b0600";
 		sdhci1 = "/sdhci@0,700b0000";
+		usb0 = "/usb@0,7d000000";
 	};
 
 	memory {
@@ -103,6 +104,11 @@
 	i2c@0,7000d000 {
 		status = "okay";
 		clock-frequency = <400000>;
+	};
+
+	usb@0,7d000000 {
+		status = "okay";
+		dr_mode = "peripheral";
 	};
 
 	clocks {
