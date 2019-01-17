@@ -34,7 +34,6 @@ static int do_enterrcm(cmd_tbl_t *cmdtp, int flag, int argc,
 		       char * const argv[])
 {
 	u32 pmc_scratch0_offset;
-	u32 reg;
 
 	puts("Entering RCM...\n");
 	udelay(50000);
