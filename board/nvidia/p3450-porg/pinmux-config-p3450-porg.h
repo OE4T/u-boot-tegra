@@ -10,6 +10,9 @@
  * To generate this file, use the tegra-pinmux-scripts tool available from
  * https://github.com/NVIDIA/tegra-pinmux-scripts
  * Run "board-to-uboot.py nano".
+ * NOTE: To WAR A01 <-> A02 Porg differences, I've edited this file.
+ *       Removed DAP1/DAP4 pinmux programming.
+ *       Added GPIO V1, input, and GPIO Z3, output driving 0
  */
 
 #ifndef _PINMUX_CONFIG_P3450_PORG_H_
@@ -54,6 +57,7 @@ static const struct tegra_gpio_config p3450_porg_gpio_inits[] = {
 	GPIO_INIT(S,    7,   OUT0),
 	GPIO_INIT(T,    0,   OUT0),
 	GPIO_INIT(V,    0,   IN),
+	GPIO_INIT(V,    1,   IN),
 	GPIO_INIT(X,    3,   OUT1),
 	GPIO_INIT(X,    4,   IN),
 	GPIO_INIT(X,    5,   IN),
@@ -62,6 +66,7 @@ static const struct tegra_gpio_config p3450_porg_gpio_inits[] = {
 	GPIO_INIT(Y,    2,   IN),
 	GPIO_INIT(Z,    0,   IN),
 	GPIO_INIT(Z,    2,   IN),
+	GPIO_INIT(Z,    3,   OUT0),
 	GPIO_INIT(BB,   0,   IN),
 	GPIO_INIT(CC,   4,   IN),
 	GPIO_INIT(DD,   0,   IN),
@@ -88,10 +93,6 @@ static const struct pmux_pingrp_config p3450_porg_pingrps[] = {
 	PINCFG(PEX_L1_CLKREQ_N_PA4,  PE1,        NORMAL, NORMAL,   INPUT,   DISABLE, NORMAL),
 	PINCFG(SATA_LED_ACTIVE_PA5,  DEFAULT,    UP,     NORMAL,   INPUT,   DISABLE, DEFAULT),
 	PINCFG(PA6,                  DEFAULT,    NORMAL, NORMAL,   OUTPUT,  DISABLE, DEFAULT),
-	PINCFG(DAP1_FS_PB0,          RSVD1,      DOWN,   TRISTATE, OUTPUT,  DISABLE, DEFAULT),
-	PINCFG(DAP1_DIN_PB1,         RSVD1,      DOWN,   TRISTATE, OUTPUT,  DISABLE, DEFAULT),
-	PINCFG(DAP1_DOUT_PB2,        RSVD1,      DOWN,   TRISTATE, OUTPUT,  DISABLE, DEFAULT),
-	PINCFG(DAP1_SCLK_PB3,        RSVD1,      DOWN,   TRISTATE, OUTPUT,  DISABLE, DEFAULT),
 	PINCFG(SPI2_MOSI_PB4,        DEFAULT,    DOWN,   NORMAL,   INPUT,   DISABLE, DEFAULT),
 	PINCFG(SPI2_MISO_PB5,        DEFAULT,    DOWN,   NORMAL,   INPUT,   DISABLE, DEFAULT),
 	PINCFG(SPI2_SCK_PB6,         DEFAULT,    DOWN,   NORMAL,   INPUT,   DISABLE, DEFAULT),
@@ -143,10 +144,6 @@ static const struct pmux_pingrp_config p3450_porg_pingrps[] = {
 	PINCFG(GEN1_I2C_SCL_PJ1,     I2C1,       NORMAL, NORMAL,   INPUT,   DISABLE, HIGH),
 	PINCFG(GEN2_I2C_SCL_PJ2,     I2C2,       NORMAL, NORMAL,   INPUT,   DISABLE, HIGH),
 	PINCFG(GEN2_I2C_SDA_PJ3,     I2C2,       NORMAL, NORMAL,   INPUT,   DISABLE, HIGH),
-	PINCFG(DAP4_FS_PJ4,          DEFAULT,    DOWN,   NORMAL,   INPUT,   DISABLE, DEFAULT),
-	PINCFG(DAP4_DIN_PJ5,         DEFAULT,    DOWN,   NORMAL,   INPUT,   DISABLE, DEFAULT),
-	PINCFG(DAP4_DOUT_PJ6,        DEFAULT,    DOWN,   NORMAL,   INPUT,   DISABLE, DEFAULT),
-	PINCFG(DAP4_SCLK_PJ7,        RSVD1,      DOWN,   TRISTATE, OUTPUT,  DISABLE, DEFAULT),
 	PINCFG(PK0,                  RSVD2,      DOWN,   TRISTATE, OUTPUT,  DISABLE, DEFAULT),
 	PINCFG(PK1,                  RSVD2,      DOWN,   TRISTATE, OUTPUT,  DISABLE, DEFAULT),
 	PINCFG(PK2,                  RSVD2,      DOWN,   TRISTATE, OUTPUT,  DISABLE, DEFAULT),
