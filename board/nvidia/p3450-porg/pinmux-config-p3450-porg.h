@@ -10,9 +10,9 @@
  * To generate this file, use the tegra-pinmux-scripts tool available from
  * https://github.com/NVIDIA/tegra-pinmux-scripts
  * Run "board-to-uboot.py nano".
+ * Used the T210_P3448_SKU0_pinmux sheet, tab A02 as of 24 Jan 2019
  * NOTE: To WAR A01 <-> A02 Porg differences, I've edited this file.
- *       Removed DAP1/DAP4 pinmux programming.
- *       Added GPIO V1, input, and GPIO Z3, output driving 0
+ *       Removed DAP1/DAP4 pinmux programming as a WAR for A01 Porg.
  */
 
 #ifndef _PINMUX_CONFIG_P3450_PORG_H_
@@ -53,6 +53,7 @@ static const struct tegra_gpio_config p3450_porg_gpio_inits[] = {
 	GPIO_INIT(J,    4,   IN),
 	GPIO_INIT(J,    5,   IN),
 	GPIO_INIT(J,    6,   IN),
+	GPIO_INIT(J,    7,   IN),
 	GPIO_INIT(S,    5,   IN),
 	GPIO_INIT(S,    7,   OUT0),
 	GPIO_INIT(T,    0,   OUT0),
@@ -181,7 +182,7 @@ static const struct pmux_pingrp_config p3450_porg_pingrps[] = {
 	PINCFG(UART1_RTS_PU2,        RSVD1,      DOWN,   TRISTATE, OUTPUT,  DISABLE, DEFAULT),
 	PINCFG(UART1_CTS_PU3,        RSVD1,      DOWN,   TRISTATE, OUTPUT,  DISABLE, DEFAULT),
 	PINCFG(LCD_BL_PWM_PV0,       DEFAULT,    DOWN,   NORMAL,   INPUT,   DISABLE, DEFAULT),
-	PINCFG(LCD_BL_EN_PV1,        DEFAULT,    NORMAL, NORMAL,   OUTPUT,  DISABLE, DEFAULT),
+	PINCFG(LCD_BL_EN_PV1,        DEFAULT,    NORMAL, NORMAL,   INPUT,   DISABLE, DEFAULT),
 	PINCFG(LCD_RST_PV2,          RSVD0,      DOWN,   TRISTATE, OUTPUT,  DISABLE, DEFAULT),
 	PINCFG(LCD_GPIO1_PV3,        RSVD1,      DOWN,   TRISTATE, OUTPUT,  DISABLE, DEFAULT),
 	PINCFG(LCD_GPIO2_PV4,        PWM1,       NORMAL, NORMAL,   OUTPUT,  DISABLE, DEFAULT),
