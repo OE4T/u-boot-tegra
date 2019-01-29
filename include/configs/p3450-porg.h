@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2018
+ * (C) Copyright 2018-2019
  * NVIDIA Corporation <www.nvidia.com>
  *
  * SPDX-License-Identifier:     GPL-2.0+
@@ -26,6 +26,10 @@
 #define CONFIG_MMC
 #define CONFIG_GENERIC_MMC
 #define CONFIG_TEGRA_MMC
+
+/* Only MMC1 for now, add USB/NET in later when supported */
+#define BOOT_TARGET_DEVICES(func) \
+	func(MMC, mmc, 1)
 
 /* Environment s/b at end of SPI, fix it later */
 #define CONFIG_ENV_IS_NOWHERE

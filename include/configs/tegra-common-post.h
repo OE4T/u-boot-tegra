@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2010-2017
+ * (C) Copyright 2010-2019
  * NVIDIA Corporation <www.nvidia.com>
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -22,24 +22,18 @@
 #define CONFIG_SYS_NONCACHED_MEMORY	(1 << 20)	/* 1 MiB */
 
 #ifndef CONFIG_SPL_BUILD
-#ifdef CONFIG_TARGET_M3402_0000
-/* NOTE: SCSI <-> SATA via AHCI */
-#define BOOT_TARGET_DEVICES(func) \
-	func(USB, usb, 0) \
-	func(PXE, pxe, na) \
-	func(DHCP, dhcp, na)
-#else	/* !M3402_0000 */
+#ifndef BOOT_TARGET_DEVICES
 #define BOOT_TARGET_DEVICES(func) \
 	func(MMC, mmc, 1) \
 	func(MMC, mmc, 0) \
 	func(USB, usb, 0) \
 	func(PXE, pxe, na) \
 	func(DHCP, dhcp, na)
-#endif
+#endif  /* !BOOT_TARGET_DEVICES */
 #include <config_distro_bootcmd.h>
 #else
 #define BOOTENV
-#endif
+#endif /* CONFIG_SPL_BUILD */
 
 #ifdef CONFIG_TEGRA_KEYBOARD
 #define STDIN_KBD_KBC ",tegra-kbc"
