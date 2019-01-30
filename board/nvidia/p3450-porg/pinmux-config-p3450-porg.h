@@ -10,7 +10,7 @@
  * To generate this file, use the tegra-pinmux-scripts tool available from
  * https://github.com/NVIDIA/tegra-pinmux-scripts
  * Run "board-to-uboot.py nano".
- * Used the T210_P3448_SKU0_pinmux sheet, tab A02 as of 24 Jan 2019
+ * Used the T210_P3448_SKU0_pinmux sheet, tab A02 as of 28 Jan 2019, v7.
  * NOTE: To WAR A01 <-> A02 Porg differences, I've edited this file.
  *       Removed DAP1/DAP4 pinmux programming as a WAR for A01 Porg.
  */
@@ -231,8 +231,8 @@ static const struct pmux_pingrp_config p3450_porg_pingrps[] = {
 	PINCFG(QSPI_CS_N_PEE1,       QSPI,       NORMAL, NORMAL,   OUTPUT,  DISABLE, DEFAULT),
 	PINCFG(QSPI_IO0_PEE2,        QSPI,       NORMAL, NORMAL,   INPUT,   DISABLE, DEFAULT),
 	PINCFG(QSPI_IO1_PEE3,        QSPI,       NORMAL, NORMAL,   INPUT,   DISABLE, DEFAULT),
-	PINCFG(QSPI_IO2_PEE4,        RSVD1,      DOWN,   TRISTATE, OUTPUT,  DISABLE, DEFAULT),
-	PINCFG(QSPI_IO3_PEE5,        RSVD1,      DOWN,   TRISTATE, OUTPUT,  DISABLE, DEFAULT),
+	PINCFG(QSPI_IO2_PEE4,        QSPI,       NORMAL, NORMAL,   INPUT,   DISABLE, DEFAULT),
+	PINCFG(QSPI_IO3_PEE5,        QSPI,       NORMAL, NORMAL,   INPUT,   DISABLE, DEFAULT),
 	PINCFG(CORE_PWR_REQ,         CORE,       NORMAL, NORMAL,   OUTPUT,  DISABLE, DEFAULT),
 	PINCFG(CPU_PWR_REQ,          RSVD1,      DOWN,   TRISTATE, OUTPUT,  DISABLE, DEFAULT),
 	PINCFG(PWR_INT_N,            PMI,        UP,     NORMAL,   INPUT,   DISABLE, DEFAULT),
