@@ -313,41 +313,10 @@ fail:
 	return ret;
 }
 
-#if defined(CONFIG_TEGRA186)
-/*
- * Attempt to use /chosen/nvidia,ether-mac in the cboot DTB to U-Boot's
- * ethaddr environment variable if possible.
- */
-static int set_ethaddr_from_cboot(void)
+__weak int set_ethaddr_from_cboot(const void *fdt)
 {
-	const void *cboot_blob = (void *)cboot_boot_x0;
-	int ret, node, len;
-	const u32 *prop;
-
-	/* Already a valid address in the environment? If so, keep it */
-	if (getenv("ethaddr"))
-		return 0;
-
-	node = fdt_path_offset(cboot_blob, "/chosen");
-	if (node < 0) {
-		printf("Can't find /chosen node in cboot DTB\n");
-		return node;
-	}
-	prop = fdt_getprop(cboot_blob, node, "nvidia,ether-mac", &len);
-	if (!prop) {
-		printf("Can't find nvidia,ether-mac property in cboot DTB\n");
-		return -ENOENT;
-	}
-
-	ret = setenv("ethaddr", (void *)prop);
-	if (ret) {
-		printf("Failed to set ethaddr from cboot DTB: %d\n", ret);
-		return ret;
-	}
-
 	return 0;
 }
-#endif	/* T186 */
 
 static int set_cbootargs(void)
 {
@@ -393,16 +362,16 @@ static int set_cbootargs(void)
 
 int cboot_init_late(void)
 {
+	const void *fdt = (void *)cboot_boot_x0;
+
 	set_calculated_env_vars();
 	/*
 	 * Ignore errors here; the value may not be used depending on
 	 * extlinux.conf or boot script content.
 	 */
 	set_fdt_addr();
-#if defined(CONFIG_TEGRA186)
 	/* Ignore errors here; not all cases care about Ethernet addresses */
-	set_ethaddr_from_cboot();
-#endif
+	set_ethaddr_from_cboot(fdt);
 	/* Save CBoot bootargs to env */
 	set_cbootargs();
 

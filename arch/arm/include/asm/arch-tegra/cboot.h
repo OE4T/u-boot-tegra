@@ -9,4 +9,6 @@
 
 extern unsigned long cboot_boot_x0;
 
+int set_ethaddr_from_cboot(const void *fdt);
+
 #endif
