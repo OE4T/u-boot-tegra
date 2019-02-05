@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, NVIDIA CORPORATION. All rights reserved.
+ * Copyright (c) 2019, NVIDIA CORPORATION. All rights reserved.
  *
  * SPDX-License-Identifier:     GPL-2.0
  */
@@ -7,6 +7,7 @@
 #include <common.h>
 #include <asm/io.h>
 #include <fdtdec.h>
+#include <asm/arch-tegra/cboot.h>
 #include <asm/arch-tegra/pmc.h>
 
 #ifdef CONFIG_ACCESS_PMC_VIA_SMC
@@ -22,8 +23,6 @@ DECLARE_GLOBAL_DATA_PTR;
 #define PMC_READ		0xaa
 #define PMC_WRITE		0xbb
 #define TEGRA_SIP_PMC_COMMAND_FID 0xC2FFFE00
-
-extern unsigned long cboot_boot_x0;
 
 struct pmc_smc_regs {
 	u64 args[NR_SMC_REGS];

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2018, NVIDIA CORPORATION.
+ * Copyright (c) 2016-2019, NVIDIA CORPORATION.
  *
  * SPDX-License-Identifier: GPL-2.0+
  */
@@ -8,6 +8,7 @@
 #include <fdt_support.h>
 #include <fdtdec.h>
 #include <asm/arch/tegra.h>
+#include <asm/arch-tegra/cboot.h>
 #include <asm/armv8/mmu.h>
 
 #define SZ_4G 0x100000000ULL
@@ -28,7 +29,6 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-extern unsigned long cboot_boot_x0;
 extern struct mm_region tegra_mem_map[];
 
 /*
