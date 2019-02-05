@@ -27,10 +27,12 @@
 #define CONFIG_GENERIC_MMC
 #define CONFIG_TEGRA_MMC
 
-/* Only MMC1 for now, add USB/NET in later when supported */
+/* Only MMC1/PXE/DHCP for now, add USB back in later when supported */
 #define BOOT_TARGET_DEVICES(func) \
 	func(MMC, mmc, 1) \
-	func(MMC, mmc, 0)
+	func(MMC, mmc, 0) \
+	func(PXE, pxe, na) \
+	func(DHCP, dhcp, na)
 
 /* Environment s/b at end of SPI, fix it later */
 #define CONFIG_ENV_IS_NOWHERE
