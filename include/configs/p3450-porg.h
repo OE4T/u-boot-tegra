@@ -34,8 +34,13 @@
 	func(PXE, pxe, na) \
 	func(DHCP, dhcp, na)
 
-/* Environment s/b at end of SPI, fix it later */
-#define CONFIG_ENV_IS_NOWHERE
+/* Environment at end of QSPI, in the VER partition */
+#define CONFIG_ENV_IS_IN_SPI_FLASH
+#define CONFIG_ENV_SPI_MAX_HZ		48000000
+#define CONFIG_ENV_SPI_MODE		SPI_MODE_0
+#define CONFIG_ENV_SECT_SIZE		SZ_4K
+/* 4MB flash, environment located as high as possible */
+#define CONFIG_ENV_OFFSET		(SZ_4M - CONFIG_ENV_SIZE)
 
 /* SPI */
 #define CONFIG_SF_DEFAULT_MODE		SPI_MODE_0
