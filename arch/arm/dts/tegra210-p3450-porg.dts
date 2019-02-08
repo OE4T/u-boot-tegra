@@ -17,6 +17,7 @@
 		i2c4 = "/i2c@0,7000c700";
 		sdhci0 = "/sdhci@0,700b0600";
 		sdhci1 = "/sdhci@0,700b0000";
+		spi0 = "/spi@0,70410000";
 		usb0 = "/usb@0,7d000000";
 	};
 
@@ -104,6 +105,10 @@
 	i2c@0,7000d000 {
 		status = "okay";
 		clock-frequency = <400000>;
+	};
+
+	spi@0,70410000 {
+		status = "okay";
 	};
 
 	usb@0,7d000000 {
