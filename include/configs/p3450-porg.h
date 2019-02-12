@@ -29,7 +29,8 @@
 
 /* Only MMC1 for now, add USB/NET in later when supported */
 #define BOOT_TARGET_DEVICES(func) \
-	func(MMC, mmc, 1)
+	func(MMC, mmc, 1) \
+	func(MMC, mmc, 0)
 
 /* Environment s/b at end of SPI, fix it later */
 #define CONFIG_ENV_IS_NOWHERE
