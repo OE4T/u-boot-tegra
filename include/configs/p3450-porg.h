@@ -48,6 +48,14 @@
 #define CONFIG_PCI_PNP
 #define CONFIG_CMD_PCI
 
+#define CONFIG_PREBOOT
+
+#define BOARD_EXTRA_ENV_SETTINGS \
+	"preboot=if test -e mmc 1:1 /u-boot-preboot.scr; then " \
+		"load mmc 1:1 ${scriptaddr} /u-boot-preboot.scr; " \
+		"source ${scriptaddr}; " \
+	"fi\0"
+
 /* General networking support */
 
 #include "tegra-common-usb-gadget.h"
