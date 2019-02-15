@@ -470,6 +470,11 @@ static int set_fdt_addr(void)
 	return 0;
 }
 
+void *fdt_copy_get_blob_src_default(void)
+{
+	return (void *)cboot_boot_x0;
+}
+
 /*
  * Attempt to use /chosen/nvidia,ether-mac in the cboot DTB to U-Boot's
  * ethaddr environment variable if possible.
