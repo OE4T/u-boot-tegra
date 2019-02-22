@@ -10,7 +10,7 @@
  * To generate this file, use the tegra-pinmux-scripts tool available from
  * https://github.com/NVIDIA/tegra-pinmux-scripts
  * Run "board-to-uboot.py nano".
- * Used the T210_P3448_SKU0_pinmux sheet, tab A02 as of 28 Jan 2019, v7.
+ * Used the T210_P3448_SKU0_pinmux sheet, tab A02 as of 22 Feb 2019, v9.
  * NOTE: To WAR A01 <-> A02 Porg differences, I've edited this file.
  *       Removed DAP1/DAP4 pinmux programming as a WAR for A01 Porg.
  */
@@ -27,7 +27,7 @@
 static const struct tegra_gpio_config p3450_porg_gpio_inits[] = {
 	/*        port, pin, init_val */
 	GPIO_INIT(A,    5,   IN),
-	GPIO_INIT(A,    6,   OUT0),
+	GPIO_INIT(A,    6,   OUT1),
 	GPIO_INIT(B,    4,   IN),
 	GPIO_INIT(B,    5,   IN),
 	GPIO_INIT(B,    6,   IN),
@@ -87,11 +87,11 @@ static const struct tegra_gpio_config p3450_porg_gpio_inits[] = {
 
 static const struct pmux_pingrp_config p3450_porg_pingrps[] = {
 	/*     pingrp,               mux,        pull,   tri,      e_input, od,      e_io_hv */
-	PINCFG(PEX_L0_RST_N_PA0,     PE0,        NORMAL, NORMAL,   OUTPUT,  DISABLE, NORMAL),
-	PINCFG(PEX_L0_CLKREQ_N_PA1,  PE0,        NORMAL, NORMAL,   INPUT,   DISABLE, NORMAL),
-	PINCFG(PEX_WAKE_N_PA2,       PE,         NORMAL, NORMAL,   INPUT,   DISABLE, NORMAL),
-	PINCFG(PEX_L1_RST_N_PA3,     PE1,        NORMAL, NORMAL,   OUTPUT,  DISABLE, NORMAL),
-	PINCFG(PEX_L1_CLKREQ_N_PA4,  PE1,        NORMAL, NORMAL,   INPUT,   DISABLE, NORMAL),
+	PINCFG(PEX_L0_RST_N_PA0,     PE0,        NORMAL, NORMAL,   OUTPUT,  DISABLE, HIGH),
+	PINCFG(PEX_L0_CLKREQ_N_PA1,  PE0,        NORMAL, NORMAL,   INPUT,   DISABLE, HIGH),
+	PINCFG(PEX_WAKE_N_PA2,       PE,         NORMAL, NORMAL,   INPUT,   DISABLE, HIGH),
+	PINCFG(PEX_L1_RST_N_PA3,     PE1,        NORMAL, NORMAL,   OUTPUT,  DISABLE, HIGH),
+	PINCFG(PEX_L1_CLKREQ_N_PA4,  PE1,        NORMAL, NORMAL,   INPUT,   DISABLE, HIGH),
 	PINCFG(SATA_LED_ACTIVE_PA5,  DEFAULT,    UP,     NORMAL,   INPUT,   DISABLE, DEFAULT),
 	PINCFG(PA6,                  DEFAULT,    NORMAL, NORMAL,   OUTPUT,  DISABLE, DEFAULT),
 	PINCFG(SPI2_MOSI_PB4,        DEFAULT,    DOWN,   NORMAL,   INPUT,   DISABLE, DEFAULT),
