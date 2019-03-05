@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright (c) 2010-2016, NVIDIA CORPORATION.
+ * Copyright (c) 2010-2019, NVIDIA CORPORATION.
  */
 
 #include <common.h>
@@ -35,6 +35,8 @@ int ft_system_setup(void *blob, struct bd_info *bd)
 
 	fdt_del_env_nodelist(blob);
 	fdt_del_env_proplist(blob);
+	fdt_copy_env_nodelist(blob);
+	fdt_copy_env_proplist(blob);
 
 	return 0;
 }
