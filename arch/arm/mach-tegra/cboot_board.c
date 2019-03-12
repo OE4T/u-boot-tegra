@@ -299,10 +299,18 @@ static int set_fdt_addr(void)
 	ret = setenv_hex("fdt_addr", cboot_boot_x0);
 	if (ret) {
 		printf("Failed to set fdt_addr to point at DTB: %d\n", ret);
-		return ret;
+		goto fail;
 	}
 
-	return 0;
+	ret = setenv_hex("fdt_copy_src_addr", cboot_boot_x0);
+	if (ret) {
+		printf("Failed to set fdt_copy_src_addr to point at DTB: %d\n",
+			ret);
+		goto fail;
+	}
+	ret = 0;
+fail:
+	return ret;
 }
 
 #if defined(CONFIG_TEGRA186)

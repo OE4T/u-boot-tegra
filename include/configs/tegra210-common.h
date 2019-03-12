@@ -56,7 +56,22 @@
 	"kernel_addr_r=" __stringify(CONFIG_LOADADDR) "\0" \
 	"fdt_addr_r=0x82000000\0" \
 	"ramdisk_addr_r=0x83200000\0" \
-	"fdt_del_prop_paths=/pinmux@700008d4/pinctrl-names\0"
+	"fdt_del_prop_paths=/pinmux@700008d4/pinctrl-names\0" \
+	"fdt_copy_node_paths=" \
+		"/external-memory-controller@7001b000:" \
+		"/chosen/plugin-manager:" \
+		"/chosen/reset:" \
+		"/chosen/display-board:" \
+		"/chosen/proc-board:" \
+		"/chosen/pmu-board:" \
+		"/memory@80000000\0" \
+	"fdt_copy_prop_paths=" \
+		"/chosen/nvidia,ethernet-mac:" \
+		"/chosen/uuid:" \
+		"/chosen/linux,initrd-end:" \
+		"/chosen/linux,initrd-start:" \
+		"/bpmp/carveout-size:" \
+		"/bpmp/carveout-start\0"
 
 /* For USB EHCI controller */
 #define CONFIG_EHCI_IS_TDI
