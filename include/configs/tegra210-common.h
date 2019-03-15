@@ -64,14 +64,16 @@
 		"/chosen/display-board:" \
 		"/chosen/proc-board:" \
 		"/chosen/pmu-board:" \
+		"/psci/system-lp0-disable:" \
 		"/memory@80000000\0" \
 	"fdt_copy_prop_paths=" \
+		"/serial-number:" \
 		"/chosen/nvidia,ethernet-mac:" \
 		"/chosen/uuid:" \
-		"/chosen/linux,initrd-end:" \
 		"/chosen/linux,initrd-start:" \
-		"/bpmp/carveout-size:" \
-		"/bpmp/carveout-start\0"
+		"/chosen/linux,initrd-end:" \
+		"/bpmp/carveout-start:" \
+		"/bpmp/carveout-size\0"
 
 /* For USB EHCI controller */
 #define CONFIG_EHCI_IS_TDI
