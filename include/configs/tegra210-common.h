@@ -58,22 +58,22 @@
 	"ramdisk_addr_r=0x83200000\0" \
 	"fdt_del_prop_paths=/pinmux@700008d4/pinctrl-names\0" \
 	"fdt_copy_node_paths=" \
-		"/external-memory-controller@7001b000:" \
 		"/chosen/plugin-manager:" \
 		"/chosen/reset:" \
 		"/chosen/display-board:" \
 		"/chosen/proc-board:" \
 		"/chosen/pmu-board:" \
-		"/psci/system-lp0-disable:" \
+		"/external-memory-controller@7001b000:" \
 		"/memory@80000000\0" \
 	"fdt_copy_prop_paths=" \
-		"/serial-number:" \
+		"/bpmp/carveout-start:" \
+		"/bpmp/carveout-size:" \
 		"/chosen/nvidia,ethernet-mac:" \
 		"/chosen/uuid:" \
 		"/chosen/linux,initrd-start:" \
 		"/chosen/linux,initrd-end:" \
-		"/bpmp/carveout-start:" \
-		"/bpmp/carveout-size\0"
+		"/psci/nvidia,system-lp0-disable:" \
+		"/serial-number\0"
 
 /* For USB EHCI controller */
 #define CONFIG_EHCI_IS_TDI
