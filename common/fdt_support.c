@@ -450,11 +450,20 @@ int fdt_fixup_memory_banks(void *blob, u64 start[], u64 size[], int banks)
 		return 0;
 
 	len = fdt_pack_reg(blob, tmp, start, size, banks);
-
+add_reg:
 	err = fdt_setprop(blob, nodeoffset, "reg", tmp, len);
-	if (err < 0) {
-		printf("WARNING: could not set %s %s.\n",
-				"reg", fdt_strerror(err));
+	if (err == -FDT_ERR_NOSPACE) {
+		err = fdt_increase_size(blob, 512);
+		debug("Increased FDT blob size by 512 bytes\n");
+		if (!err)
+			goto add_reg;		/* retry setprop */
+		else {
+			printf("Can't increase blob size: %s\n",
+				fdt_strerror(err));
+			return err;
+		}
+	} else if (err < 0) {
+		printf("Can't add memory node: %s\n", fdt_strerror(err));
 		return err;
 	}
 	return 0;
