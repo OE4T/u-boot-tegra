@@ -19,6 +19,7 @@ static int fdt_copy_node_content(void *blob_src, int ofs_src, void *blob_dst,
 		int ofs_dst, int indent)
 {
 	int ofs_src_child, ofs_dst_child;
+	int ret;
 
 	/*
 	 * FIXME: This doesn't remove properties or nodes in the destination
@@ -29,15 +30,23 @@ static int fdt_copy_node_content(void *blob_src, int ofs_src, void *blob_dst,
 	fdt_for_each_property(blob_src, ofs_src_child, ofs_src) {
 		const void *prop;
 		const char *name;
-		int len, ret;
+		int len;
 
 		prop = fdt_getprop_by_offset(blob_src, ofs_src_child, &name,
 					     &len);
 		debug("%s: %*scopy prop: %s\n", __func__, indent, "", name);
-
+add_prop:
 		ret = fdt_setprop(blob_dst, ofs_dst, name, prop, len);
-		if (ret < 0) {
-			error("Can't copy DT prop %s\n", name);
+		if (ret == -FDT_ERR_NOSPACE) {
+			ret = fdt_increase_size(blob_dst, 512);
+			debug("Increased FDT blob size by 512 bytes\n");
+			if (!ret)
+				goto add_prop;		/* retry setprop */
+			else
+				goto err_ret;		/* error out */
+		} else if (ret < 0) {
+			error("Can't copy DT prop %s: %s\n",
+			      name, fdt_strerror(ret));
 			return ret;
 		}
 	}
@@ -52,10 +61,19 @@ static int fdt_copy_node_content(void *blob_src, int ofs_src, void *blob_dst,
 		if (ofs_dst_child < 0) {
 			debug("%s: %*s(creating it in dst)\n", __func__,
 			      indent, "");
+add_node:
 			ofs_dst_child = fdt_add_subnode(blob_dst, ofs_dst,
 							name);
-			if (ofs_dst_child < 0) {
-				error("Can't copy DT node %s\n", name);
+			if (ofs_dst_child == -FDT_ERR_NOSPACE) {
+				ret = fdt_increase_size(blob_dst, 512);
+				debug("Increased FDT blob size by 512 bytes\n");
+				if (!ret)
+					goto add_node;	/* retry add_subnode */
+				else
+					goto err_ret;	/* error out */
+			} else if (ofs_dst_child < 0) {
+				error("Can't copy DT node %s: %s\n",
+				      name, fdt_strerror(ofs_dst_child));
 				return ofs_dst_child;
 			}
 		}
@@ -65,6 +83,10 @@ static int fdt_copy_node_content(void *blob_src, int ofs_src, void *blob_dst,
 	}
 
 	return 0;
+
+err_ret:
+	printf("Can't increase blob size: %s\n", fdt_strerror(ret));
+	return ret;
 }
 
 static int fdt_add_path(void *blob, const char *path)
@@ -154,14 +176,25 @@ static int fdt_iter_copy_prop(void *blob_dst, char *prop_path, void *blob_src)
 		      node_path, prop_name);
 		return -1;
 	}
-
+add_prop:
 	ret = fdt_setprop(blob_dst, ofs_dst, prop_name, prop, len);
-	if (ret < 0) {
-		error("Can't set DT prop %s/%s\n", node_path, prop_name);
+	if (ret == -FDT_ERR_NOSPACE) {
+		ret = fdt_increase_size(blob_dst, 512);
+		debug("Increased FDT blob size by 512 bytes\n");
+		if (!ret)
+			goto add_prop;		/* retry setprop */
+		else
+			goto err_ret;		/* error out */
+	} else if (ret < 0) {
+		error("Can't set DT prop %s/%s: %s\n",
+		      node_path, prop_name, fdt_strerror(ret));
 		return ret;
 	}
 
 	return 0;
+err_ret:
+	printf("Can't increase blob size: %s\n", fdt_strerror(ret));
+	return ret;
 }
 
 static iter_envitem fdt_iter_copy_node;
