@@ -10,10 +10,11 @@
  * To generate this file, use the tegra-pinmux-scripts tool available from
  * https://github.com/NVIDIA/tegra-pinmux-scripts
  * Run "board-to-uboot.py nano".
- * Used the T210_P3448_SKU0_pinmux sheet, tab B00 as of 3 Apr 2019, v12.
+ * Used the T210_P3448_SKU0_pinmux sheet, tab B00 as of 15 Apr 2019, v17.
  * NOTE: To WAR A01 <-> A02 Porg differences, I've edited this file.
  *       Removed DAP1/DAP4 pinmux programming as a WAR for A01 Porg.
- * Also, A02 <-> B00 diff is just CLK_32K_OUT, which is NC on A02.
+ * Also, A02 <-> B00 diff includes CLK_32K_OUT, which is NC on A02,
+ *  and CC7/I1 muxes/GPIOs (both OUT1).
  */
 
 #ifndef _PINMUX_CONFIG_P3450_PORG_H_
@@ -49,7 +50,7 @@ static const struct tegra_gpio_config p3450_porg_gpio_inits[] = {
 	GPIO_INIT(H,    6,   IN),
 	GPIO_INIT(H,    7,   OUT0),
 	GPIO_INIT(I,    0,   OUT0),
-	GPIO_INIT(I,    1,   IN),
+	GPIO_INIT(I,    1,   OUT1),
 	GPIO_INIT(I,    2,   OUT0),
 	GPIO_INIT(J,    4,   IN),
 	GPIO_INIT(J,    5,   IN),
@@ -71,6 +72,7 @@ static const struct tegra_gpio_config p3450_porg_gpio_inits[] = {
 	GPIO_INIT(Z,    3,   OUT0),
 	GPIO_INIT(BB,   0,   IN),
 	GPIO_INIT(CC,   4,   IN),
+	GPIO_INIT(CC,   7,   OUT1),
 	GPIO_INIT(DD,   0,   IN),
 };
 
@@ -135,7 +137,7 @@ static const struct pmux_pingrp_config p3450_porg_pingrps[] = {
 	PINCFG(PH6,                  DEFAULT,    UP,     NORMAL,   INPUT,   DISABLE, DEFAULT),
 	PINCFG(AP_WAKE_NFC_PH7,      DEFAULT,    NORMAL, NORMAL,   OUTPUT,  DISABLE, DEFAULT),
 	PINCFG(NFC_EN_PI0,           DEFAULT,    NORMAL, NORMAL,   OUTPUT,  DISABLE, DEFAULT),
-	PINCFG(NFC_INT_PI1,          DEFAULT,    DOWN,   NORMAL,   INPUT,   DISABLE, DEFAULT),
+	PINCFG(NFC_INT_PI1,          DEFAULT,    NORMAL, NORMAL,   OUTPUT,  DISABLE, DEFAULT),
 	PINCFG(GPS_EN_PI2,           DEFAULT,    NORMAL, NORMAL,   OUTPUT,  DISABLE, DEFAULT),
 	PINCFG(GPS_RST_PI3,          RSVD0,      DOWN,   TRISTATE, OUTPUT,  DISABLE, DEFAULT),
 	PINCFG(UART4_TX_PI4,         UARTD,      NORMAL, NORMAL,   OUTPUT,  DISABLE, DEFAULT),
@@ -226,7 +228,7 @@ static const struct pmux_pingrp_config p3450_porg_pingrps[] = {
 	PINCFG(USB_VBUS_EN0_PCC4,    DEFAULT,    UP,     NORMAL,   INPUT,   DISABLE, NORMAL),
 	PINCFG(USB_VBUS_EN1_PCC5,    RSVD1,      DOWN,   TRISTATE, OUTPUT,  DISABLE, NORMAL),
 	PINCFG(DP_HPD0_PCC6,         DP,         NORMAL, NORMAL,   INPUT,   DISABLE, DEFAULT),
-	PINCFG(PCC7,                 RSVD0,      DOWN,   TRISTATE, OUTPUT,  DISABLE, NORMAL),
+	PINCFG(PCC7,                 DEFAULT,    NORMAL, NORMAL,   OUTPUT,  DISABLE, HIGH),
 	PINCFG(SPI2_CS1_PDD0,        DEFAULT,    DOWN,   NORMAL,   INPUT,   DISABLE, DEFAULT),
 	PINCFG(QSPI_SCK_PEE0,        QSPI,       NORMAL, NORMAL,   INPUT,   DISABLE, DEFAULT),
 	PINCFG(QSPI_CS_N_PEE1,       QSPI,       NORMAL, NORMAL,   OUTPUT,  DISABLE, DEFAULT),
