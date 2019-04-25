@@ -523,6 +523,8 @@ static int eth_post_probe(struct udevice *dev)
 #endif
 	}
 
+	eth_write_hwaddr(dev);
+
 	return 0;
 }
 
