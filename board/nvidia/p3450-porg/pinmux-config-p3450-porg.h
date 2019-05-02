@@ -10,10 +10,10 @@
  * To generate this file, use the tegra-pinmux-scripts tool available from
  * https://github.com/NVIDIA/tegra-pinmux-scripts
  * Run "board-to-uboot.py nano".
- * Used the T210_P3448_SKU0_pinmux sheet, tab B00 as of 15 Apr 2019, v17.
+ * Used the T210_P3448_SKU0_pinmux sheet, tab B00-B01 as of 2 May 2019, v18.
  * NOTE: To WAR A01 <-> A02 Porg differences, I've edited this file.
  *       Removed DAP1/DAP4 pinmux programming as a WAR for A01 Porg.
- * Also, A02 <-> B00 diff includes CLK_32K_OUT, which is NC on A02,
+ * Also, A02 <-> B00/B01 diff includes CLK_32K_OUT, which is NC on A02,
  *  and CC7/I1 muxes/GPIOs (both OUT1).
  */
 
@@ -205,7 +205,7 @@ static const struct pmux_pingrp_config p3450_porg_pingrps[] = {
 	PINCFG(LCD_TE_PY2,           DEFAULT,    DOWN,   NORMAL,   INPUT,   DISABLE, DEFAULT),
 	PINCFG(PWR_I2C_SCL_PY3,      I2CPMU,     NORMAL, NORMAL,   INPUT,   DISABLE, NORMAL),
 	PINCFG(PWR_I2C_SDA_PY4,      I2CPMU,     NORMAL, NORMAL,   INPUT,   DISABLE, NORMAL),
-	PINCFG(CLK_32K_OUT_PY5,      SOC,        NORMAL, NORMAL,   INPUT,   DISABLE, DEFAULT),
+	PINCFG(CLK_32K_OUT_PY5,      SOC,        UP,     NORMAL,   INPUT,   DISABLE, DEFAULT),
 	PINCFG(PZ0,                  DEFAULT,    UP,     NORMAL,   INPUT,   DISABLE, DEFAULT),
 	PINCFG(PZ1,                  SDMMC1,     UP,     NORMAL,   INPUT,   DISABLE, DEFAULT),
 	PINCFG(PZ2,                  DEFAULT,    UP,     NORMAL,   INPUT,   DISABLE, DEFAULT),
