@@ -100,27 +100,38 @@ int tegra_pcie_board_init(void)
 }
 #endif /* PCI */
 
+/*
+ * Attempt to use /chosen/nvidia,ethernet-mac in the cboot DTB as U-Boot's
+ * ethaddr environment variable if possible.
+ */
 int set_ethaddr_from_cboot(const void *fdt)
 {
 	int node, len, err;
 	const uchar *mac;
 
-	node = fdt_path_offset(fdt, "/pcie@1003000/pci@2,0/ethernet@0,0");
-	if (node < 0)
+	/* Already a valid address in the environment? If so, keep it */
+	if (getenv("ethaddr"))
 		return 0;
 
-	debug("PCI ethernet device tree node found\n");
+	node = fdt_path_offset(fdt, "/chosen");
+	if (node < 0) {
+		printf("Can't find /chosen node in CBoot DTB\n");
+		return node;
+	}
+	mac = fdt_getprop(fdt, node, "nvidia,ethernet-mac", &len);
+	if (!mac) {
+		printf("Can't find nvidia,ethernet-mac property in CBoot DTB\n");
+		return -ENOENT;
+	}
 
-	mac = fdt_getprop(fdt, node, "local-mac-address", &len);
-	if (!mac)
-		return 0;
+	debug("%s: MAC address: %s\n", __func__, mac);
 
-	debug("MAC address: %02x:%02x:%02x:%02x:%02x:%02x\n",
-	      mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-
-	err = eth_setenv_enetaddr("ethaddr", mac);
-	if (err)
-		return 0;
+	/* Set MAC address */
+	err = setenv("ethaddr", (void *)mac);
+	if (err) {
+		printf("Failed to set ethaddr from CBoot DTB: %d\n", err);
+		return err;
+	}
 
 	return 0;
 }
