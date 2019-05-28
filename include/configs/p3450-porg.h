@@ -64,4 +64,7 @@
 /* Crystal is 38.4MHz. clk_m runs at half that rate */
 #define COUNTER_FREQUENCY	19200000
 
+/* Turn SDMMC1 off in early init on Porg/Nano */
+#define CONFIG_DISABLE_SDMMC1_EARLY
+
 #endif /* _P3450_PORG_H */

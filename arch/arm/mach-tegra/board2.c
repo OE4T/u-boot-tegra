@@ -1,10 +1,9 @@
 /*
- *  (C) Copyright 2010,2011,2015,2017
+ *  (C) Copyright 2010,2011,2015,2017,2019
  *  NVIDIA Corporation <www.nvidia.com>
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
-
 #include <common.h>
 #include <dm.h>
 #include <errno.h>
@@ -212,6 +211,17 @@ int board_early_init_f(void)
 	if (!tegra_cpu_is_non_secure())
 #endif
 		arch_timer_init();
+
+#if defined(CONFIG_DISABLE_SDMMC1_EARLY)
+	/*
+	 * Disable (reset/unclock) SDMMC1 as early as possible in U-Boot
+	 * so that the GPIO init of PZ3 in pinmux_init can be done w/o
+	 * power to the HW or card. This resolves voltage back-drive
+	 * onto SDMMC1/SD-card during SDMMC1 init.
+	 */
+	reset_set_enable(PERIPH_ID_SDMMC1, 1);
+	clock_set_enable(PERIPH_ID_SDMMC1, 0);
+#endif	/* CONFIG_DISABLE_SDMMC1_EARLY */
 
 	pinmux_init();
 	board_init_uart_f();
