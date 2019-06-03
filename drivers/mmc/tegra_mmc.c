@@ -375,7 +375,22 @@ static void mmc_change_clock(struct mmc_host *host, uint clock)
 		div = (rate + clock - 1) / clock;
 	}
 #else
-	clock_adjust_periph_pll_div(host->mmc_id, CLOCK_ID_PERIPH, clock,
+#if defined(CONFIG_TEGRA210)
+	if (host->mmc_id == PERIPH_ID_SDMMC1 && clock <= 400000) {
+		/* clock_adjust_periph_pll_div() chooses a 'bad' clock
+		 * on SDMMC1 T210, so skip it here and force a clock
+		 * that's been spec'd in the table in the TRM for
+		 * card-detect (400KHz).
+		 */
+		uint effective_rate = clock_adjust_periph_pll_div(host->mmc_id,
+				CLOCK_ID_PERIPH, 24727273, NULL);
+		div = 62;
+
+		debug("%s: WAR: Using SDMMC1 clock of %u, div %d to achieve %dHz card clock ...\n",
+			__func__, effective_rate, div, clock);
+	} else
+#endif
+		clock_adjust_periph_pll_div(host->mmc_id, CLOCK_ID_PERIPH, clock,
 				    &div);
 #endif
 	debug("div = %d\n", div);
