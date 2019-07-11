@@ -325,22 +325,23 @@ __weak void *fdt_copy_get_blob_src_default(void)
 	return NULL;
 }
 
-static void *no_self_copy(void *blob_src, void *blob_dst)
-{
-	if (blob_src == blob_dst)
-		return NULL;
-	return blob_src;
-}
-
-static void *fdt_get_copy_blob_src(void *blob_dst)
+static void *fdt_get_blob_src(void)
 {
 	char *src_addr_s;
 
 	src_addr_s = getenv("fdt_copy_src_addr");
 	if (!src_addr_s)
-		return no_self_copy(fdt_copy_get_blob_src_default(), blob_dst);
-	return no_self_copy((void *)simple_strtoul(src_addr_s, NULL, 16),
-			    blob_dst);
+		return fdt_copy_get_blob_src_default();
+	return (void *)simple_strtoul(src_addr_s, NULL, 16);
+}
+
+static void *fdt_get_copy_blob_src(void *blob_dst)
+{
+	void *blob_src = fdt_get_blob_src();
+
+	if (blob_src == blob_dst)
+		return NULL;
+	return blob_src;
 }
 
 int fdt_copy_env_nodelist(void *blob_dst)
@@ -373,16 +374,32 @@ int fdt_copy_env_proplist(void *blob_dst)
 	return fdt_iter_envlist(fdt_iter_copy_prop, blob_dst, "fdt_copy_prop_paths", blob_src);
 }
 
-int fdt_del_env_nodelist(void *blob_dst)
+int fdt_del_env_nodelist(void)
 {
+	void *blob_src;
+
 	debug("%s:\n", __func__);
 
-	return fdt_iter_envlist(fdt_iter_del_node, blob_dst, "fdt_del_node_paths", NULL);
+	blob_src = fdt_get_blob_src();
+	if (!blob_src) {
+		error("%s: No source DT\n", __func__);
+		return -ENXIO;
+	}
+
+	return fdt_iter_envlist(fdt_iter_del_node, blob_src, "fdt_del_node_paths", NULL);
 }
 
-int fdt_del_env_proplist(void *blob_dst)
+int fdt_del_env_proplist(void)
 {
+	void *blob_src;
+
 	debug("%s:\n", __func__);
 
-	return fdt_iter_envlist(fdt_iter_del_prop, blob_dst, "fdt_del_prop_paths", NULL);
+	blob_src = fdt_get_blob_src();
+	if (!blob_src) {
+		error("%s: No source DT\n", __func__);
+		return -ENXIO;
+	}
+
+	return fdt_iter_envlist(fdt_iter_del_prop, blob_src, "fdt_del_prop_paths", NULL);
 }
