@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2013-2017
+ * (C) Copyright 2013-2019
  * NVIDIA Corporation <www.nvidia.com>
  *
  * SPDX-License-Identifier:     GPL-2.0+
@@ -11,7 +11,6 @@
 #include <asm/arch/gpio.h>
 #include <asm/arch/pinmux.h>
 #include "../p2571/max77620_init.h"
-#include "pinmux-config-p2371-2180.h"
 
 void pin_mux_mmc(void)
 {
@@ -53,24 +52,6 @@ void pin_mux_mmc(void)
 		if (ret)
 			printf("i2c_write 0 0x3c 0x00 failed: %d\n", ret);
 	}
-}
-
-/*
- * Routine: pinmux_init
- * Description: Do individual peripheral pinmux configs
- */
-void pinmux_init(void)
-{
-	pinmux_clear_tristate_input_clamping();
-
-	gpio_config_table(p2371_2180_gpio_inits,
-			  ARRAY_SIZE(p2371_2180_gpio_inits));
-
-	pinmux_config_pingrp_table(p2371_2180_pingrps,
-				   ARRAY_SIZE(p2371_2180_pingrps));
-
-	pinmux_config_drvgrp_table(p2371_2180_drvgrps,
-				   ARRAY_SIZE(p2371_2180_drvgrps));
 }
 
 #ifdef CONFIG_PCI_TEGRA

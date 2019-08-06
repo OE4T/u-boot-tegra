@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2018
+ * (C) Copyright 2018-2019
  * NVIDIA Corporation <www.nvidia.com>
  *
  * SPDX-License-Identifier:     GPL-2.0+
@@ -12,7 +12,6 @@
 #include <asm/arch/gpio.h>
 #include <asm/arch/pinmux.h>
 #include "../p2571/max77620_init.h"
-#include "pinmux-config-p3450-porg.h"
 
 #define ETH_ALEN 6
 
@@ -56,24 +55,6 @@ void pin_mux_mmc(void)
 		if (ret)
 			printf("i2c_write 0 0x3c 0x00 failed: %d\n", ret);
 	}
-}
-
-/*
- * Routine: pinmux_init
- * Description: Do individual peripheral pinmux configs
- */
-void pinmux_init(void)
-{
-	pinmux_clear_tristate_input_clamping();
-
-	gpio_config_table(p3450_porg_gpio_inits,
-			  ARRAY_SIZE(p3450_porg_gpio_inits));
-
-	pinmux_config_pingrp_table(p3450_porg_pingrps,
-				   ARRAY_SIZE(p3450_porg_pingrps));
-
-	pinmux_config_drvgrp_table(p3450_porg_drvgrps,
-				   ARRAY_SIZE(p3450_porg_drvgrps));
 }
 
 #ifdef CONFIG_PCI_TEGRA
