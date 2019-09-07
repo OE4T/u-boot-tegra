@@ -626,9 +626,10 @@ static int do_mmc_init(int dev_index, bool removable)
 	host->cfg.b_max = CONFIG_SYS_MMC_MAX_BLK_COUNT;
 
 	mmc = mmc_create(&host->cfg, host);
-	mmc->block_dev.removable = removable;
 	if (mmc == NULL)
 		return -1;
+	mmc->block_dev.removable = removable;
+	mmc->block_dev.devnum = dev_index;
 
 	return 0;
 }
