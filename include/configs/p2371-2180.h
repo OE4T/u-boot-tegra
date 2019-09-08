@@ -55,6 +55,16 @@
 /* General networking support */
 
 #include "tegra-common-usb-gadget.h"
+
+#ifndef CONFIG_SPL_BUILD
+#define BOOT_TARGET_DEVICES(func) \
+	func(MMC, mmc, 2) \
+	func(MMC, mmc, 0) \
+	func(USB, usb, 0) \
+	func(PXE, pxe, na) \
+	func(DHCP, dhcp, na)
+#endif  /* !CONFIG_SPL_BUILD */
+
 #include "tegra-common-post.h"
 
 /* Crystal is 38.4MHz. clk_m runs at half that rate */
