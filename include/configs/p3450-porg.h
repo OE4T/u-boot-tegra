@@ -35,7 +35,11 @@
 	func(DHCP, dhcp, na)
 
 /* Environment s/b at end of SPI, fix it later */
-#define CONFIG_ENV_IS_NOWHERE
+#define CONFIG_ENV_IS_IN_SPI_FLASH
+/* 64KB at end of SPI flash is used, so position at 128K from end
+   in the padding area */
+#define CONFIG_ENV_OFFSET		(CONFIG_SPI_FLASH_SIZE-131072)
+#define CONFIG_ENV_SECT_SIZE		4096
 
 /* SPI */
 #define CONFIG_SF_DEFAULT_MODE		SPI_MODE_0
