@@ -1,7 +1,7 @@
 /*
  * NVIDIA Tegra210 QSPI controller driver
  *
- * (C) Copyright 2015 NVIDIA Corporation <www.nvidia.com>
+ * (C) Copyright 2015-2019 NVIDIA Corporation <www.nvidia.com>
  *
  * SPDX-License-Identifier:     GPL-2.0+
  */
@@ -134,8 +134,9 @@ static int tegra210_qspi_probe(struct udevice *bus)
 	return 0;
 }
 
-static int tegra210_qspi_claim_bus(struct udevice *bus)
+static int tegra210_qspi_claim_bus(struct udevice *dev)
 {
+	struct udevice *bus = dev->parent;
 	struct tegra210_qspi_priv *priv = dev_get_priv(bus);
 	struct qspi_regs *regs = priv->regs;
 
