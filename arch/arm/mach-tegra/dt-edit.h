@@ -10,3 +10,4 @@ int fdt_copy_env_proplist(void *blob_dst);
 int fdt_copy_env_nodelist(void *blob_dst);
 int fdt_del_env_nodelist(void);
 int fdt_del_env_proplist(void);
+int fdt_del_then_copy_env_nodelist(void *blob_dst);
