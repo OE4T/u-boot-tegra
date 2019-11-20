@@ -359,6 +359,24 @@ int fdt_copy_env_nodelist(void *blob_dst)
 	return fdt_iter_envlist(fdt_iter_copy_node, blob_dst, "fdt_copy_node_paths", blob_src);
 }
 
+/* Deletes node list from dst blob, then copies same node list from src->dst */
+int fdt_del_then_copy_env_nodelist(void *blob_dst)
+{
+	void *blob_src;
+
+	debug("%s:\n", __func__);
+
+	blob_src = fdt_get_copy_blob_src(blob_dst);
+	if (!blob_src) {
+		debug("%s: No source DT\n", __func__);
+		return 0;
+	}
+
+	fdt_iter_envlist(fdt_iter_del_node, blob_dst, "fdt_del_copy_node_paths", NULL);
+
+	return fdt_iter_envlist(fdt_iter_copy_node, blob_dst, "fdt_del_copy_node_paths", blob_src);
+}
+
 int fdt_copy_env_proplist(void *blob_dst)
 {
 	void *blob_src;
