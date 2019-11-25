@@ -109,6 +109,7 @@
 
 	spi@0,70410000 {
 		status = "okay";
+		spi-max-frequency = <80000000>;
 	};
 
 	usb@0,7d000000 {
