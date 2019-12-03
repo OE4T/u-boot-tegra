@@ -316,12 +316,21 @@ static int tegra210_qspi_xfer(struct udevice *dev, unsigned int bitlen,
 		 * Wait for SPI transmit FIFO to empty, or to time out.
 		 * The RX FIFO status will be read and cleared last
 		 */
-		for (tm = 0; tm < QSPI_TIMEOUT; ++tm) {
+		for (tm = 0; tm <= QSPI_TIMEOUT; ++tm) {
 			u32 fifo_status, xfer_status;
 
 			xfer_status = readl(&regs->xfer_status);
-			if (!(xfer_status & QSPI_XFER_STS_RDY))
-				continue;
+			if (!(xfer_status & QSPI_XFER_STS_RDY)) {
+				debug("%s: xfer_status = 0x%08X, tm = %d\n", __func__, xfer_status, tm);
+				if (tm >= QSPI_TIMEOUT) {
+					debug("%s: TIMED OUT WAITING ON RDY!\n", __func__);
+					ret = tm;
+					goto done;
+				} else {
+					debug("%s: tm = %d, continuing for loop ...\n", __func__, tm);
+					continue;
+				}
+			}
 
 			fifo_status = readl(&regs->fifo_status);
 			if (fifo_status & QSPI_FIFO_STS_ERR) {
@@ -363,7 +372,7 @@ static int tegra210_qspi_xfer(struct udevice *dev, unsigned int bitlen,
 		/* clear ACK RDY, etc. bits */
 		writel(readl(&regs->fifo_status), &regs->fifo_status);
 	}
-
+done:
 	if (flags & SPI_XFER_END)
 		spi_cs_deactivate(dev);
 
@@ -371,7 +380,7 @@ static int tegra210_qspi_xfer(struct udevice *dev, unsigned int bitlen,
 	      __func__, tmpdin, readl(&regs->fifo_status));
 
 	if (ret) {
-		printf("%s: timeout during SPI transfer, tm %d\n",
+		debug("%s: timeout during SPI transfer, tm %d\n",
 		       __func__, ret);
 		return -1;
 	}
