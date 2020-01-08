@@ -1,6 +1,5 @@
 /*
- * (C) Copyright 2013-2015
- * NVIDIA Corporation <www.nvidia.com>
+ * Copyright (c) 2013-2020, NVIDIA CORPORATION. All rights reserved.
  *
  * SPDX-License-Identifier:     GPL-2.0+
  */
@@ -31,7 +30,7 @@
 #define CONFIG_ENV_IS_IN_MMC
 #define CONFIG_SYS_MMC_ENV_DEV		0
 #define CONFIG_SYS_MMC_ENV_PART		2
-#define CONFIG_ENV_OFFSET		(-CONFIG_ENV_SIZE)
+#define CONFIG_ENV_OFFSET		(-OFFSET_OF_UBOOT_ENV)
 
 /* SPI */
 #define CONFIG_SF_DEFAULT_MODE		SPI_MODE_0
