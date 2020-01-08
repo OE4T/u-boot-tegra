@@ -1,6 +1,5 @@
 /*
- * (C) Copyright 2018-2019
- * NVIDIA Corporation <www.nvidia.com>
+ * Copyright (c) 2018-2020, NVIDIA CORPORATION. All rights reserved.
  *
  * SPDX-License-Identifier:     GPL-2.0+
  */
@@ -40,7 +39,7 @@
 #define CONFIG_ENV_SPI_MODE		SPI_MODE_0
 #define CONFIG_ENV_SECT_SIZE		SZ_4K
 /* 4MB flash, environment located as high as possible */
-#define CONFIG_ENV_OFFSET		(SZ_4M - CONFIG_ENV_SIZE)
+#define CONFIG_ENV_OFFSET		(SZ_4M - OFFSET_OF_UBOOT_ENV)
 
 /* SPI */
 #define CONFIG_SF_DEFAULT_MODE		SPI_MODE_0

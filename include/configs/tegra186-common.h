@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2020, NVIDIA CORPORATION.
+ * Copyright (c) 2013-2020, NVIDIA CORPORATION. All rights reserved.
  *
  * SPDX-License-Identifier: GPL-2.0
  */
@@ -25,6 +25,9 @@
 
 /* Generic Interrupt Controller */
 #define CONFIG_GICV2
+
+/* Offset of environment data in flash map from boot1 end */
+#define OFFSET_OF_UBOOT_ENV	0x28000
 
 /*
  * Memory layout for where various images get loaded by boot scripts:
