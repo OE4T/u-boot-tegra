@@ -27,10 +27,22 @@
 #define CONFIG_GENERIC_MMC
 #define CONFIG_TEGRA_MMC
 
+#ifdef CONFIG_NANO_EMMC
+#define BOOT_TARGET_DEVICES(func) \
+	func(MMC, mmc, 0) \
+	func(PXE, pxe, na) \
+	func(DHCP, dhcp, na)
+
+#define CONFIG_ENV_IS_IN_MMC
+#define CONFIG_SYS_MMC_ENV_DEV		0
+#define CONFIG_SYS_MMC_ENV_PART		2
+#define CONFIG_ENV_OFFSET		(-CONFIG_ENV_SIZE)
+
+#define DEFAULT_MMC_DEV "0"
+#else
 /* Only MMC1/PXE/DHCP for now, add USB back in later when supported */
 #define BOOT_TARGET_DEVICES(func) \
 	func(MMC, mmc, 1) \
-	func(MMC, mmc, 0) \
 	func(PXE, pxe, na) \
 	func(DHCP, dhcp, na)
 
@@ -47,6 +59,9 @@
 #define CONFIG_SF_DEFAULT_SPEED		24000000
 #define CONFIG_SPI_FLASH_SIZE		(4 << 20)
 
+#define DEFAULT_MMC_DEV "1"
+#endif /* CONFIG_NANO_EMMC */
+
 /* USB2.0 Host support */
 #define CONFIG_USB_EHCI
 #define CONFIG_USB_EHCI_TEGRA
@@ -59,8 +74,8 @@
 #define CONFIG_PREBOOT
 
 #define BOARD_EXTRA_ENV_SETTINGS \
-	"preboot=if test -e mmc 1:1 /u-boot-preboot.scr; then " \
-		"load mmc 1:1 ${scriptaddr} /u-boot-preboot.scr; " \
+	"preboot=if test -e mmc " DEFAULT_MMC_DEV ":1 /u-boot-preboot.scr; then " \
+		"load mmc " DEFAULT_MMC_DEV ":1 ${scriptaddr} /u-boot-preboot.scr; " \
 		"source ${scriptaddr}; " \
 	"fi\0"
 
