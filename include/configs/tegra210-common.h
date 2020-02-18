@@ -1,7 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0+ */
 /*
- * (C) Copyright 2013-2015
- * NVIDIA Corporation <www.nvidia.com>
+ *  Copyright (c) 2013-2020, NVIDIA CORPORATION. All rights reserved.
  */
 
 #ifndef _TEGRA210_COMMON_H_
@@ -45,7 +44,42 @@
 	"fdtfile=" FDTFILE "\0" \
 	"fdt_addr_r=0x83000000\0" \
 	"ramdisk_addr_r=0x83420000\0"
-	"fdt_del_prop_paths=/pinmux@700008d4/pinctrl-names\0"
+	"calculated_vars=kernel_addr_r fdt_addr_r scriptaddr pxefile_addr_r " \
+		"ramdisk_addr_r\0" \
+	"kernel_addr_r_align=00200000\0" \
+	"kernel_addr_r_offset=00080000\0" \
+	"kernel_addr_r_size=03000000\0" \
+	"kernel_addr_r_aliases=loadaddr\0" \
+	"fdt_addr_r_align=00200000\0" \
+	"fdt_addr_r_offset=00000000\0" \
+	"fdt_addr_r_size=00200000\0" \
+	"scriptaddr_align=00200000\0" \
+	"scriptaddr_offset=00000000\0" \
+	"scriptaddr_size=00200000\0" \
+	"pxefile_addr_r_align=00200000\0" \
+	"pxefile_addr_r_offset=00000000\0" \
+	"pxefile_addr_r_size=00200000\0" \
+	"ramdisk_addr_r_align=00200000\0" \
+	"ramdisk_addr_r_offset=00000000\0" \
+	"ramdisk_addr_r_size=02000000\0" \
+	"fdt_del_prop_paths=/pinmux@700008d4/pinctrl-names\0" \
+	"fdt_copy_node_paths=" \
+		"/chosen/plugin-manager:" \
+		"/chosen/reset:" \
+		"/chosen/display-board:" \
+		"/chosen/proc-board:" \
+		"/chosen/pmu-board:" \
+		"/external-memory-controller@7001b000:" \
+		"/memory@80000000\0" \
+	"fdt_copy_prop_paths=" \
+		"/bpmp/carveout-start:" \
+		"/bpmp/carveout-size:" \
+		"/chosen/nvidia,ethernet-mac:" \
+		"/chosen/uuid:" \
+		"/chosen/linux,initrd-start:" \
+		"/chosen/linux,initrd-end:" \
+		"/psci/nvidia,system-lp0-disable:" \
+		"/serial-number\0"
 
 /* For USB EHCI controller */
 #define CONFIG_USB_EHCI_TXFIFO_THRESH	0x10
