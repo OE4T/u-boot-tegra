@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2013-2019, NVIDIA CORPORATION. All rights reserved.
+ *  Copyright (c) 2013-2020, NVIDIA CORPORATION. All rights reserved.
  *
  * SPDX-License-Identifier:     GPL-2.0+
  */
@@ -56,6 +56,24 @@
 	"kernel_addr_r=" __stringify(CONFIG_LOADADDR) "\0" \
 	"fdt_addr_r=0x83000000\0" \
 	"ramdisk_addr_r=0x83200000\0" \
+	"calculated_vars=kernel_addr_r fdt_addr_r scriptaddr pxefile_addr_r " \
+		"ramdisk_addr_r\0" \
+	"kernel_addr_r_align=00200000\0" \
+	"kernel_addr_r_offset=00080000\0" \
+	"kernel_addr_r_size=03000000\0" \
+	"kernel_addr_r_aliases=loadaddr\0" \
+	"fdt_addr_r_align=00200000\0" \
+	"fdt_addr_r_offset=00000000\0" \
+	"fdt_addr_r_size=00200000\0" \
+	"scriptaddr_align=00200000\0" \
+	"scriptaddr_offset=00000000\0" \
+	"scriptaddr_size=00200000\0" \
+	"pxefile_addr_r_align=00200000\0" \
+	"pxefile_addr_r_offset=00000000\0" \
+	"pxefile_addr_r_size=00200000\0" \
+	"ramdisk_addr_r_align=00200000\0" \
+	"ramdisk_addr_r_offset=00000000\0" \
+	"ramdisk_addr_r_size=02000000\0" \
 	"fdt_del_prop_paths=/pinmux@700008d4/pinctrl-names\0" \
 	"fdt_copy_node_paths=" \
 		"/chosen/plugin-manager:" \
