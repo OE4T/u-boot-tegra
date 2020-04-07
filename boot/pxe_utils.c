@@ -31,6 +31,9 @@
 
 #include "menu.h"
 #include "cli.h"
+#ifdef CONFIG_HUSH_PARSER
+#include "cli_hush.h"
+#endif
 
 #include "pxe_utils.h"
 
@@ -566,6 +569,10 @@ static int label_boot(struct pxe_context *ctx, struct pxe_label *label)
 	if ((label->ipappend & 0x3) || label->append) {
 		char bootargs[CONFIG_SYS_CBSIZE] = "";
 		char finalbootargs[CONFIG_SYS_CBSIZE];
+#ifdef CONFIG_HUSH_PARSER
+		char *distro_bootpart, *hush_bootpart;
+		char *env_devnum, *hush_devnum;
+#endif
 
 		if (strlen(label->append ?: "") +
 		    strlen(ip_str) + strlen(mac_str) + 1 > sizeof(bootargs)) {
@@ -582,10 +589,34 @@ static int label_boot(struct pxe_context *ctx, struct pxe_label *label)
 		strcat(bootargs, ip_str);
 		strcat(bootargs, mac_str);
 
+#ifdef CONFIG_HUSH_PARSER
+		env_devnum = env_get("devnum");
+		hush_devnum = get_local_var("devnum");
+		if (hush_devnum && !env_devnum) {
+			char devnumstr[32];
+			unsigned long devnum = simple_strtoul(hush_devnum, NULL, 16);
+			snprintf(devnumstr, sizeof(devnumstr), "%lu", devnum);
+			env_set("devnum", devnumstr);
+		}
+		distro_bootpart = env_get("distro_bootpart");
+		hush_bootpart = get_local_var("distro_bootpart");
+		if (hush_bootpart && !distro_bootpart) {
+			char partnumstr[32];
+			unsigned long partnum = simple_strtoul(hush_bootpart, NULL, 16);
+			snprintf(partnumstr, sizeof(partnumstr), "%lu", partnum);
+			env_set("distro_bootpart", partnumstr);
+		}
+#endif
 		cli_simple_process_macros(bootargs, finalbootargs,
 					  sizeof(finalbootargs));
 		env_set("bootargs", finalbootargs);
 		printf("append: %s\n", finalbootargs);
+#ifdef CONFIG_HUSH_PARSER
+		if (hush_bootpart && !distro_bootpart)
+			env_set("distro_bootpart", NULL);
+		if (hush_devnum && !env_devnum)
+			env_set("devnum", NULL);
+#endif
 	}
 
 	kernel_addr = env_get("kernel_addr_r");
