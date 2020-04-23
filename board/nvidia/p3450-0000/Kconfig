@@ -9,4 +9,7 @@ config SYS_VENDOR
 config SYS_CONFIG_NAME
 	default "p3450-0000"
 
+config P3450_EMMC
+	bool "SKU 2 module with eMMC"
+
 endif
