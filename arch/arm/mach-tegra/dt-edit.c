@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2010-2019 NVIDIA CORPORATION.
+ *  Copyright (C) 2010-2020 NVIDIA CORPORATION.
  *
  * SPDX-License-Identifier: GPL-2.0
  */
@@ -19,6 +19,7 @@ static int fdt_copy_node_content(void *blob_src, int ofs_src, void *blob_dst,
 		int ofs_dst, int indent)
 {
 	int ofs_src_child, ofs_dst_child;
+	int ret;
 
 	/*
 	 * FIXME: This doesn't remove properties or nodes in the destination
@@ -29,15 +30,23 @@ static int fdt_copy_node_content(void *blob_src, int ofs_src, void *blob_dst,
 	fdt_for_each_property(blob_src, ofs_src_child, ofs_src) {
 		const void *prop;
 		const char *name;
-		int len, ret;
+		int len;
 
 		prop = fdt_getprop_by_offset(blob_src, ofs_src_child, &name,
 					     &len);
 		debug("%s: %*scopy prop: %s\n", __func__, indent, "", name);
-
+add_prop:
 		ret = fdt_setprop(blob_dst, ofs_dst, name, prop, len);
-		if (ret < 0) {
-			pr_err("Can't copy DT prop %s\n", name);
+		if (ret == -FDT_ERR_NOSPACE) {
+			ret = fdt_increase_size(blob_dst, 512);
+			debug("Increased FDT blob size by 512 bytes\n");
+			if (!ret)
+				goto add_prop;		/* retry setprop */
+			else
+				goto err_ret;		/* error out */
+		} else if (ret < 0) {
+			pr_err("Can't copy DT prop %s: %s\n",
+			      name, fdt_strerror(ret));
 			return ret;
 		}
 	}
@@ -52,10 +61,19 @@ static int fdt_copy_node_content(void *blob_src, int ofs_src, void *blob_dst,
 		if (ofs_dst_child < 0) {
 			debug("%s: %*s(creating it in dst)\n", __func__,
 			      indent, "");
+add_node:
 			ofs_dst_child = fdt_add_subnode(blob_dst, ofs_dst,
 							name);
-			if (ofs_dst_child < 0) {
-				pr_err("Can't copy DT node %s\n", name);
+			if (ofs_dst_child == -FDT_ERR_NOSPACE) {
+				ret = fdt_increase_size(blob_dst, 512);
+				debug("Increased FDT blob size by 512 bytes\n");
+				if (!ret)
+					goto add_node;	/* retry add_subnode */
+				else
+					goto err_ret;	/* error out */
+			} else if (ofs_dst_child < 0) {
+				pr_err("Can't copy DT node %s: %s\n",
+				      name, fdt_strerror(ofs_dst_child));
 				return ofs_dst_child;
 			}
 		}
@@ -65,6 +83,10 @@ static int fdt_copy_node_content(void *blob_src, int ofs_src, void *blob_dst,
 	}
 
 	return 0;
+
+err_ret:
+	printf("Can't increase blob size: %s\n", fdt_strerror(ret));
+	return ret;
 }
 
 static int fdt_add_path(void *blob, const char *path)
@@ -134,14 +156,14 @@ static int fdt_iter_copy_prop(void *blob_dst, char *prop_path, void *blob_src)
 		if (ofs_src < 0) {
 			pr_err("DT node %s missing in source; can't copy %s\n",
 			      node_path, prop_name);
-			return -1;
+			return FDT_ERR_NOTFOUND;	/* continue w/next prop */
 		}
 
 		ofs_dst = fdt_path_offset(blob_dst, node_path);
 		if (ofs_src < 0) {
 			pr_err("DT node %s missing in dest; can't copy prop %s\n",
 			      node_path, prop_name);
-			return -1;
+			return FDT_ERR_NOTFOUND;	/* continue w/next prop */
 		}
 	} else {
 		ofs_src = 0;
@@ -152,16 +174,27 @@ static int fdt_iter_copy_prop(void *blob_dst, char *prop_path, void *blob_src)
 	if (!prop) {
 		pr_err("DT property %s/%s missing in source; can't copy\n",
 		      node_path, prop_name);
-		return -1;
+		return FDT_ERR_NOTFOUND;	/* continue w/next prop */
 	}
-
+add_prop:
 	ret = fdt_setprop(blob_dst, ofs_dst, prop_name, prop, len);
-	if (ret < 0) {
-		pr_err("Can't set DT prop %s/%s\n", node_path, prop_name);
+	if (ret == -FDT_ERR_NOSPACE) {
+		ret = fdt_increase_size(blob_dst, 512);
+		debug("Increased FDT blob size by 512 bytes\n");
+		if (!ret)
+			goto add_prop;		/* retry setprop */
+		else
+			goto err_ret;		/* error out */
+	} else if (ret < 0) {
+		pr_err("Can't set DT prop %s/%s: %s\n",
+		      node_path, prop_name, fdt_strerror(ret));
 		return ret;
 	}
 
 	return 0;
+err_ret:
+	printf("Can't increase blob size: %s\n", fdt_strerror(ret));
+	return ret;
 }
 
 static iter_envitem fdt_iter_copy_node;
@@ -292,22 +325,23 @@ __weak void *fdt_copy_get_blob_src_default(void)
 	return NULL;
 }
 
-static void *no_self_copy(void *blob_src, void *blob_dst)
-{
-	if (blob_src == blob_dst)
-		return NULL;
-	return blob_src;
-}
-
-static void *fdt_get_copy_blob_src(void *blob_dst)
+static void *fdt_get_blob_src(void)
 {
 	char *src_addr_s;
 
 	src_addr_s = env_get("fdt_copy_src_addr");
 	if (!src_addr_s)
-		return no_self_copy(fdt_copy_get_blob_src_default(), blob_dst);
-	return no_self_copy((void *)simple_strtoul(src_addr_s, NULL, 16),
-			    blob_dst);
+		return fdt_copy_get_blob_src_default();
+	return (void *)simple_strtoul(src_addr_s, NULL, 16);
+}
+
+static void *fdt_get_copy_blob_src(void *blob_dst)
+{
+	void *blob_src = fdt_get_blob_src();
+
+	if (blob_src == blob_dst)
+		return NULL;
+	return blob_src;
 }
 
 int fdt_copy_env_nodelist(void *blob_dst)
@@ -325,6 +359,24 @@ int fdt_copy_env_nodelist(void *blob_dst)
 	return fdt_iter_envlist(fdt_iter_copy_node, blob_dst, "fdt_copy_node_paths", blob_src);
 }
 
+/* Deletes node list from dst blob, then copies same node list from src->dst */
+int fdt_del_then_copy_env_nodelist(void *blob_dst)
+{
+	void *blob_src;
+
+	debug("%s:\n", __func__);
+
+	blob_src = fdt_get_copy_blob_src(blob_dst);
+	if (!blob_src) {
+		debug("%s: No source DT\n", __func__);
+		return 0;
+	}
+
+	fdt_iter_envlist(fdt_iter_del_node, blob_dst, "fdt_del_copy_node_paths", NULL);
+
+	return fdt_iter_envlist(fdt_iter_copy_node, blob_dst, "fdt_del_copy_node_paths", blob_src);
+}
+
 int fdt_copy_env_proplist(void *blob_dst)
 {
 	void *blob_src;
@@ -340,16 +392,32 @@ int fdt_copy_env_proplist(void *blob_dst)
 	return fdt_iter_envlist(fdt_iter_copy_prop, blob_dst, "fdt_copy_prop_paths", blob_src);
 }
 
-int fdt_del_env_nodelist(void *blob_dst)
+int fdt_del_env_nodelist(void)
 {
+	void *blob_src;
+
 	debug("%s:\n", __func__);
 
-	return fdt_iter_envlist(fdt_iter_del_node, blob_dst, "fdt_del_node_paths", NULL);
+	blob_src = fdt_get_blob_src();
+	if (!blob_src) {
+		pr_err("%s: No source DT\n", __func__);
+		return -ENXIO;
+	}
+
+	return fdt_iter_envlist(fdt_iter_del_node, blob_src, "fdt_del_node_paths", NULL);
 }
 
-int fdt_del_env_proplist(void *blob_dst)
+int fdt_del_env_proplist(void)
 {
+	void *blob_src;
+
 	debug("%s:\n", __func__);
 
-	return fdt_iter_envlist(fdt_iter_del_prop, blob_dst, "fdt_del_prop_paths", NULL);
+	blob_src = fdt_get_blob_src();
+	if (!blob_src) {
+		pr_err("%s: No source DT\n", __func__);
+		return -ENXIO;
+	}
+
+	return fdt_iter_envlist(fdt_iter_del_prop, blob_src, "fdt_del_prop_paths", NULL);
 }

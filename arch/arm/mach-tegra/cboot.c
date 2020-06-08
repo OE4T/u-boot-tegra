@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright (c) 2016-2018, NVIDIA CORPORATION.
+ * Copyright (c) 2016-2020, NVIDIA CORPORATION.
  */
 
 #include <common.h>
@@ -460,10 +460,18 @@ static int set_fdt_addr(void)
 	ret = env_set_hex("fdt_addr", cboot_boot_x0);
 	if (ret) {
 		printf("Failed to set fdt_addr to point at DTB: %d\n", ret);
-		return ret;
+		goto fail;
 	}
 
-	return 0;
+	ret = env_set_hex("fdt_copy_src_addr", cboot_boot_x0);
+	if (ret) {
+		printf("Failed to set fdt_copy_src_addr to point at DTB: %d\n",
+			ret);
+		goto fail;
+	}
+	ret = 0;
+fail:
+	return ret;
 }
 
 void *fdt_copy_get_blob_src_default(void)

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0+
 #
-# (C) Copyright 2010-2019 Nvidia Corporation.
+# (C) Copyright 2010-2020 Nvidia Corporation.
 #
 # (C) Copyright 2000-2008
 # Wolfgang Denk, DENX Software Engineering, wd@denx.de.

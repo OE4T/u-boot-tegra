@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0+ */
 /*
- *  Copyright (c) 2013-2020, NVIDIA CORPORATION. All rights reserved.
+ * (C) Copyright 2013-2020
+ * NVIDIA Corporation <www.nvidia.com>
  */
 
 #ifndef _TEGRA210_COMMON_H_
@@ -77,12 +78,16 @@
 	"fdt_copy_prop_paths=" \
 		"/bpmp/carveout-start:" \
 		"/bpmp/carveout-size:" \
+		"/chosen/bootargs:" \
+		"/chosen/eks_info:" \
+		"/chosen/nvidia,bluetooth-mac:" \
 		"/chosen/nvidia,ethernet-mac:" \
+		"/chosen/nvidia,wifi-mac:" \
 		"/chosen/uuid:" \
 		"/chosen/linux,initrd-start:" \
 		"/chosen/linux,initrd-end:" \
-		"/psci/nvidia,system-lp0-disable:" \
-		"/serial-number\0"
+		"/serial-number:" \
+		"/psci/nvidia,system-lp0-disable\0"
 
 /* For USB EHCI controller */
 #define CONFIG_EHCI_IS_TDI

@@ -76,12 +76,17 @@
 	"fdt_copy_prop_paths=" \
 		"/bpmp/carveout-start:" \
 		"/bpmp/carveout-size:" \
+		"/chosen/bootargs:" \
 		"/chosen/nvidia,bluetooth-mac:" \
 		"/chosen/nvidia,ether-mac:" \
 		"/chosen/nvidia,wifi-mac:" \
 		"/chosen/ecid:" \
 		"/chosen/linux,initrd-start:" \
 		"/chosen/linux,initrd-end:" \
-		"/serial-number\0"
+		"/serial-number:" \
+		"/trusty/status\0" \
+	"fdt_del_copy_node_paths=" \
+		"/reserved-memory/ramoops_carveout:" \
+		"/reserved-memory/vpr-carveout\0"
 
 #endif
