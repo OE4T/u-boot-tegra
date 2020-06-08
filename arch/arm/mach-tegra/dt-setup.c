@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright (c) 2010-2016, NVIDIA CORPORATION.
+ * Copyright (c) 2010-2020, NVIDIA CORPORATION.
  */
 
 #include <common.h>
 #include <asm/arch-tegra/gpu.h>
+#include "dt-edit.h"
 
 /*
  * This function is called right before the kernel is booted. "blob" is the
@@ -28,6 +29,12 @@ int ft_system_setup(void *blob, bd_t *bd)
 		if (ret)
 			return ret;
 	}
+
+	fdt_del_env_nodelist();
+	fdt_del_env_proplist();
+	fdt_copy_env_nodelist(blob);
+	fdt_copy_env_proplist(blob);
+	fdt_del_then_copy_env_nodelist(blob);
 
 	return 0;
 }

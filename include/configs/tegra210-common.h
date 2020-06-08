@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0+ */
 /*
- * (C) Copyright 2013-2015
+ * (C) Copyright 2013-2020
  * NVIDIA Corporation <www.nvidia.com>
  */
 
@@ -47,7 +47,28 @@
 	"pxefile_addr_r=0x90100000\0" \
 	"kernel_addr_r=" __stringify(CONFIG_LOADADDR) "\0" \
 	"fdt_addr_r=0x83000000\0" \
-	"ramdisk_addr_r=0x83200000\0"
+	"ramdisk_addr_r=0x83200000\0" \
+	"fdt_copy_node_paths=" \
+		"/chosen/plugin-manager:" \
+		"/chosen/reset:" \
+		"/chosen/display-board:" \
+		"/chosen/proc-board:" \
+		"/chosen/pmu-board:" \
+		"/external-memory-controller@7001b000:" \
+		"/memory@80000000\0" \
+	"fdt_copy_prop_paths=" \
+		"/bpmp/carveout-start:" \
+		"/bpmp/carveout-size:" \
+		"/chosen/bootargs:" \
+		"/chosen/eks_info:" \
+		"/chosen/nvidia,bluetooth-mac:" \
+		"/chosen/nvidia,ethernet-mac:" \
+		"/chosen/nvidia,wifi-mac:" \
+		"/chosen/uuid:" \
+		"/chosen/linux,initrd-start:" \
+		"/chosen/linux,initrd-end:" \
+		"/serial-number:" \
+		"/psci/nvidia,system-lp0-disable\0"
 
 /* For USB EHCI controller */
 #define CONFIG_EHCI_IS_TDI
