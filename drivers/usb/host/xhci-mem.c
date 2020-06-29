@@ -191,6 +191,8 @@ void xhci_cleanup(struct xhci_ctrl *ctrl)
 	free(ctrl->erst.entries);
 	free(ctrl->dcbaa);
 #endif
+	if (reset_valid(&ctrl->reset))
+		reset_free(&ctrl->reset);
 	memset(ctrl, '\0', sizeof(struct xhci_ctrl));
 }
 
