@@ -1,4 +1,4 @@
-# Copyright (c) 2016, NVIDIA CORPORATION.
+# Copyright (c) 2016-2020, NVIDIA CORPORATION.
 #
 # SPDX-License-Identifier: GPL-2.0
 
@@ -16,11 +16,21 @@ config TARGET_P2771_0000
 	  micro-B port, Ethernet, USB3 host port, SATA, PCIe, and two GPIO
 	  expansion headers.
 
+config TARGET_P3636_0001
+	bool "NVIDIA Tegra186 P3636-0001 board"
+	select BOARD_LATE_INIT
+	help
+	  P3636-0001 is a Lanai CVM module married to a P3449/P3509 CVB
+	  baseboard. The combination contains SoC, DRAM, eMMC, HDMI, USB
+	  micro-B port, Ethernet, USB3 host port, SATA, PCIe, and a GPIO
+	  expansion header.
+
 endchoice
 
 config SYS_SOC
 	default "tegra186"
 
 source "board/nvidia/p2771-0000/Kconfig"
+source "board/nvidia/p3636-0001/Kconfig"
 
 endif
