@@ -1,0 +1,16 @@
+# Copyright (c) 2020, NVIDIA CORPORATION.
+#
+# SPDX-License-Identifier: GPL-2.0
+
+if TARGET_P3636_0001
+
+config SYS_BOARD
+	default "p3636-0001"
+
+config SYS_VENDOR
+	default "nvidia"
+
+config SYS_CONFIG_NAME
+	default "p3636-0001"
+
+endif
