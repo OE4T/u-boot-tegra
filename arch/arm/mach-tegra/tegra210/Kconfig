@@ -33,6 +33,12 @@ config TARGET_P3450_0000
 	help
 	  P3450-0000 is a P3448 CPU board married to a P3449 I/O board.
 
+config TARGET_P3541_0000
+	bool "NVIDIA Jetson Nano 2GB Developer Kit"
+	select BOARD_LATE_INIT
+	help
+	  P3541-0000 is a P3448 SKU3 CVM module married to a P3542 SKU0 CVB carrier.
+
 endchoice
 
 config SYS_SOC
@@ -42,5 +48,6 @@ source "board/nvidia/p2371-0000/Kconfig"
 source "board/nvidia/p2371-2180/Kconfig"
 source "board/nvidia/p2571/Kconfig"
 source "board/nvidia/p3450-0000/Kconfig"
+source "board/nvidia/p3541-0000/Kconfig"
 
 endif
