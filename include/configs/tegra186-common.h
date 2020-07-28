@@ -71,4 +71,28 @@
 		"/reserved-memory/ramoops_carveout:" \
 		"/reserved-memory/vpr-carveout\0"
 
+#define ROOTFS_AB_SELECT \
+	"check_rootfs_ab="                                              \
+	"for args in ${cbootargs}; do "                                 \
+		"rootfs_a=rootfs.slot_suffix=; "                        \
+		"rootfs_b=rootfs.slot_suffix=_b; "                      \
+		"if test ${args} = ${rootfs_a}; then "                  \
+			"setenv devplist 1; "                           \
+		"fi; "                                                  \
+		"if test ${args} = ${rootfs_b}; then "                  \
+			"setenv devplist 2; "                           \
+		"fi; "                                                  \
+	"done\0"                                                        \
+	"scan_dev_for_boot_part="                                       \
+		"part list ${devtype} ${devnum} -bootable devplist; "   \
+		"env exists devplist || setenv devplist 1; "            \
+		"run check_rootfs_ab; "                                 \
+		"for distro_bootpart in ${devplist}; do "               \
+			"if fstype ${devtype} "                         \
+					"${devnum}:${distro_bootpart} " \
+					"bootfstype; then "             \
+					"run scan_dev_for_boot; "       \
+			"fi; "                                          \
+		"done; "                                                \
+		"setenv devplist\0"
 #endif
