@@ -21,7 +21,6 @@
 	func(DHCP, dhcp, na)
 #define CONFIG_SYS_MMC_ENV_DEV		0
 #define CONFIG_SYS_MMC_ENV_PART		2
-#define CONFIG_ENV_OFFSET		(-CONFIG_ENV_SIZE)
 #define DEFAULT_MMC_DEV			"0"
 #else
 /* High-level configuration options */
