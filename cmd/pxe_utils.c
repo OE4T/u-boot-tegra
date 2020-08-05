@@ -375,9 +375,8 @@ static int label_boot(cmd_tbl_t *cmdtp, struct pxe_label *label)
 
 	if (label->initrd) {
 		if (get_relfile_envaddr(cmdtp, label->initrd, "ramdisk_addr_r") < 0) {
-			printf("Skipping %s for failure retrieving initrd\n",
-			       label->name);
-			return 1;
+			/* A 0-byte initrd is OK on L4T */
+			printf("initrd not found or zero, skipping ...\n");
 		}
 
 		bootm_argv[2] = initrd_str;
