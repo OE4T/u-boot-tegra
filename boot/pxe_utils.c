@@ -525,13 +525,11 @@ static int label_boot(struct pxe_context *ctx, struct pxe_label *label)
 	}
 
 	if (label->initrd) {
-		ulong size;
+		ulong size = 0;
 
 		if (get_relfile_envaddr(ctx, label->initrd, "ramdisk_addr_r",
 					&size) < 0) {
-			printf("Skipping %s for failure retrieving initrd\n",
-			       label->name);
-			return 1;
+			printf("initrd not found or zero, skipping ...\n");
 		}
 
 		initrd_addr_str = env_get("ramdisk_addr_r");
