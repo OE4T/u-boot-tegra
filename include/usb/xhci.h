@@ -671,6 +671,9 @@ struct xhci_ep_ctx {
 /* deq bitmasks */
 #define EP_CTX_CYCLE_MASK		(1 << 0)
 
+/* reserved[0] bitmasks, MediaTek xHCI used */
+#define EP_BPKTS(p)	(((p) & 0x7f) << 0)
+#define EP_BBM(p)	(((p) & 0x1) << 11)
 
 /**
  * struct xhci_input_control_context
@@ -1227,6 +1230,8 @@ struct xhci_ctrl {
 	struct xhci_virt_device *devs[MAX_HC_SLOTS];
 	int rootdev;
 	u16 hci_version;
+	u32 quirks;
+#define XHCI_MTK_HOST		BIT(0)
 };
 
 unsigned long trb_addr(struct xhci_segment *seg, union xhci_trb *trb);
