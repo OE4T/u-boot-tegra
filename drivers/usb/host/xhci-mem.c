@@ -66,7 +66,10 @@ void xhci_inval_cache(uintptr_t addr, u32 len)
  */
 static void xhci_segment_free(struct xhci_segment *seg)
 {
+#ifdef CONFIG_SYS_NONCACHED_MEMORY
+#else
 	free(seg->trbs);
+#endif
 	seg->trbs = NULL;
 
 	free(seg);
@@ -111,7 +114,10 @@ static void xhci_scratchpad_free(struct xhci_ctrl *ctrl)
 	ctrl->dcbaa->dev_context_ptrs[0] = 0;
 
 	free(xhci_bus_to_virt(ctrl, le64_to_cpu(ctrl->scratchpad->sp_array[0])));
+#ifdef CONFIG_SYS_NONCACHED_MEMORY
+#else
 	free(ctrl->scratchpad->sp_array);
+#endif
 	free(ctrl->scratchpad);
 	ctrl->scratchpad = NULL;
 }
@@ -124,7 +130,10 @@ static void xhci_scratchpad_free(struct xhci_ctrl *ctrl)
  */
 static void xhci_free_container_ctx(struct xhci_container_ctx *ctx)
 {
+#ifdef CONFIG_SYS_NONCACHED_MEMORY
+#else
 	free(ctx->bytes);
+#endif
 	free(ctx);
 }
 
@@ -178,8 +187,12 @@ void xhci_cleanup(struct xhci_ctrl *ctrl)
 	xhci_ring_free(ctrl->cmd_ring);
 	xhci_scratchpad_free(ctrl);
 	xhci_free_virt_devices(ctrl);
+#ifdef CONFIG_SYS_NONCACHED_MEMORY
+	/* FIXME: noncached_alloc() has no opposite */
+#else
 	free(ctrl->erst.entries);
 	free(ctrl->dcbaa);
+#endif
 	memset(ctrl, '\0', sizeof(struct xhci_ctrl));
 }
 
@@ -194,7 +207,12 @@ static void *xhci_malloc(unsigned int size)
 	void *ptr;
 	size_t cacheline_size = max(XHCI_ALIGNMENT, CACHELINE_SIZE);
 
+#ifdef CONFIG_SYS_NONCACHED_MEMORY
+	ptr = (void *)noncached_alloc(ALIGN(size, cacheline_size),
+				      cacheline_size);
+#else
 	ptr = memalign(cacheline_size, ALIGN(size, cacheline_size));
+#endif
 	BUG_ON(!ptr);
 	memset(ptr, '\0', size);
 
@@ -404,8 +422,10 @@ static int xhci_scratchpad_alloc(struct xhci_ctrl *ctrl)
 	return 0;
 
 fail_sp3:
+#ifdef CONFIG_SYS_NONCACHED_MEMORY
+#else
 	free(scratchpad->sp_array);
-
+#endif
 fail_sp2:
 	free(scratchpad);
 	ctrl->scratchpad = NULL;
