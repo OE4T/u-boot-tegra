@@ -713,6 +713,10 @@ static int xhci_address_device(struct usb_device *udev, int root_portnr)
 		debug("Successful Address Device command\n");
 		udev->status = 0;
 		break;
+	case COMP_EINVAL:
+		printf("Parameter ERROR: Context parameter is INVALID.\n");
+		ret = -EINVAL;
+		break;
 	default:
 		printf("ERROR: unexpected command completion code 0x%x.\n",
 			GET_COMP_CODE(le32_to_cpu(event->event_cmd.status)));
@@ -1259,7 +1263,8 @@ static int xhci_lowlevel_init(struct xhci_ctrl *ctrl)
 	reg = xhci_readl(&hccr->cr_hcsparams1);
 	descriptor.hub.bNbrPorts = ((reg & HCS_MAX_PORTS_MASK) >>
 						HCS_MAX_PORTS_SHIFT);
-	printf("Register %x NbrPorts %d\n", reg, descriptor.hub.bNbrPorts);
+	printf("Register HCSParams1: %x NbrPorts: %d\n", reg,
+	       descriptor.hub.bNbrPorts);
 
 	/* Port Indicators */
 	reg = xhci_readl(&hccr->cr_hccparams);
