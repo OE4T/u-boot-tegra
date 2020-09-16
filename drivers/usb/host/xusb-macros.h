@@ -1,0 +1,72 @@
+/* SPDX-License-Identifier: GPL-2.0+ */
+/* Copyright (c) 2020 NVIDIA Corporation */
+
+/*
+ * Internal definitions and macros for using XHCI/XUSB as a boot device.
+ */
+
+#ifndef __XUSB_MACROS_H__
+#define __XUSB_MACROS_H__
+
+#ifndef _MK_ADDR_CONST
+#define _MK_ADDR_CONST(_constant_) _constant_
+#endif
+
+#ifndef _MK_ENUM_CONST
+#define _MK_ENUM_CONST(_constant_) (_constant_ ## UL)
+#endif
+
+#define NV_ADDRESS_MAP_CAR_BASE			0x60006000
+#define NV_XUSB_HOST_APB_DFPCI_CFG		0x70098000
+#define NV_XUSB_HOST_IPFS_REGS			0x70099000
+#define NV_ADDRESS_MAP_APB_XUSB_PADCTL_BASE	0x7009F000
+
+#define CLK_SRC_XUSB_CORE_HOST			152
+#define CLK_SRC_XUSB_FALCON			153
+#define CLK_SRC_XUSB_FS				154
+#define CLK_SRC_XUSB_CORE_DEV			155
+#define CLK_SRC_XUSB_SS				156
+
+#define NVBOOT_RESET_STABILIZATION_DELAY	0x2
+#define NVBOOT_CLOCKS_CLOCK_STABILIZATION_TIME	0x2
+
+#define XUSB_HOST_INTR_MASK_0			0x188
+#define XUSB_HOST_CLKGATE_HYSTERESIS_0		0x1BC
+
+#define XUSB_HOST_CONFIGURATION_0		_MK_ADDR_CONST(0x0180)
+
+#define XUSB_CFG_1_0				_MK_ADDR_CONST(0x0004)
+#define XUSB_CFG_4_0				_MK_ADDR_CONST(0x0010)
+
+#define XUSB_PADCTL_USB2_PAD_MUX_0		_MK_ADDR_CONST(0x0004)
+#define XUSB_PADCTL_USB2_BIAS_PAD_CTL_1_0	_MK_ADDR_CONST(0x0288)
+#define XUSB_PADCTL_USB2_BIAS_PAD_CTL_0_0	_MK_ADDR_CONST(0x0284)
+#define XUSB_PADCTL_UPHY_PLL_P0_CTL_1_0		_MK_ADDR_CONST(0x0360)
+#define XUSB_PADCTL_UPHY_PLL_P0_CTL_2_0		_MK_ADDR_CONST(0x0364)
+#define XUSB_PADCTL_UPHY_PLL_P0_CTL_5_0		_MK_ADDR_CONST(0x0370)
+#define XUSB_PADCTL_UPHY_PLL_P0_CTL_8_0		_MK_ADDR_CONST(0x037C)
+#define XUSB_PADCTL_UPHY_PLL_P0_CTL1_PLL0_LOCKDET	BIT(15)
+#define XUSB_PADCTL_UPHY_PLL_P0_CTL2_CAL_DONE		BIT(1)
+#define XUSB_PADCTL_UPHY_PLL_P0_CTL8_PLL0_RCAL_DONE	BIT(31)
+
+#define NV_XUSB_PADCTL_READ(reg, value) \
+	value = readl((NV_ADDRESS_MAP_APB_XUSB_PADCTL_BASE \
+	+ XUSB_PADCTL_##reg##_0))
+
+#define NV_XUSB_PADCTL_WRITE(reg, value) \
+	writel(value, (NV_ADDRESS_MAP_APB_XUSB_PADCTL_BASE \
+	+ XUSB_PADCTL_##reg##_0))
+
+#define NV_XUSB_HOST_READ(reg, value) \
+	value = readl((NV_XUSB_HOST_IPFS_REGS + XUSB_HOST_##reg##_0))
+
+#define NV_XUSB_HOST_WRITE(reg, value) \
+	writel(value, (NV_XUSB_HOST_IPFS_REGS + XUSB_HOST_##reg##_0))
+
+#define NV_XUSB_CFG_READ(reg, value) \
+	value = readl((NV_XUSB_HOST_APB_DFPCI_CFG + XUSB_CFG_##reg##_0))
+
+#define NV_XUSB_CFG_WRITE(reg, value) \
+	writel(value, (NV_XUSB_HOST_APB_DFPCI_CFG + XUSB_CFG_##reg##_0))
+
+#endif /* __XUSB_MACROS_H__ */
