@@ -114,6 +114,12 @@ config USB_XHCI_BRCM
 	  USB controller based on the Broadcom USB3 IP Core.
 	  Supports USB2/3 functionality.
 
+config USB_XHCI_TEGRA
+        bool "Support for NVIDIA Tegra T210 on-chip XHCI USB controller"
+        depends on TEGRA
+        help
+          Enable support for TegraT210 on-chip XHCI USB controller
+
 endif # USB_XHCI_HCD
 
 config USB_EHCI_HCD

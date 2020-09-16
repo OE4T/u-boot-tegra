@@ -280,6 +280,7 @@
 #define BOOTENV_SHARED_USB \
 	"boot_net_usb_start=usb start\0" \
 	"usb_boot=" \
+		BOOTENV_RUN_PCI_ENUM \
 		"usb start; " \
 		BOOTENV_SHARED_BLKDEV_BODY(usb)
 #define BOOTENV_DEV_USB		BOOTENV_DEV_BLKDEV

@@ -24,6 +24,7 @@
 		mmc1 = "/sdhci@700b0000";
 		spi0 = "/spi@70410000";
 		usb0 = "/usb@7d000000";
+		usb1 = "/xusb@70090000";
 	};
 
 	memory {
@@ -130,6 +131,11 @@
 	usb@7d000000 {
 		status = "okay";
 		dr_mode = "peripheral";
+	};
+
+	xusb@70090000 {
+		status = "okay";
+		nvidia,vbus-gpio = <&gpio TEGRA_GPIO(A, 6) GPIO_ACTIVE_HIGH>;
 	};
 
 	clocks {

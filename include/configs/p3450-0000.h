@@ -17,6 +17,8 @@
 #define CONFIG_TEGRA_BOARD_STRING	"NVIDIA P3450-0002"
 #define BOOT_TARGET_DEVICES(func) \
 	func(MMC, mmc, 0) \
+	func(USB, usb, 0) \
+	func(NVME, nvme, 0) \
 	func(PXE, pxe, na) \
 	func(DHCP, dhcp, na)
 #define CONFIG_SYS_MMC_ENV_DEV		0
@@ -29,6 +31,7 @@
 /* Only MMC/PXE/DHCP for now, add USB back in later when supported */
 #define BOOT_TARGET_DEVICES(func) \
 	func(MMC, mmc, 1) \
+	func(USB, usb, 0) \
 	func(NVME, nvme, 0) \
 	func(PXE, pxe, na) \
 	func(DHCP, dhcp, na)
