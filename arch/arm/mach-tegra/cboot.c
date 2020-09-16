@@ -597,6 +597,39 @@ static char *cboot_get_bootargs(const void *fdt)
 	return strip(args);
 }
 
+#if defined(CONFIG_TEGRA210)
+int cboot_get_xusb_fw_addr(void)
+{
+	int node, len, err;
+	const u32 *prop;
+	u32 fw_addr;
+	void *fdt;
+
+	fdt = (void *)env_get_hex("fdt_addr_r", cboot_boot_x0);
+
+	node = fdt_path_offset(fdt, "/xusb");
+	if (node < 0) {
+		printf("xusb node NOT found!");
+		err = -ENOENT;
+		goto out;
+	}
+
+	prop = fdt_getprop(fdt, node, "nvidia,xusb-firmware-load-addr", &len);
+	if (!prop) {
+		printf("xusb property NOT found!\n");
+		err = -ENOENT;
+		goto out;
+	}
+
+	fw_addr = be32_to_cpu(*prop);
+	debug("XUSB FW address = %X\n", fw_addr);
+	err = env_set_hex("xusb_fw_addr", fw_addr);
+
+out:
+	return err;
+}
+#endif	/* T210 */
+
 int cboot_late_init(void)
 {
 	const void *fdt = (const void *)cboot_boot_x0;
@@ -627,5 +660,11 @@ int cboot_late_init(void)
 		free(bootargs);
 	}
 
+#if defined(CONFIG_TEGRA210)
+	/* T210 XUSB ONLY: get XUSB FW load address */
+	if (cboot_get_xusb_fw_addr())
+		printf("%s: Failed to get XUSB FW address! err: %d\n",
+		       __func__, err);
+#endif
 	return 0;
 }
