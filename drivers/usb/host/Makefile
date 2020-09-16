@@ -55,6 +55,7 @@ obj-$(CONFIG_USB_XHCI_OMAP) += xhci-omap.o
 obj-$(CONFIG_USB_XHCI_PCI) += xhci-pci.o
 obj-$(CONFIG_USB_XHCI_RCAR) += xhci-rcar.o
 obj-$(CONFIG_USB_XHCI_STI) += dwc3-sti-glue.o
+obj-$(CONFIG_USB_XHCI_TEGRA) += xhci-tegra.o tegra_xhci_fw.o
 
 # designware
 obj-$(CONFIG_USB_DWC2) += dwc2.o

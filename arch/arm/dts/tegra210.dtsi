@@ -694,6 +694,86 @@
 		resets = <&tegra_car 142>;
 		reset-names = "padctl";
 		#phy-cells = <1>;
+
+		pads {
+			usb2 {
+				status = "okay";
+
+				lanes {
+					usb2-0 {
+						status = "okay";
+						nvidia,function = "xusb";
+						#phy-cells = <0>;
+					};
+					usb2-1 {
+						status = "okay";
+						nvidia,function = "xusb";
+						#phy-cells = <0>;
+					};
+					usb2-2 {
+						status = "okay";
+						nvidia,function = "xusb";
+						#phy-cells = <0>;
+					};
+				};
+			};
+
+			pcie {
+				status = "okay";
+
+				lanes {
+					pcie-0 {
+						status = "okay";
+						nvidia,function = "pcie-x1";
+					};
+					pcie-1 {
+						status = "okay";
+						nvidia,function = "pcie-x4";
+					};
+					pcie-2 {
+						status = "okay";
+						nvidia,function = "pcie-x4";
+					};
+					pcie-3 {
+						status = "okay";
+						nvidia,function = "pcie-x4";
+					};
+					pcie-4 {
+						status = "okay";
+						nvidia,function = "pcie-x4";
+					};
+					pcie-5 {
+						status = "okay";
+						nvidia,function = "xusb";
+					};
+					pcie-6 {
+						status = "okay";
+						nvidia,function = "xusb";
+						#phy-cells = <0>;
+					};
+				};
+			};
+		};
+
+		ports {
+			usb2-0 {
+				status = "okay";
+				mode = "otg";
+				nvidia,usb3-port-fake = <3>;
+			};
+			usb2-1 {
+				status = "okay";
+				mode = "host";
+			};
+			usb2-2 {
+				status = "okay";
+				mode = "host";
+			};
+			usb3-0 {
+				status = "okay";
+				nvidia,usb2-companion = <1>;
+			};
+		};
 	};
 
 	sdhci@700b0000 {
@@ -883,5 +963,18 @@
 			     <GIC_PPI 10
 				(GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_LOW)>;
 		interrupt-parent = <&gic>;
+	};
+
+	xusb@70090000 {
+		compatible = "nvidia,tegra210-xhci";
+		reg = <0x0 0x70090000 0x0 0x4000>;
+		phys = <&{/padctl@7009f000/pads/usb2/lanes/usb2-0}>,
+			<&{/padctl@7009f000/pads/usb2/lanes/usb2-1}>,
+			<&{/padctl@7009f000/pads/usb2/lanes/usb2-2}>,
+			<&{/padctl@7009f000/pads/pcie/lanes/pcie-6}>;
+		phy-names = "usb2-0", "usb2-1", "usb2-2", "usb3-0";
+		#extcon-cells = <1>;
+		nvidia,portmap = <0x00000e01>;
+		status = "okay";
 	};
 };

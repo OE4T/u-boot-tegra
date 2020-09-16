@@ -16,10 +16,11 @@
 /* Board-specific serial config */
 #define CONFIG_TEGRA_ENABLE_UARTA
 
-/* Only MMC/PXE/DHCP/NVME for now, add USB when XUSB support is done */
+/* Both SD and EMMC since this supports both SKU0 and SKU2 Nano */
 #define BOOT_TARGET_DEVICES(func) \
 	func(MMC, mmc, 1) \
 	func(MMC, mmc, 0) \
+	func(USB, usb, 0) \
 	func(NVME, nvme, 0) \
 	func(PXE, pxe, na) \
 	func(DHCP, dhcp, na)

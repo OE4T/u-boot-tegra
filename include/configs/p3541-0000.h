@@ -16,10 +16,10 @@
 /* Board-specific serial config */
 #define CONFIG_TEGRA_ENABLE_UARTA
 
-/* Only SD/PXE/DHCP/NVME for now, add USB when XUSB support is done */
+/* Nano2GB doesn't have eMMC or NVMe, just SD/USB/Net */
 #define BOOT_TARGET_DEVICES(func) \
 	func(MMC, mmc, 1) \
-	func(NVME, nvme, 0) \
+	func(USB, usb, 0) \
 	func(PXE, pxe, na) \
 	func(DHCP, dhcp, na)
 
