@@ -19,6 +19,7 @@
 /* Only MMC/PXE/DHCP for now, add USB back in later when supported */
 #define BOOT_TARGET_DEVICES(func) \
 	func(MMC, mmc, 1) \
+	func(NVME, nvme, 0) \
 	func(PXE, pxe, na) \
 	func(DHCP, dhcp, na)
 
