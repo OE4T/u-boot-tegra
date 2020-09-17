@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0+ */
 /*
- * (C) Copyright 2013-2015
+ * (C) Copyright 2013-2020
  * NVIDIA Corporation <www.nvidia.com>
  */
 
@@ -16,6 +16,15 @@
 
 /* Board-specific serial config */
 #define CONFIG_TEGRA_ENABLE_UARTA
+
+/* SD, eMMC, USB, NVME, PXE, DHCP */
+#define BOOT_TARGET_DEVICES(func) \
+	func(MMC, mmc, 1) \
+	func(MMC, mmc, 0) \
+	func(USB, usb, 0) \
+	func(NVME, nvme, 0) \
+	func(PXE, pxe, na) \
+	func(DHCP, dhcp, na)
 
 /* Environment in eMMC, at the end of 2nd "boot sector" */
 
