@@ -16,10 +16,10 @@
 /* Board-specific serial config */
 #define CONFIG_TEGRA_ENABLE_UARTA
 
-/* Only MMC/PXE/DHCP for now, add USB back in later when supported */
+/* Only SD/PXE/DHCP/NVME for now, add USB when XUSB support is done */
 #define BOOT_TARGET_DEVICES(func) \
 	func(MMC, mmc, 1) \
-	func(MMC, mmc, 0) \
+	func(NVME, nvme, 0) \
 	func(PXE, pxe, na) \
 	func(DHCP, dhcp, na)
 
