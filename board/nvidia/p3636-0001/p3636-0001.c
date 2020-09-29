@@ -13,9 +13,16 @@
 
 void pin_mux_mmc(void)
 {
+#ifdef CONFIG_LANAI_SD
 	struct udevice *dev;
 	uchar val;
 	int ret;
+
+	/*
+	 * NOTE: Current P3636/Lanai is SKU1 and has no SD-card slot, so
+	 * this is not needed. Leaving it here but ifdef'd out in case we
+	 * do a Lanai-SD/SKU0 in the future.
+	 */
 
 	/* Turn on MAX77620 LDO3 to 3.3V for SD card power */
 	debug("%s: Set LDO3 for VDDIO_SDMMC_AP power to 3.3V\n", __func__);
@@ -31,6 +38,7 @@ void pin_mux_mmc(void)
 		printf("i2c_write 0 0x3c 0x27 failed: %d\n", ret);
 		return;
 	}
+#endif
 }
 
 #ifdef CONFIG_PCI_TEGRA
