@@ -372,6 +372,19 @@ enum periph_id clk_id_to_periph_id(int clk_id);
  */
 int clock_set_rate(enum clock_id clkid, u32 n, u32 m, u32 p, u32 cpcon);
 
+/**
+ * Adjust peripheral PLL to use the given divider and source.
+ *
+ * @param periph_id	peripheral to adjust
+ * @param source	Source number (0-3 or 0-7)
+ * @param mux_bits	Number of mux bits (2 or 4)
+ * @param divider	Required divider in 7.1 or 15.1 format
+ * @return 0 if ok, -1 on error (requesting a parent clock which is not valid
+ *		for this peripheral)
+ */
+int adjust_periph_pll(enum periph_id periph_id, int source, int mux_bits,
+		      unsigned divider);
+
 /* return 1 if a peripheral ID is in range */
 #define clock_type_id_isvalid(id) ((id) >= 0 && \
 		(id) < CLOCK_TYPE_COUNT)

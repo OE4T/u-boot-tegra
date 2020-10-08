@@ -283,7 +283,7 @@ static enum clock_type_id clock_periph_type[PERIPHC_COUNT] = {
 	TYPE(PERIPHC_5fh,	CLOCK_TYPE_NONE),
 
 	/* 0x60 */
-	TYPE(PERIPHC_XUSB_CORE_HOST, CLOCK_TYPE_NONE),
+	TYPE(PERIPHC_XUSB_CORE_HOST, CLOCK_TYPE_NONE),	/* start with 0x600 */
 	TYPE(PERIPHC_XUSB_FALCON, CLOCK_TYPE_NONE),
 	TYPE(PERIPHC_XUSB_FS,	CLOCK_TYPE_NONE),
 	TYPE(PERIPHC_XUSB_CORE_DEV, CLOCK_TYPE_NONE),
@@ -537,7 +537,7 @@ static s8 periph_id_to_internal_id[PERIPH_ID_COUNT] = {
 	NONE(W_RESERVED12),
 	NONE(W_RESERVED13),
 	NONE(XUSB_PADCTL),
-	NONE(W_RESERVED15),
+	NONE(XUSB),
 
 	/* 144 */
 	NONE(W_RESERVED16),
@@ -548,13 +548,19 @@ static s8 periph_id_to_internal_id[PERIPH_ID_COUNT] = {
 	NONE(ENTROPY),
 	NONE(DDS),
 	NONE(W_RESERVED23),
+	/*
+	 * NOTE: These 3 XUSB IDs are here for the clock source routines
+	 * like adjust_periph_pll(), they map to the periph_id table,
+	 * but don't really correspond to any clock reset/enable bits.
+	 * We should rework this odd relationship at some point.
+	 */
 
 	/* 152 */
-	NONE(W_RESERVED24),
-	NONE(W_RESERVED25),
-	NONE(W_RESERVED26),
+	PERIPHC_XUSB_CORE_HOST,
+	PERIPHC_XUSB_FALCON,
+	PERIPHC_XUSB_FS,
 	NONE(DVFS),
-	NONE(XUSB_SS),
+	PERIPHC_XUSB_SS,
 	NONE(W_RESERVED29),
 	NONE(W_RESERVED30),
 	NONE(W_RESERVED31),
@@ -915,7 +921,6 @@ enum periph_id clk_id_to_periph_id(int clk_id)
 	case PERIPH_ID_W_RESERVED11:
 	case PERIPH_ID_W_RESERVED12:
 	case PERIPH_ID_W_RESERVED13:
-	case PERIPH_ID_W_RESERVED15:
 	case PERIPH_ID_W_RESERVED16:
 	case PERIPH_ID_W_RESERVED17:
 	case PERIPH_ID_W_RESERVED18:
