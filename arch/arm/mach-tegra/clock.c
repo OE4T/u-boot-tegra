@@ -406,7 +406,7 @@ static int find_best_divider(unsigned divider_bits, unsigned long parent_rate,
  * Return: 0 if ok, -1 on error (requesting a parent clock which is not valid
  *		for this peripheral)
  */
-static int adjust_periph_pll(enum periph_id periph_id, int source,
+int adjust_periph_pll(enum periph_id periph_id, int source,
 				int mux_bits, unsigned divider)
 {
 	u32 *reg = get_periph_source_reg(periph_id);
