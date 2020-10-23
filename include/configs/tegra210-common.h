@@ -41,7 +41,13 @@
  * ramdisk_addr_r simply shouldn't overlap anything else. Choosing 33M allows
  *   for the FDT/DTB to be up to 1M, which is hopefully plenty.
  */
-#define CONFIG_LOADADDR 0x80080000
+/*
+ * NOTE: fdt_addr (from CBoot) is @ 0x83100000. fdt_addr_r is also from CBoot
+ * and can't be moved. To accomodate a 128MB kernel (for gcov, trace, debug,
+ * etc.), kernel_addr_r is moved to 0x84000000, above fdt/ramdisk and below
+ * pxe/script addresses.
+ */
+#define CONFIG_LOADADDR 0x84000000
 #define MEM_LAYOUT_ENV_SETTINGS \
 	"scriptaddr=0x90000000\0" \
 	"pxefile_addr_r=0x90100000\0" \
