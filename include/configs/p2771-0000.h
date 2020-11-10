@@ -17,6 +17,15 @@
 #define CONFIG_SYS_MMC_ENV_DEV		0
 #define CONFIG_SYS_MMC_ENV_PART		2
 
+/* SD, eMMC, USB, NVME, PXE, DHCP */
+#define BOOT_TARGET_DEVICES(func) \
+	func(MMC, mmc, 1) \
+	func(MMC, mmc, 0) \
+	func(USB, usb, 0) \
+	func(NVME, nvme, 0) \
+	func(PXE, pxe, na) \
+	func(DHCP, dhcp, na)
+
 #include "tegra-common-post.h"
 
 /* Crystal is 38.4MHz. clk_m runs at half that rate */
