@@ -86,6 +86,9 @@
 		"/serial-number:" \
 		"/trusty/status\0" \
 	"fdt_del_copy_node_paths=" \
+		"/reserved-memory/fb0_carveout:" \
+		"/reserved-memory/fb1_carveout:" \
+		"/reserved-memory/fb2_carveout:" \
 		"/reserved-memory/ramoops_carveout:" \
 		"/reserved-memory/vpr-carveout\0"
 
