@@ -539,6 +539,15 @@ static void tegra_xhci_core_exit(struct tegra_xhci *tegra)
 	/* Assert UPHY reset */
 	reset_set_enable(PERIPH_ID_PEX_USB_UPHY, 1);
 
+	/* Reset PADCTL (debug fix for HID on Batuu?) */
+	debug("%s: Resetting PADCTL block ...\n", __func__);
+	reset_set_enable(PERIPH_ID_XUSB_PADCTL, 1);
+	mdelay(1);
+	reset_set_enable(PERIPH_ID_XUSB_PADCTL, 0);
+
+	/* Set CLK_SRC_XUSB_FS to 'CLK_M' or LS/FS devices won't work in kernel */
+	adjust_periph_pll(CLK_SRC_XUSB_FS, 0, MASK_BITS_31_29, 0);
+
 	debug("%s: done\n", __func__);
 }
 
