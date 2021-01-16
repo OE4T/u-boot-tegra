@@ -517,8 +517,8 @@ int rsa_add_verify_data(struct image_sign_info *info, void *keydest)
 	}
 
 	if (!ret) {
-		ret = fdt_setprop_string(keydest, node, "key-name-hint",
-				 info->keyname);
+		ret = fdt_setprop_string(keydest, node, FIT_KEY_HINT,
+					 info->keyname);
 	}
 	if (!ret)
 		ret = fdt_setprop_u32(keydest, node, "rsa,num-bits", bits);
@@ -540,7 +540,7 @@ int rsa_add_verify_data(struct image_sign_info *info, void *keydest)
 					 info->algo->name);
 	}
 	if (info->require_keys) {
-		ret = fdt_setprop_string(keydest, node, "required",
+		ret = fdt_setprop_string(keydest, node, FIT_KEY_REQUIRED,
 					 info->require_keys);
 	}
 done:
