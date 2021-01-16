@@ -234,13 +234,14 @@ static int fit_image_verify_sig(const void *fit, int image_noffset,
 		goto error;
 	}
 
-	return verified ? 0 : -EPERM;
+	if (verified)
+		return 0;
 
 error:
 	printf(" error!\n%s for '%s' hash node in '%s' image node\n",
 	       err_msg, fit_get_name(fit, noffset, NULL),
 	       fit_get_name(fit, image_noffset, NULL));
-	return -1;
+	return -EPERM;
 }
 
 int fit_image_verify_required_sigs(const void *fit, int image_noffset,
