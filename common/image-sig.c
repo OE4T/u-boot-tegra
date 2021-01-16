@@ -156,7 +156,7 @@ static int fit_image_setup_verify(struct image_sign_info *info,
 		return -1;
 	}
 	memset(info, '\0', sizeof(*info));
-	info->keyname = fdt_getprop(fit, noffset, "key-name-hint", NULL);
+	info->keyname = fdt_getprop(fit, noffset, FIT_KEY_HINT, NULL);
 	info->fit = (void *)fit;
 	info->node_offset = noffset;
 	info->algo = image_get_sig_algo(algo_name);
@@ -265,7 +265,8 @@ int fit_image_verify_required_sigs(const void *fit, int image_noffset,
 		const char *required;
 		int ret;
 
-		required = fdt_getprop(sig_blob, noffset, "required", NULL);
+		required = fdt_getprop(sig_blob, noffset, FIT_KEY_REQUIRED,
+				       NULL);
 		if (!required || strcmp(required, "image"))
 			continue;
 		ret = fit_image_verify_sig(fit, image_noffset, data, size,
@@ -473,7 +474,8 @@ int fit_config_verify_required_sigs(const void *fit, int conf_noffset,
 		const char *required;
 		int ret;
 
-		required = fdt_getprop(sig_blob, noffset, "required", NULL);
+		required = fdt_getprop(sig_blob, noffset, FIT_KEY_REQUIRED,
+				       NULL);
 		if (!required || strcmp(required, "conf"))
 			continue;
 		ret = fit_config_verify_sig(fit, conf_noffset, sig_blob,
