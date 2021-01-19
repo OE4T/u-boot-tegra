@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * (C) Copyright 2010-2015
+ * (C) Copyright 2010-2015,2021
  * NVIDIA Corporation <www.nvidia.com>
  */
 
@@ -151,8 +151,7 @@ static u32 get_odmdata(void)
 
 static void init_pmc_scratch(void)
 {
-	struct pmc_ctlr *const pmc = (struct pmc_ctlr *)NV_PA_PMC_BASE;
-	u32 odmdata;
+	u32 odmdata, ofs;
 	int i;
 
 	/* SCRATCH0 is initialized by the boot ROM and shouldn't be cleared */
@@ -160,13 +159,15 @@ static void init_pmc_scratch(void)
 	if (!tegra_cpu_is_non_secure())
 #endif
 	{
+		ofs = offsetof(struct pmc_ctlr, pmc_scratch1);
 		for (i = 0; i < 23; i++)
-			writel(0, &pmc->pmc_scratch1 + i);
+			tegra_pmc_writel(0, ofs + (i * 4));
 	}
 
 	/* ODMDATA is for kernel use to determine RAM size, LP config, etc. */
 	odmdata = get_odmdata();
-	writel(odmdata, &pmc->pmc_scratch20);
+	ofs = offsetof(struct pmc_ctlr, pmc_scratch20);
+	tegra_pmc_writel(odmdata, ofs);
 }
 
 #ifdef CONFIG_ARMV7_SECURE_RESERVE_SIZE
