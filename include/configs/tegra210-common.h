@@ -37,32 +37,20 @@
  * ramdisk_addr_r simply shouldn't overlap anything else. Choosing 33M allows
  *   for the FDT/DTB to be up to 1M, which is hopefully plenty.
  */
+/*
+ * NOTE: fdt_addr (from CBoot) is @ 0x83100000. fdt_addr_r is also from CBoot
+ * and can't be moved. To accomodate a 128MB kernel (for gcov, trace, debug,
+ * etc.), kernel_addr_r is moved to 0x84000000, above fdt/ramdisk and below
+ * pxe/script addresses.
+ */
+#define CONFIG_LOADADDR 0x84000000
 #define MEM_LAYOUT_ENV_SETTINGS \
 	"scriptaddr=0x90000000\0" \
 	"pxefile_addr_r=0x90100000\0" \
 	"kernel_addr_r=" __stringify(CONFIG_SYS_LOAD_ADDR) "\0" \
 	"fdtfile=" FDTFILE "\0" \
 	"fdt_addr_r=0x83000000\0" \
-	"ramdisk_addr_r=0x83420000\0"
-	"calculated_vars=kernel_addr_r fdt_addr_r scriptaddr pxefile_addr_r " \
-		"ramdisk_addr_r\0" \
-	"kernel_addr_r_align=00200000\0" \
-	"kernel_addr_r_offset=00080000\0" \
-	"kernel_addr_r_size=08000000\0" \
-	"kernel_addr_r_aliases=loadaddr\0" \
-	"fdt_addr_r_align=00200000\0" \
-	"fdt_addr_r_offset=00000000\0" \
-	"fdt_addr_r_size=00200000\0" \
-	"scriptaddr_align=00200000\0" \
-	"scriptaddr_offset=00000000\0" \
-	"scriptaddr_size=00200000\0" \
-	"pxefile_addr_r_align=00200000\0" \
-	"pxefile_addr_r_offset=00000000\0" \
-	"pxefile_addr_r_size=00200000\0" \
-	"ramdisk_addr_r_align=00200000\0" \
-	"ramdisk_addr_r_offset=00000000\0" \
-	"ramdisk_addr_r_size=02000000\0" \
-	"fdt_del_prop_paths=/pinmux@700008d4/pinctrl-names\0" \
+	"ramdisk_addr_r=0x83200000\0" \
 	"fdt_copy_node_paths=" \
 		"/chosen/plugin-manager:" \
 		"/chosen/reset:" \
@@ -74,12 +62,16 @@
 	"fdt_copy_prop_paths=" \
 		"/bpmp/carveout-start:" \
 		"/bpmp/carveout-size:" \
+		"/chosen/bootargs:" \
+		"/chosen/eks_info:" \
+		"/chosen/nvidia,bluetooth-mac:" \
 		"/chosen/nvidia,ethernet-mac:" \
+		"/chosen/nvidia,wifi-mac:" \
 		"/chosen/uuid:" \
 		"/chosen/linux,initrd-start:" \
 		"/chosen/linux,initrd-end:" \
-		"/psci/nvidia,system-lp0-disable:" \
-		"/serial-number\0"
+		"/serial-number:" \
+		"/psci/nvidia,system-lp0-disable\0"
 
 /* For USB EHCI controller */
 #define CONFIG_USB_EHCI_TXFIFO_THRESH	0x10
