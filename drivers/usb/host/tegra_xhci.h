@@ -71,11 +71,7 @@ enum build_info_log {
 
 #define SIMPLE_PLLE		(CLOCK_ID_EPCI - CLOCK_ID_FIRST_SIMPLE)
 
-#define PD_TRK					26
-#define TRK_START_TIMER				12
-#define TRK_DONE_RESET_TIMER			19
 #define USB2_BIAS_PAD				18
-#define PD					11
 
 #define EN_FPCI					BIT(0)
 #define BUS_MASTER				BIT(2)
@@ -90,5 +86,10 @@ struct tegra_xhci_softc {
 	bool	xhci_inited;
 	char	*fw_name;
 };
+
+int tegra_uphy_pll_enable(void);
+void padctl_usb3_port_init(int);
+void pad_trk_init(u32);
+void do_padctl_usb2_config(void);
 
 #endif /* _TEGRA_XHCI_H_ */
