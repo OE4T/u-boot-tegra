@@ -79,4 +79,6 @@
 /* GPU needs setup */
 #define CONFIG_TEGRA_GPU
 
+#define CONFIG_SYS_BOOTM_LEN   (64 << 20)      /* Increase max gunzip size */
+
 #endif /* _TEGRA210_COMMON_H_ */
