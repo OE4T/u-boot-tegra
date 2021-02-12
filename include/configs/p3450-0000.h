@@ -41,11 +41,36 @@
 #define DEFAULT_MMC_DEV			"1"
 #endif
 
+#define CONFIG_PREBOOT
+
+#ifdef CONFIG_FIT
+#undef CONFIG_BOOTCOMMAND
+/* FIT Image environment settings */
+#define FITIMAGE_ENV_SETTINGS \
+	"mmcdev=0\0" \
+	"mmcpart=1\0" \
+	"devnum=1\0" \
+	"fitpart=1\0" \
+	"prefix=/boot\0" \
+	"mmcfit_name=fitImage\0" \
+	"fit_addr=0x90000000\0" \
+	"mmcloadfit=load mmc ${devnum}:${fitpart} ${fit_addr} " \
+		"${prefix}/${mmcfit_name}\0" \
+	"mmcargs=setenv bootargs ${cbootargs} " \
+		"root=/dev/mmcblk${mmcdev}p${mmcpart} rw rootwait\0" \
+	"mmc_mmc_fit=run mmcloadfit;run mmcargs; bootm ${fit_addr} - ${fdt_addr}\0"
+
+#define CONFIG_BOOTCOMMAND "run mmc_mmc_fit"
+#else
+#define FITIMAGE_ENV_SETTINGS
+#endif /* CONFIG_FIT */
+
 #define BOARD_EXTRA_ENV_SETTINGS \
 	"preboot=if test -e mmc " DEFAULT_MMC_DEV ":1 /u-boot-preboot.scr; then " \
 		"load mmc " DEFAULT_MMC_DEV ":1 ${scriptaddr} /u-boot-preboot.scr; " \
 		"source ${scriptaddr}; " \
-	"fi\0"
+	"fi\0" \
+	FITIMAGE_ENV_SETTINGS
 
 /* General networking support */
 #include "tegra-common-post.h"
