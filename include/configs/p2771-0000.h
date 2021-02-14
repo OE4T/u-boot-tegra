@@ -44,6 +44,30 @@
 	"ramdisk_addr_r_offset=00000000\0" \
 	"ramdisk_addr_r_size=02000000\0"
 
+#ifdef CONFIG_FIT
+#undef CONFIG_BOOTCOMMAND
+#undef BOARD_EXTRA_ENV_SETTINGS
+/* FIT Image environment settings */
+#define FITIMAGE_ENV_SETTINGS \
+	"mmcdev=0\0" \
+	"mmcpart=1\0" \
+	"devnum=0\0" \
+	"fitpart=1\0" \
+	"prefix=/boot\0" \
+	"mmcfit_name=fitImage\0" \
+	"fit_addr=0x90000000\0" \
+	"mmcloadfit=load mmc ${devnum}:${fitpart} ${fit_addr} " \
+		"${prefix}/${mmcfit_name}\0" \
+	"mmcargs=setenv bootargs ${cbootargs} " \
+		"root=/dev/mmcblk${mmcdev}p${mmcpart} rw rootwait\0" \
+	"mmc_mmc_fit=run mmcloadfit;run mmcargs; bootm ${fit_addr} - ${fdt_addr}\0"
+
+#define BOARD_EXTRA_ENV_SETTINGS \
+	FITIMAGE_ENV_SETTINGS
+
+#define CONFIG_BOOTCOMMAND "run mmc_mmc_fit"
+#endif /* CONFIG_FIT */
+
 #include "tegra-common-post.h"
 
 #endif
