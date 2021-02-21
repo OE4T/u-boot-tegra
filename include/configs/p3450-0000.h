@@ -49,7 +49,7 @@
 #define FITIMAGE_ENV_SETTINGS \
 	"mmcdev=0\0" \
 	"mmcpart=1\0" \
-	"devnum=1\0" \
+	"devnum=" DEFAULT_MMC_DEV "\0" \
 	"fitpart=1\0" \
 	"prefix=/boot\0" \
 	"mmcfit_name=fitImage\0" \
