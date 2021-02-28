@@ -14,8 +14,6 @@
 #define CONFIG_TEGRA_BOARD_STRING	"NVIDIA P3636-0001"
 
 /* Environment in eMMC, at the end of 2nd "boot sector" */
-#define CONFIG_SYS_MMC_ENV_DEV		0
-#define CONFIG_SYS_MMC_ENV_PART		2
 
 /* SD, eMMC, USB, NVME, PXE, DHCP */
 #define BOOT_TARGET_DEVICES(func) \
