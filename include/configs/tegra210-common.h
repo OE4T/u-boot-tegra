@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0+ */
 /*
- *  Copyright (c) 2013-2020, NVIDIA CORPORATION. All rights reserved.
+ *  Copyright (c) 2013-2021, NVIDIA CORPORATION. All rights reserved.
  */
 
 #ifndef _TEGRA210_COMMON_H_
@@ -34,6 +34,9 @@
  * fdt_addr_r simply shouldn't overlap anything else. Choosing 32M allows for
  *   the compressed kernel to be up to 16M too.
  *
+ * fdtoverlay_addr_r is used for DTB overlays from extlinux.conf. It's placed
+ *   just above pxefile_addr_r.
+ *
  * ramdisk_addr_r simply shouldn't overlap anything else. Choosing 33M allows
  *   for the FDT/DTB to be up to 1M, which is hopefully plenty.
  */
@@ -47,6 +50,7 @@
 #define MEM_LAYOUT_ENV_SETTINGS \
 	"scriptaddr=0x90000000\0" \
 	"pxefile_addr_r=0x90100000\0" \
+	"fdtoverlay_addr_r=0x90200000\0" \
 	"kernel_addr_r=" __stringify(CONFIG_SYS_LOAD_ADDR) "\0" \
 	"fdtfile=" FDTFILE "\0" \
 	"fdt_addr_r=0x83000000\0" \
