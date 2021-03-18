@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
  * Copyright 2010-2011 Calxeda, Inc.
- * Copyright (c) 2014, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2014-2021, NVIDIA CORPORATION.  All rights reserved.
  */
 
 #include <common.h>
@@ -336,17 +336,16 @@ static int label_localboot(struct pxe_label *label)
  * Loads fdt overlays specified in 'fdtoverlays'.
  */
 #ifdef CONFIG_OF_LIBFDT_OVERLAY
-static void label_boot_fdtoverlay(cmd_tbl_t *cmdtp, struct pxe_label *label)
+static void label_boot_fdtoverlay(cmd_tbl_t *cmdtp, struct pxe_label *label,
+		ulong fdt_addr)
 {
 	char *fdtoverlay = label->fdtoverlays;
 	struct fdt_header *working_fdt;
 	char *fdtoverlay_addr_env;
 	ulong fdtoverlay_addr;
-	ulong fdt_addr;
 	int err;
 
 	/* Get the main fdt and map it */
-	fdt_addr = simple_strtoul(env_get("fdt_addr_r"), NULL, 16);
 	working_fdt = map_sysmem(fdt_addr, 0);
 	err = fdt_check_header(working_fdt);
 	if (err)
@@ -444,7 +443,9 @@ static int label_boot(cmd_tbl_t *cmdtp, struct pxe_label *label)
 	int len = 0;
 	ulong kernel_addr;
 	void *buf;
-
+#ifdef CONFIG_OF_LIBFDT_OVERLAY
+	ulong fdt_addr;
+#endif
 	label_print(label);
 
 	label->attempted = 1;
@@ -540,8 +541,8 @@ static int label_boot(cmd_tbl_t *cmdtp, struct pxe_label *label)
 	 * It handles the following scenarios.
 	 *
 	 * Scenario 1: If fdt_addr_r specified and "fdt" or "fdtdir" label is
-	 * defined in pxe file, retrieve fdt blob from server. Pass fdt_addr_r to
-	 * bootm, and adjust argc appropriately.
+	 * defined in pxe file, retrieve fdt blob from server. Pass fdt_addr_r
+	 * to bootm, and adjust argc appropriately.
 	 *
 	 * If retrieve fails and no exact fdt blob is specified in pxe file with
 	 * "fdt" label, try Scenario 2.
@@ -549,7 +550,7 @@ static int label_boot(cmd_tbl_t *cmdtp, struct pxe_label *label)
 	 * Scenario 2: If there is an fdt_addr specified, pass it along to
 	 * bootm, and adjust argc appropriately.
 	 *
-	 * Scenario 3: fdt blob is not available.
+	 * Scenario 3: fdt blob is not available, boot without it.
 	 */
 	bootm_argv[3] = env_get("fdt_addr_r");
 
@@ -620,8 +621,9 @@ static int label_boot(cmd_tbl_t *cmdtp, struct pxe_label *label)
 			}
 
 #ifdef CONFIG_OF_LIBFDT_OVERLAY
+			fdt_addr = (ulong)simple_strtol(bootm_argv[3], NULL, 16);
 			if (label->fdtoverlays)
-				label_boot_fdtoverlay(cmdtp, label);
+				label_boot_fdtoverlay(cmdtp, label, fdt_addr);
 #endif
 		} else {
 			bootm_argv[3] = NULL;
@@ -631,9 +633,15 @@ static int label_boot(cmd_tbl_t *cmdtp, struct pxe_label *label)
 	if (!bootm_argv[3])
 		bootm_argv[3] = env_get("fdt_addr");
 
-	if (bootm_argv[3]) {
+	if (bootm_argv[3]) {			/* fdt_addr exists */
+#ifdef CONFIG_OF_LIBFDT_OVERLAY
+		fdt_addr = (ulong)simple_strtol(bootm_argv[3], NULL, 16);
+		/* apply any FDT overlays to in-RAM DTB (@ fdt_addr) */
+		if (label->fdtoverlays)
+			label_boot_fdtoverlay(cmdtp, label, fdt_addr);
+#endif
 		if (!bootm_argv[2])
-			bootm_argv[2] = "-";
+			bootm_argv[2] = "-";	/* skip initrd */
 		bootm_argc = 4;
 	}
 
@@ -647,7 +655,7 @@ static int label_boot(cmd_tbl_t *cmdtp, struct pxe_label *label)
 	else
 		do_booti(cmdtp, 0, bootm_argc, bootm_argv);
 #elif defined(CONFIG_CMD_BOOTZ)
-	/* Try booting a Image */
+	/* Try booting an Image file */
 	else
 		do_bootz(cmdtp, 0, bootm_argc, bootm_argv);
 #endif
