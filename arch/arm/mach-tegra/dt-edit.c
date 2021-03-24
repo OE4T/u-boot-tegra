@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2010-2019 NVIDIA CORPORATION.
+ *  Copyright (C) 2010-2021 NVIDIA CORPORATION.
  *
  * SPDX-License-Identifier: GPL-2.0
  */
@@ -18,6 +18,7 @@
 	     prop >= 0;						\
 	     prop = fdt_next_property_offset(fdt, prop))
 typedef int iter_envitem(void *blob_dst, char *item, void *param);
+
 static int fdt_copy_node_content(void *blob_src, int ofs_src, void *blob_dst,
 		int ofs_dst, int indent)
 {
@@ -28,6 +29,32 @@ static int fdt_copy_node_content(void *blob_src, int ofs_src, void *blob_dst,
 	 * that are not present in the source. For the nodes we care about
 	 * right now, this is not an issue.
 	 */
+
+	/* Don't copy a node's contents if the phandles don't match */
+
+	debug("%s: Getting phandles ....\n", __func__);
+
+	u32 src_phandle = fdt_get_phandle(blob_src, ofs_src);
+	if (!src_phandle) {
+		debug("%s: No phandle in this node, copying content ...\n",
+		      __func__);
+	} else {
+		debug("%s: src phandle = %X\n", __func__, src_phandle);
+
+		u32 dst_phandle = fdt_get_phandle(blob_dst, ofs_dst);
+		debug("%s: dst phandle = %X\n", __func__, dst_phandle);
+
+
+		if (src_phandle != dst_phandle) {
+			const char *node_name = fdt_get_name(blob_src, ofs_src,
+							     NULL);
+
+			printf("WARNING: phandle mismatch was found in node ");
+			printf("'%s'\n. It will not be updated in the "
+			       "destination DTB.\n", node_name);
+			return FDT_ERR_NOTFOUND;	/* skip this node */
+		}
+	}
 
 	fdt_for_each_property(blob_src, ofs_src_child, ofs_src) {
 		const void *prop;
