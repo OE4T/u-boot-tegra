@@ -71,14 +71,17 @@
 		"/chosen/ecid:" \
 		"/chosen/linux,initrd-start:" \
 		"/chosen/linux,initrd-end:" \
+		"/reserved-memory/fb0_carveout/reg:" \
+		"/reserved-memory/fb1_carveout/reg:" \
+		"/reserved-memory/fb2_carveout/reg:" \
+		"/reserved-memory/ramoops_carveout/alignment:" \
+		"/reserved-memory/ramoops_carveout/alloc-ranges:" \
+		"/reserved-memory/ramoops_carveout/size:" \
+		"/reserved-memory/vpr-carveout/alignment:" \
+		"/reserved-memory/vpr-carveout/alloc-ranges:" \
+		"/reserved-memory/vpr-carveout/size:" \
 		"/serial-number:" \
-		"/trusty/status\0" \
-	"fdt_del_copy_node_paths=" \
-		"/reserved-memory/fb0_carveout:" \
-		"/reserved-memory/fb1_carveout:" \
-		"/reserved-memory/fb2_carveout:" \
-		"/reserved-memory/ramoops_carveout:" \
-		"/reserved-memory/vpr-carveout\0"
+		"/trusty/status\0"
 
 #define CONFIG_SYS_BOOTM_LEN   (64 << 20)      /* Increase max gunzip size */
 
