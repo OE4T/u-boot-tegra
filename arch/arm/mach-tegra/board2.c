@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- *  (C) Copyright 2010,2011
+ *  (C) Copyright 2010-2021
  *  NVIDIA Corporation <www.nvidia.com>
  */
 
@@ -177,6 +177,10 @@ int board_init(void)
 
 	/* prepare the WB code to LP0 location */
 	warmboot_prepare_code(TEGRA_LP0_ADDR, TEGRA_LP0_SIZE);
+#endif
+
+#if defined(CONFIG_TEGRA210)
+	tegra210_env_drv_config();
 #endif
 	return nvidia_board_init();
 }
