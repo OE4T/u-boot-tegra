@@ -64,7 +64,6 @@
 	"fdt_copy_prop_paths=" \
 		"/bpmp/carveout-start:" \
 		"/bpmp/carveout-size:" \
-		"/chosen/bootargs:" \
 		"/chosen/nvidia,bluetooth-mac:" \
 		"/chosen/nvidia,ether-mac:" \
 		"/chosen/nvidia,wifi-mac:" \
