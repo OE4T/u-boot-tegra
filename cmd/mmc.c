@@ -159,7 +159,7 @@ static struct mmc *__init_mmc_device(int dev, bool force_init,
 	return mmc;
 }
 
-static struct mmc *init_mmc_device(int dev, bool force_init)
+struct mmc *init_mmc_device(int dev, bool force_init)
 {
 	return __init_mmc_device(dev, force_init, MMC_MODES_END);
 }
