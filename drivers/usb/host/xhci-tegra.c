@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0+
-/* Copyright (c) 2020 NVIDIA Corporation */
+/* Copyright (c) 2020-2021 NVIDIA Corporation */
 
 #include <common.h>
 #include <dm.h>
@@ -12,6 +12,7 @@
 #include <asm/arch/powergate.h>
 #include <usb.h>
 #include <linux/libfdt.h>
+#include <linux/sizes.h>
 #include <fdtdec.h>
 #include <malloc.h>
 #include <watchdog.h>
@@ -40,10 +41,14 @@ struct tegra_xhci {
 	struct xhci_hccr *hcd;
 };
 
+int find_rp4_data(char *fwbuffer, long size);
+
 static int tegra_xhci_usb_ofdata_to_platdata(struct udevice *dev)
 {
 	struct tegra_xhci_platdata *plat = dev_get_platdata(dev);
 	int ret = 0;
+	long size = SZ_128K;		/* size of RP4 blob */
+	char *fwbuf;
 
 	debug("%s: entry\n", __func__);
 
@@ -60,7 +65,7 @@ static int tegra_xhci_usb_ofdata_to_platdata(struct udevice *dev)
 	/* Vbus gpio */
 	gpio_request_by_name(dev, "nvidia,vbus-gpio", 0, &plat->vbus_gpio,
 			     GPIOD_IS_OUT);
-
+#ifdef CBOOT_RP4_LOAD
 	/* Get the XUSB firmware address that CBoot saved to DTB, now in env */
 	plat->fw_addr = env_get_hex("xusb_fw_addr", 0);
 
@@ -71,8 +76,32 @@ static int tegra_xhci_usb_ofdata_to_platdata(struct udevice *dev)
 		pr_err("Can't get the XUSB firmware load address!\n");
 		ret = -ENXIO;
 	}
-errout:
 
+#else	/* !CBOOT_RP4_LOAD */
+
+	/* allocate 128KB for RP4 FW, pass to find_rp4_data */
+	fwbuf = malloc(size);
+	if (!fwbuf) {
+		pr_err("Could not allocate %ld byte RP4 buffer!\n", size);
+		ret = -ENOMEM;
+	}
+
+	/* Search QSPI (or eMMC) for RP4 blob, load it to fwbuf */
+	ret = find_rp4_data(fwbuf, size);
+	if (!ret) {
+		debug("%s: Got some RP4 data!\n", __func__ );
+		debug("[U-Boot] found XUSB FW @ 0x%p\n", fwbuf);
+		plat->fw_addr = (u64)fwbuf;
+		plat->fw_addr += 0x28C;
+		debug(" plat->fw_addr is now 0x%lld!\n", plat->fw_addr);
+	} else {
+		pr_err("Cannot read the RP4 data!\n");
+		free(fwbuf);
+		ret = -ENXIO;
+	}
+#endif	/* CBOOT_RP4_LOAD */
+
+errout:
 	return ret;
 }
 

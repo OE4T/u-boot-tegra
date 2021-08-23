@@ -51,11 +51,11 @@ static int is_gpt_valid(struct blk_desc *dev_desc, u64 lba,
 				gpt_header *pgpt_head, gpt_entry **pgpt_pte);
 static gpt_entry *alloc_read_gpt_entries(struct blk_desc *dev_desc,
 					 gpt_header *pgpt_head);
-static int is_pte_valid(gpt_entry * pte);
-static int find_valid_gpt(struct blk_desc *dev_desc, gpt_header *gpt_head,
+int is_pte_valid(gpt_entry * pte);
+int find_valid_gpt(struct blk_desc *dev_desc, gpt_header *gpt_head,
 			  gpt_entry **pgpt_pte);
 
-static char *print_efiname(gpt_entry *pte)
+char *print_efiname(gpt_entry *pte)
 {
 	static char name[PARTNAME_SZ + 1];
 	int i;
@@ -981,7 +981,7 @@ static int is_gpt_valid(struct blk_desc *dev_desc, u64 lba,
  * Description: returns 1 if found a valid gpt,  0 on error.
  * If valid, returns pointers to PTEs.
  */
-static int find_valid_gpt(struct blk_desc *dev_desc, gpt_header *gpt_head,
+int find_valid_gpt(struct blk_desc *dev_desc, gpt_header *gpt_head,
 			  gpt_entry **pgpt_pte)
 {
 	int r;
@@ -1064,7 +1064,7 @@ static gpt_entry *alloc_read_gpt_entries(struct blk_desc *dev_desc,
  *
  * Description: returns 1 if valid,  0 on error.
  */
-static int is_pte_valid(gpt_entry * pte)
+int is_pte_valid(gpt_entry * pte)
 {
 	efi_guid_t unused_guid;
 
