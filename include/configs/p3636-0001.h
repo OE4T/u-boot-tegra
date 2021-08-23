@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 /*
- * Copyright (c) 2020, NVIDIA CORPORATION.
+ * Copyright (c) 2021, NVIDIA CORPORATION.
  */
 
 #ifndef _P3636_0001_H
@@ -31,7 +31,7 @@
 		"ramdisk_addr_r\0" \
 	"kernel_addr_r_align=00200000\0" \
 	"kernel_addr_r_offset=00080000\0" \
-	"kernel_addr_r_size=02000000\0" \
+	"kernel_addr_r_size=08000000\0" \
 	"kernel_addr_r_aliases=loadaddr\0" \
 	"fdt_addr_r_align=00200000\0" \
 	"fdt_addr_r_offset=00000000\0" \
