@@ -92,7 +92,7 @@ static void print_mmcinfo(struct mmc *mmc)
 		}
 	}
 }
-static struct mmc *init_mmc_device(int dev, bool force_init)
+struct mmc *init_mmc_device(int dev, bool force_init)
 {
 	struct mmc *mmc;
 	mmc = find_mmc_device(dev);

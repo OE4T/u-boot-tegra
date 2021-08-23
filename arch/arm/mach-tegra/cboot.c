@@ -597,6 +597,7 @@ static char *cboot_get_bootargs(const void *fdt)
 }
 
 #if defined(CONFIG_TEGRA210)
+#if defined(CBOOT_RP4_LOAD)
 int cboot_get_xusb_fw_addr(void)
 {
 	int node, len, err;
@@ -627,6 +628,7 @@ int cboot_get_xusb_fw_addr(void)
 out:
 	return err;
 }
+#endif  /* CBOOT_RP4_LOAD */
 #endif	/* T210 */
 
 int cboot_late_init(void)
@@ -659,8 +661,8 @@ int cboot_late_init(void)
 		free(bootargs);
 	}
 
-#if defined(CONFIG_TEGRA210)
-	/* T210 XUSB ONLY: get XUSB FW load address */
+#if defined(CBOOT_RP4_LOAD)
+	/* T210 XUSB ONLY: get XUSB FW load address from CBoot */
 	if (cboot_get_xusb_fw_addr())
 		printf("%s: Failed to get XUSB FW address! err: %d\n",
 		       __func__, err);
