@@ -83,11 +83,7 @@
 #define ROOTFS_AB_SELECT \
 	"check_rootfs_ab="                                              \
 	"for args in ${cbootargs}; do "                                 \
-		"rootfs_a=rootfs.slot_suffix=; "                        \
 		"rootfs_b=rootfs.slot_suffix=_b; "                      \
-		"if test ${args} = ${rootfs_a}; then "                  \
-			"setenv devplist 1; "                           \
-		"fi; "                                                  \
 		"if test ${args} = ${rootfs_b}; then "                  \
 			"setenv devplist 2; "                           \
 		"fi; "                                                  \
