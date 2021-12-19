@@ -28,7 +28,7 @@
 		"ramdisk_addr_r\0" \
 	"kernel_addr_r_align=00200000\0" \
 	"kernel_addr_r_offset=00080000\0" \
-	"kernel_addr_r_size=02000000\0" \
+	"kernel_addr_r_size=08000000\0" \
 	"kernel_addr_r_aliases=loadaddr\0" \
 	"fdt_addr_r_align=00200000\0" \
 	"fdt_addr_r_offset=00000000\0" \
