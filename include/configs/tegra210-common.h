@@ -46,7 +46,6 @@
  * etc.), kernel_addr_r is moved to 0x84000000, above fdt/ramdisk and below
  * pxe/script addresses.
  */
-#define CONFIG_LOADADDR 0x83200000
 #define MEM_LAYOUT_ENV_SETTINGS \
 	"scriptaddr=0x90000000\0" \
 	"pxefile_addr_r=0x90100000\0" \
