@@ -4,6 +4,8 @@
 #include <common.h>
 #include <asm/io.h>
 #include <malloc.h>
+#include <asm/system.h>
+#include <linux/delay.h>
 #include "tegra_xhci_fw.h"
 
 #define FW_FROM_PARTITION 0

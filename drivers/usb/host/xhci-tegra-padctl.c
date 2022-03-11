@@ -8,6 +8,7 @@
 #include <asm/io.h>
 #include <asm/arch/clock.h>
 #include <asm/arch-tegra/clk_rst.h>
+#include <linux/delay.h>
 #include "xusb-macros.h"
 #include "tegra_xhci.h"
 
