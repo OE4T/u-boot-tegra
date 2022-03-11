@@ -5,6 +5,7 @@
 #include <dm.h>
 #include <linux/errno.h>
 #include <asm/io.h>
+#include <asm/system.h>
 #include <asm-generic/gpio.h>
 #include <asm/arch/clock.h>
 #include <asm/arch-tegra/usb.h>
@@ -18,6 +19,7 @@
 #include <watchdog.h>
 #include <asm/gpio.h>
 #include <linux/compat.h>
+#include <linux/delay.h>
 #include <usb/xhci.h>
 
 #include "tegra_xhci_fw.h"
@@ -36,7 +38,7 @@ struct tegra_xhci_platdata {
  * Contains pointers to register base addresses for the usb controller.
  */
 struct tegra_xhci {
-	struct usb_platdata usb_plat;
+	struct usb_plat usb_plat;
 	struct xhci_ctrl ctrl;
 	struct xhci_hccr *hcd;
 };
@@ -45,7 +47,7 @@ int find_rp4_data(char *fwbuffer, long size);
 
 static int tegra_xhci_usb_ofdata_to_platdata(struct udevice *dev)
 {
-	struct tegra_xhci_platdata *plat = dev_get_platdata(dev);
+	struct tegra_xhci_platdata *plat = dev_get_plat(dev);
 	int ret = 0;
 	long size = SZ_128K;		/* size of RP4 blob */
 	char *fwbuf;
@@ -331,7 +333,7 @@ static void tegra_xhci_core_exit(struct tegra_xhci *tegra)
 
 static int tegra_xhci_usb_probe(struct udevice *dev)
 {
-	struct tegra_xhci_platdata *plat = dev_get_platdata(dev);
+	struct tegra_xhci_platdata *plat = dev_get_plat(dev);
 	struct tegra_xhci *ctx = dev_get_priv(dev);
 	struct xhci_hcor *hcor;
 	int ret, len;
@@ -385,11 +387,11 @@ U_BOOT_DRIVER(usb_xhci) = {
 	.name	= "xhci_tegra",
 	.id	= UCLASS_USB,
 	.of_match = tegra_xhci_usb_ids,
-	.ofdata_to_platdata = tegra_xhci_usb_ofdata_to_platdata,
+	.of_to_plat = tegra_xhci_usb_ofdata_to_platdata,
 	.probe = tegra_xhci_usb_probe,
 	.remove = tegra_xhci_usb_remove,
 	.ops	= &xhci_usb_ops,
-	.platdata_auto_alloc_size = sizeof(struct tegra_xhci_platdata),
-	.priv_auto_alloc_size = sizeof(struct tegra_xhci),
+	.plat_auto = sizeof(struct tegra_xhci_platdata),
+	.priv_auto = sizeof(struct tegra_xhci),
 	.flags	= DM_FLAG_ALLOC_PRIV_DMA,
 };

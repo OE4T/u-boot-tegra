@@ -116,7 +116,7 @@ config USB_XHCI_BRCM
 
 config USB_XHCI_TEGRA
         bool "Support for NVIDIA Tegra T210 on-chip XHCI USB controller"
-        depends on TEGRA
+        depends on ARCH_TEGRA
         help
           Enable support for TegraT210 on-chip XHCI USB controller
 
