@@ -37,11 +37,6 @@
 		"source ${scriptaddr}; " \
 	"fi\0"
 
-/* General networking support */
-#include "tegra-common-usb-gadget.h"
 #include "tegra-common-post.h"
-
-/* Crystal is 38.4MHz. clk_m runs at half that rate */
-#define COUNTER_FREQUENCY	19200000
 
 #endif /* _P3541_0000_H */
