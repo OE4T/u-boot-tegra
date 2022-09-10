@@ -126,6 +126,14 @@
 	spi@70410000 {
 		status = "okay";
 		spi-max-frequency = <80000000>;
+
+		spiflash@0 {
+			#address-cells = <1>;
+			#size-cells = <1>;
+			compatible = "mx25u3235f", "jedec,spi-nor";
+			reg = <0>;
+			spi-max-frequency = <80000000>;
+		};
 	};
 
 	usb@7d000000 {
